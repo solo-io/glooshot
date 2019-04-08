@@ -1,7 +1,7 @@
 # Base
 #----------------------------------------------------------------------------------
 
-SOLO_NAME := gloo-shot
+SOLO_NAME := glooshot
 SOLO_SHORT_NAME := gs
 ROOTDIR := $(shell pwd)
 OUTPUT_DIR ?= $(ROOTDIR)/_output
@@ -15,7 +15,7 @@ ifeq ($(TAGGED_VERSION),)
 endif
 VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 
-LDFLAGS := "-X github.com/solo-io/$(SOLO_NAME)/services/internal/version.Version=$(VERSION)"
+LDFLAGS := "-X github.com/solo-io/$(SOLO_NAME)/pkg/version.Version=$(VERSION)"
 GCFLAGS := all="-N -l"
 
 # Passed by cloudbuild
@@ -49,7 +49,7 @@ pin-repos:
 
 .PHONY: check-format
 check-format:
-	NOT_FORMATTED=$$(gofmt -l ./services/ ./ci/) && if [ -n "$$NOT_FORMATTED" ]; then echo These files are not formatted: $$NOT_FORMATTED; exit 1; fi
+	NOT_FORMATTED=$$(gofmt -l ./pkg/ ./cmd/ ./ci/) && if [ -n "$$NOT_FORMATTED" ]; then echo These files are not formatted: $$NOT_FORMATTED; exit 1; fi
 
 .PHONY: check-spelling
 check-spelling:
@@ -62,7 +62,7 @@ check-spelling:
 .PHONY: generated-code
 generated-code: $(OUTPUT_DIR)/.generated-code
 
-SUBDIRS:=services ci
+SUBDIRS:=pkg cmd ci
 $(OUTPUT_DIR)/.generated-code:
 	go generate ./...
 	gofmt -w $(SUBDIRS)
@@ -101,49 +101,26 @@ install/$(SOLO_NAME).yaml: prepare-helm
 render-yaml: install/$(SOLO_NAME).yaml
 
 #----------------------------------------------------------------------------------
-# Apiserver
+# glooshot
 #----------------------------------------------------------------------------------
 
-APISERVER_DIR=services/apiserver
-APISERVER_SOURCES=$(shell find $(APISERVER_DIR) -name "*.go" | grep -v test | grep -v generated.go)
+GLOOSHOT_DIR=cmd/glooshot
+GLOOSHOT_SOURCES=$(shell find $(GLOOSHOT_DIR) -name "*.go" | grep -v test | grep -v generated.go)
 
-$(OUTPUT_DIR)/$(SOLO_SHORT_NAME)-apiserver-linux-amd64: $(APISERVER_SOURCES)
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags=$(LDFLAGS) -gcflags=$(GCFLAGS) -o $@ $(APISERVER_DIR)/cmd/main.go
+$(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64: $(GLOOSHOT_SOURCES)
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags=$(LDFLAGS) -gcflags=$(GCFLAGS) -o $@ $(GLOOSHOT_DIR)/main.go
 
-.PHONY: apiserver
-apiserver: $(OUTPUT_DIR)/$(SOLO_SHORT_NAME)-apiserver-linux-amd64
+.PHONY: glooshot
+glooshot: $(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64
 
-$(OUTPUT_DIR)/Dockerfile.apiserver: $(APISERVER_DIR)/cmd/Dockerfile
+$(OUTPUT_DIR)/Dockerfile.glooshot: $(GLOOSHOT_DIR)/Dockerfile
 	cp $< $@
 
-.PHONY: apiserver-docker
-apiserver-docker: $(OUTPUT_DIR)/.apiserver-docker
+.PHONY: glooshot-docker
+glooshot-docker: $(OUTPUT_DIR)/glooshot-docker
 
-$(OUTPUT_DIR)/.apiserver-docker: $(OUTPUT_DIR)/$(SOLO_SHORT_NAME)-apiserver-linux-amd64 $(OUTPUT_DIR)/Dockerfile.apiserver
-	docker build -t soloio/$(SOLO_SHORT_NAME)-apiserver:$(VERSION) $(call get_test_tag_option,$(SOLO_SHORT_NAME)-apiserver) $(OUTPUT_DIR) -f $(OUTPUT_DIR)/Dockerfile.apiserver
-	touch $@
-
-#----------------------------------------------------------------------------------
-# Operator
-#----------------------------------------------------------------------------------
-
-OPERATOR_DIR=services/operator
-OPERATOR_SOURCES=$(shell find $(OPERATOR_DIR) -name "*.go" | grep -v test | grep -v generated.go)
-
-$(OUTPUT_DIR)/$(SOLO_SHORT_NAME)-operator-linux-amd64: $(OPERATOR_SOURCES)
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags=$(LDFLAGS) -gcflags=$(GCFLAGS) -o $@ $(OPERATOR_DIR)/cmd/main.go
-
-.PHONY: operator
-operator: $(OUTPUT_DIR)/$(SOLO_SHORT_NAME)-operator-linux-amd64
-
-$(OUTPUT_DIR)/Dockerfile.operator: $(OPERATOR_DIR)/cmd/Dockerfile
-	cp $< $@
-
-.PHONY: operator-docker
-operator-docker: $(OUTPUT_DIR)/.operator-docker
-
-$(OUTPUT_DIR)/.operator-docker: $(OUTPUT_DIR)/$(SOLO_SHORT_NAME)-operator-linux-amd64 $(OUTPUT_DIR)/Dockerfile.operator
-	docker build -t soloio/$(SOLO_SHORT_NAME)-operator:$(VERSION) $(call get_test_tag_option,$(SOLO_SHORT_NAME)-operator) $(OUTPUT_DIR) -f $(OUTPUT_DIR)/Dockerfile.operator
+$(OUTPUT_DIR)/glooshot-docker: $(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64 $(OUTPUT_DIR)/Dockerfile.glooshot
+	docker build -t soloio/$(SOLO_NAME):$(VERSION) $(call get_test_tag_option,$(SOLO_NAME)) $(OUTPUT_DIR) -f $(OUTPUT_DIR)/Dockerfile.glooshot
 	touch $@
 
 #----------------------------------------------------------------------------------
@@ -171,7 +148,7 @@ ifeq ($(RELEASE),"true")
 endif
 
 .PHONY: docker docker-push
-docker: apiserver-docker operator-docker
+docker: glooshot
 
 # Depends on DOCKER_IMAGES, which is set to docker if RELEASE is "true", otherwise empty (making this a no-op).
 # This prevents executing the dependent targets if RELEASE is not true, while still enabling `make docker`
@@ -179,10 +156,8 @@ docker: apiserver-docker operator-docker
 # docker-push is intended to be run by CI
 docker-push: $(DOCKER_IMAGES)
 ifeq ($(RELEASE),"true")
-	docker push soloio/$(SOLO_SHORT_NAME)-operator:$(VERSION) && \
-	docker push soloio/$(SOLO_SHORT_NAME)-apiserver:$(VERSION)
+	docker push soloio/$(SOLO_NAME):$(VERSION)
 endif
 
 push-kind-images: docker
-	kind load docker-image soloio/$(SOLO_SHORT_NAME)-operator:$(VERSION) --name $(CLUSTER_NAME) && \
-	kind load docker-image soloio/$(SOLO_SHORT_NAME)-apiserver:$(VERSION) --name $(CLUSTER_NAME)
+	kind load docker-image soloio/$(SOLO_NAME):$(VERSION) --name $(CLUSTER_NAME)
