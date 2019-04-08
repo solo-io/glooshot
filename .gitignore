@@ -1,0 +1,6 @@
+
+# Editor files
+.idea/
+
+# Build artifacts
+_output/
