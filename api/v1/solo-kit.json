@@ -1,7 +1,8 @@
 {
-  "name": "glooshot",
+  "title": "Gloo Shot Chaos Engineering Framework",
+  "name": "glooshot.solo.io",
   "version": "v1",
-  "package_name": "v1",
+  "docs_dir": "docs/v1",
   "resource_groups": {
     "api.glooshot.solo.io": [
       {

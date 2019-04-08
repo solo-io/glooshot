@@ -1,6 +1,6 @@
 syntax = "proto3";
 package glooshot.solo.io;
-option go_package = "github.com/solo-io/solo-projects/projects/glooshot/pkg/api/v1";
+option go_package = "github.com/solo-io/glooshot/pkg/api/v1";
 
 import "gogoproto/gogo.proto";
 option (gogoproto.equal_all) = true;
@@ -16,8 +16,6 @@ message Experiment {
 
     option (core.solo.io.resource).short_name = "exp";
     option (core.solo.io.resource).plural_name = "experiments";
-    // TODO: remove when we are ready to include this resource in the docs
-    option (core.solo.io.resource).skip_docs_gen = true;
 
     // Metadata contains the object metadata for this resource
     core.solo.io.Metadata metadata = 1 [(gogoproto.nullable) = false];

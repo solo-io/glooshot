@@ -4,3 +4,4 @@
 
 # Build artifacts
 _output/
+vendor/
