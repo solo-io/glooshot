@@ -53,7 +53,7 @@ type Experiment interface {
 	// Select specific properties (i.e.: fail only a subset, fail only a certain ratio of the requests)
 	// perhaps we can com up with a better name
 	FaultSelector() FaultSelector
-	// how long the expirement
+	// how long the experiment
 	Duration() time.Duration
 }
 
