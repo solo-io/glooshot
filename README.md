@@ -13,6 +13,7 @@ Gloo Shot is a chaos engineering framework for service meshes.
 &nbsp; [**Slack**](https://slack.solo.io) &nbsp; |
 &nbsp; [**Twitter**](https://twitter.com/soloio_inc)
 
+
 ## Summary
 
 - [**Using Gloo Shot**](#using-gloo)
