@@ -1,0 +1,10 @@
+# configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: glooshot-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: glooshot
+data:
+  refreshRate: 1s

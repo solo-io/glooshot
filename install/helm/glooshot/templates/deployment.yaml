@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: glooshot
+  name: glooshot
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.operator.deployment.replicas }}
+  template:
+    spec:
+      containers:
+      - image: "{{ .Values.operator.deployment.image.repository }}:{{ .Values.operator.deployment.image.tag }}"
+        imagePullPolicy: {{ .Values.operator.deployment.image.pullPolicy }}
+        name: glooshot
+        env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+      {{- if .Values.operator.deployment.image.pullSecret }}
+      imagePullSecrets:
+      - name: solo-io-docker-secret
+      {{- end -}}
+

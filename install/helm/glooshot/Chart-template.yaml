@@ -1,0 +1,12 @@
+apiVersion: v1
+description: Service Mesh Marketplace Helm chart for Kubernetes
+name: sm-marketplace
+home: https://solo.io/
+sources:
+  - https://github.com/solo-io/sm-marketplace
+keywords:
+  - mesh
+  - servicemesh
+  - istio
+  - appmesh
+  - supergloo

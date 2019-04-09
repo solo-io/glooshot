@@ -1,0 +1,22 @@
+namespace:
+  create: false
+rbac:
+  create: true
+crds:
+  create: true
+
+apiserver:
+  deployment:
+    image:
+      repository: soloio/smm-apiserver
+      pullPolicy: Always
+      pullSecret: solo-io-docker-secret
+    replicas: 1
+  grpcPort: 10101
+operator:
+  deployment:
+    image:
+      repository: soloio/smm-operator
+      pullPolicy: Always
+      pullSecret: solo-io-docker-secret
+    replicas: 1
