@@ -109,8 +109,11 @@ GLOOSHOT_SOURCES=$(shell find $(GLOOSHOT_DIR) -name "*.go" | grep -v test | grep
 $(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64: $(GLOOSHOT_SOURCES)
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags=$(LDFLAGS) -gcflags=$(GCFLAGS) -o $@ $(GLOOSHOT_DIR)/main.go
 
+$(OUTPUT_DIR)/$(SOLO_NAME)-darwin: $(GLOOSHOT_SOURCES)
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -ldflags=$(LDFLAGS) -gcflags=$(GCFLAGS) -o $@ $(GLOOSHOT_DIR)/main.go
+
 .PHONY: glooshot
-glooshot: $(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64
+glooshot: $(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64 $(OUTPUT_DIR)/$(SOLO_NAME)-darwin
 
 $(OUTPUT_DIR)/Dockerfile.glooshot: $(GLOOSHOT_DIR)/Dockerfile
 	cp $< $@
