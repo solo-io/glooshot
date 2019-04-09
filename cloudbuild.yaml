@@ -39,13 +39,13 @@ steps:
   env:
   - 'LSCOMMAND=find * -path gopath -prune -o -print'
   id: 'check-spelling'
-### Can create a dep cache by running 'gcloud builds submit . --config=cloudbuild-cache.yaml'
-### These two steps should populate the cache
-##- name: gcr.io/cloud-builders/gsutil
-##  entrypoint: 'bash'
-##  args: ['-c', 'mkdir -p ./gopath/pkg/dep && gsutil cat gs://gloo-ee-cache/glooshot/glooshot-dep.tar.gz | tar -xzf -']
-##  id: 'download-untar-dep-cache'
-##  waitFor: ['-']
+# Can create a dep cache by running 'gcloud builds submit . --config=cloudbuild-cache.yaml' (make sure you have set your gcloud project correctly)
+# These two steps should populate the cache
+- name: gcr.io/cloud-builders/gsutil
+  entrypoint: 'bash'
+  args: ['-c', 'mkdir -p ./gopath/pkg/dep && gsutil cat gs://gloo-ee-cache/glooshot/glooshot-dep.tar.gz | tar -xzf -']
+  id: 'download-untar-dep-cache'
+  waitFor: ['-']
 
 # Run dep to set up the project so it can be built and tested
 # Dep modifies workspace so that the code is moved into the PROJECT_ROOT
@@ -56,8 +56,7 @@ steps:
     - 'PROJECT_ROOT=github.com/solo-io/glooshot'
     - 'GIT_SSH_CONFIG=FALSE'
   id: 'dep'
-  waitFor: ['-']
-  #waitFor: ['download-untar-dep-cache']
+  waitFor: ['download-untar-dep-cache']
 
 # Helm related setup
 - name: gcr.io/cloud-builders/gsutil
