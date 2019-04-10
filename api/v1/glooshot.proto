@@ -60,7 +60,7 @@ message MetricThreshold {
 
 message ChaosSettings {
     /*
-    - specify promethues?
+    - specify prometheus?
     - 
     */
 }

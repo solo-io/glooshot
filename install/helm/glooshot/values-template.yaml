@@ -1,0 +1,14 @@
+namespace:
+  create: false
+rbac:
+  create: true
+crds:
+  create: true
+
+glooshot:
+  deployment:
+    image:
+      repository: soloio/glooshot
+      pullPolicy: Always
+      pullSecret: solo-io-docker-secret
+    replicas: 1

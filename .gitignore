@@ -3,5 +3,7 @@
 .idea/
 
 # Build artifacts
-_output/
 vendor/
+_output/
+_test
+install/glooshot.yaml

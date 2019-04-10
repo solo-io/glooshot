@@ -6,4 +6,4 @@ RUN apk upgrade --update-cache \
 
 COPY glooshot-linux-amd64 /usr/local/bin/glooshot
 
-ENTRYPOINT ["/usr/local/bin/apiserver"]
+ENTRYPOINT ["/usr/local/bin/glooshot"]

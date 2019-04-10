@@ -1,0 +1,15 @@
+apiVersion: v1
+description: Glooshot Helm chart for Kubernetes
+name: glooshot
+home: https://solo.io/
+sources:
+  - https://github.com/solo-io/glooshot
+keywords:
+  - mesh
+  - servicemesh
+  - istio
+  - appmesh
+  - supergloo
+  - chaos
+  - engineering
+  - chaosengineering
