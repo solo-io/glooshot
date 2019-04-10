@@ -7,6 +7,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/setup"
+
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
@@ -14,9 +16,6 @@ import (
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-utils/contextutils"
-	"github.com/solo-io/go-utils/kubeutils"
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients/factory"
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
 )
 
 func main() {
@@ -36,22 +35,14 @@ func Run() error {
 	flag.Parse()
 
 	if name == "" {
-		log.Fatalf("Must provide an experiment namme")
+		return fmt.Errorf("must provide an experiment namme")
 	}
 
-	cfg, err := kubeutils.GetConfig("", "")
+	ctx := contextutils.WithLogger(context.Background(), version.AppName)
+	client, err := setup.GetExperimentClient(ctx, true)
 	if err != nil {
 		return err
 	}
-	ctx := contextutils.WithLogger(context.Background(), version.AppName)
-	cache := kube.NewKubeCache(ctx)
-	rcFactory := &factory.KubeResourceClientFactory{
-		Crd:         v1.ExperimentCrd,
-		Cfg:         cfg,
-		SharedCache: cache,
-	}
-	client, err := v1.NewExperimentClient(rcFactory)
-	client.Register()
 
 	minute := time.Minute
 	exp := &v1.Experiment{
