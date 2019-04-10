@@ -83,17 +83,14 @@ func generateValuesYaml(version, repositoryPrefix string) error {
 		return err
 	}
 
-	cfg.ApiServer.Deployment.Image.Tag = version
-	cfg.Operator.Deployment.Image.Tag = version
+	cfg.Glooshot.Deployment.Image.Tag = version
 
 	if version == "dev" {
-		cfg.ApiServer.Deployment.Image.PullPolicy = ifNotPresent
-		cfg.Operator.Deployment.Image.PullPolicy = ifNotPresent
+		cfg.Glooshot.Deployment.Image.PullPolicy = ifNotPresent
 	}
 
 	if repositoryPrefix != "" {
-		cfg.ApiServer.Deployment.Image.Repository = replacePrefix(cfg.ApiServer.Deployment.Image.Repository, repositoryPrefix)
-		cfg.Operator.Deployment.Image.Repository = replacePrefix(cfg.Operator.Deployment.Image.Repository, repositoryPrefix)
+		cfg.Glooshot.Deployment.Image.Repository = replacePrefix(cfg.Glooshot.Deployment.Image.Repository, repositoryPrefix)
 	}
 
 	return writeYaml(cfg, valuesOutput)

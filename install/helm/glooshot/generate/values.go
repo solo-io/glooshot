@@ -1,11 +1,10 @@
 package generate
 
 type Config struct {
-	Namespace *Namespace        `json:"namespace,omitempty"`
-	Rbac      *Rbac             `json:"rbac,omitempty"`
-	Crds      *Crds             `json:"crds,omitempty"`
-	ApiServer *MeshAppApiserver `json:"apiserver,omitempty"`
-	Operator  *MeshAppOperator  `json:"operator,omitempty"`
+	Namespace *Namespace `json:"namespace,omitempty"`
+	Rbac      *Rbac      `json:"rbac,omitempty"`
+	Crds      *Crds      `json:"crds,omitempty"`
+	Glooshot  *Glooshot  `json:"glooshot,omitempty"`
 }
 
 type Namespace struct {
@@ -39,21 +38,11 @@ type Settings struct {
 	Extensions      interface{} `json:"extensions,omitempty"`
 }
 
-type MeshAppApiserver struct {
-	Deployment *MeshAppApiserverDeployment `json:"deployment,omitempty"`
-	GrpcPort   int                         `json:"grpcPort,omitempty"`
+type Glooshot struct {
+	Deployment *GlooshotDeployment `json:"deployment,omitempty"`
 }
 
-type MeshAppApiserverDeployment struct {
-	Image *Image `json:"image,omitempty"`
-	*DeploymentSpec
-}
-
-type MeshAppOperator struct {
-	Deployment *MeshAppOperatorDeployment `json:"deployment,omitempty"`
-}
-
-type MeshAppOperatorDeployment struct {
+type GlooshotDeployment struct {
 	Image *Image `json:"image,omitempty"`
 	*DeploymentSpec
 }
