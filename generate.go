@@ -9,8 +9,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/utils/log"
 )
 
-//go:generate go run generate.go
-
 func main() {
 	err := checkVersions()
 	if err != nil {
