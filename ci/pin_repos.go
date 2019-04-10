@@ -37,8 +37,7 @@ func fatalCheck(err error, msg string) {
 }
 
 func FetchGitRepo(relativeRepoDir string) error {
-	tag := GetTag(version)
-	cmd := exec.Command("git", "fetch", origin)
+	cmd := exec.Command("git", "fetch", "origin")
 	cmd.Dir = relativeRepoDir
 	buf := &bytes.Buffer{}
 	out := io.MultiWriter(buf, os.Stdout)
