@@ -13,6 +13,7 @@ git add .
 git commit -m "set up dummy repo for diffing" -q --allow-empty
 
 git clone https://github.com/solo-io/solo-kit /workspace/gopath/src/github.com/solo-io/solo-kit
+git clone https://github.com/solo-io/gloo /workspace/gopath/src/github.com/solo-io/gloo
 
 make update-deps
 make pin-repos
@@ -21,8 +22,7 @@ PATH=/workspace/gopath/bin:$PATH
 
 set +e
 
-#make generated-code -B > /dev/null
-make generated-code -B
+make generated-code -B > /dev/null
 if [[ $? -ne 0 ]]; then
   echo "Code generation failed"
   exit 1;
