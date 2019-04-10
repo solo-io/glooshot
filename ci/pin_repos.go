@@ -24,6 +24,9 @@ func main() {
 
 	fatalCheck(version.PinGitVersion("../solo-kit", soloKitVersion), "consider git fetching in solo-kit repo")
 
+	if err := lsDir("../gloo"); err != nil {
+		fmt.Printf("Error while ls on gloo: %v\n", err)
+	}
 	if err := FetchGitRepo("../gloo"); err != nil {
 		fmt.Printf("Error while fetching gloo: %v\n", err)
 	}
@@ -38,6 +41,19 @@ func fatalCheck(err error, msg string) {
 
 func FetchGitRepo(relativeRepoDir string) error {
 	cmd := exec.Command("git", "fetch", "origin")
+	cmd.Dir = relativeRepoDir
+	buf := &bytes.Buffer{}
+	out := io.MultiWriter(buf, os.Stdout)
+	cmd.Stdout = out
+	cmd.Stderr = out
+	if err := cmd.Run(); err != nil {
+		return errors.Wrapf(err, "%v failed: %s", cmd.Args, buf.String())
+	}
+	return nil
+}
+
+func lsDir(relativeRepoDir string) error {
+	cmd := exec.Command("ls", "-l", "-a")
 	cmd.Dir = relativeRepoDir
 	buf := &bytes.Buffer{}
 	out := io.MultiWriter(buf, os.Stdout)
