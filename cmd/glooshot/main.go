@@ -114,20 +114,40 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 		return nil
 	}
 	g.lastHash = hash
+	unchangedCount := 0
+	updatedCount := 0
+	createdCount := 0
+	deletedCount := 0
+	existingKeys := make(map[string]bool)
 	for _, exp := range snap.Experiments.List() {
 		key := resources.Key(exp)
 		val, ok := g.last[key]
-		if ok && val == exp.Metadata.ResourceVersion {
-			continue
-		}
-		g.last[key] = exp.Metadata.ResourceVersion
 		if ok {
-			fmt.Printf("Updated experiment: %v\n", key)
+			if val == exp.Metadata.ResourceVersion {
+				unchangedCount++
+			} else {
+				updatedCount++
+				fmt.Printf("Updated experiment: %v\n", key)
+			}
 		} else {
-			fmt.Printf("Received new experiment: %v\n", key)
+			createdCount++
+			fmt.Printf("Created experiment: %v\n", key)
 		}
-
+		existingKeys[key] = true
+		g.last[key] = exp.Metadata.ResourceVersion
 	}
+	for k := range g.last {
+		if _, ok := existingKeys[k]; !ok {
+			delete(g.last, k)
+			deletedCount++
+			fmt.Printf("Deleted experiment: %v\n", k)
+		}
+	}
+	fmt.Printf("Experiments: Created: %v, updated: %v, deleted %v, unchanged: %v\n",
+		createdCount,
+		updatedCount,
+		deletedCount,
+		unchangedCount)
 	return nil
 }
 

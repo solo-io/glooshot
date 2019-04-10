@@ -21,7 +21,9 @@ import (
 
 func main() {
 
-	log.Fatal(Run())
+	if err := Run(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func Run() error {
@@ -57,8 +59,10 @@ func Run() error {
 			Namespace: namespace,
 			Name:      name,
 		},
-		Spec: &v1.ExperimentSpec{
-			Faults: nil,
+	}
+	switch mode {
+	case "a":
+		exp.Spec = &v1.ExperimentSpec{
 			StopCondition: &v1.StopCondition{
 				Duration: &minute,
 				Metric: []*v1.MetricThreshold{
@@ -67,15 +71,21 @@ func Run() error {
 						Value:      9000,
 					}},
 			},
-		},
-	}
-	switch mode {
-	case "m1":
-		fmt.Println("not implemented")
+		}
+	case "b":
+		exp.Spec = &v1.ExperimentSpec{
+			StopCondition: &v1.StopCondition{
+				Duration: &minute,
+				Metric: []*v1.MetricThreshold{
+					{
+						MetricName: "cores",
+						Value:      10,
+					}},
+			},
+		}
 	default:
-		fmt.Println("attempting to write")
-		_, err := client.Write(exp, clients.WriteOpts{})
-		return err
 	}
-	return nil
+	fmt.Println("attempting to write")
+	_, err = client.Write(exp, clients.WriteOpts{})
+	return err
 }
