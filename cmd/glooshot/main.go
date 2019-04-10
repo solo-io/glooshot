@@ -24,45 +24,72 @@ import (
 )
 
 func main() {
-	fmt.Println("todo - apiserver runner")
-	http.HandleFunc("/todo", handleTODO)
-	dh := defaultHandler{}
-	http.Handle("/", dh)
+	sh := NewStatsHandler()
+	http.Handle("/", sh)
 	go http.ListenAndServe("localhost:8085", nil)
 	log.Fatal(Run())
 
 }
 
-func handleTODO(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "TODO")
+type statsHandler struct {
+	ctx context.Context
 }
 
-type defaultHandler struct{}
+func NewStatsHandler() statsHandler {
+	return statsHandler{
+		ctx: contextutils.WithLogger(context.Background(), version.AppName),
+	}
+}
 
-func (d defaultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello from default")
+func (d statsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Glooshot stats\n")
+	ok := func(err error) bool {
+		if err != nil {
+			contextutils.LoggerFrom(d.ctx).Errorf("error getting client: %v", err)
+			fmt.Fprintf(w, "error in stats handler %v", err)
+			return false
+		}
+		return true
+	}
+	client, err := getExperimentClient(d.ctx)
+	if !ok(err) {
+		return
+	}
+	experimentNamespaces := getExperimentNamespaces(d.ctx)
+	expCount := 0
+	summary := "Experiment Summary\n"
+	for _, ns := range experimentNamespaces {
+		exps, err := client.List(ns, clients.ListOpts{})
+		if !ok(err) {
+			return
+		}
+		for _, exp := range exps {
+			summary += fmt.Sprintf("%v, %v: %v\n",
+				exp.Metadata.Namespace,
+				exp.Metadata.Name,
+				exp.Status.State.String())
+			expCount++
+		}
+	}
+	fmt.Fprintf(w, "Count: %v\n", expCount)
+	fmt.Fprintf(w, "%v\n", summary)
+}
+
+func getExperimentNamespaces(ctx context.Context) []string {
+	contextutils.LoggerFrom(ctx).Errorf("TODO: implement getExperimentNamespaces")
+	return []string{"default"}
 }
 
 func Run() error {
 	start := time.Now()
 	checkpoint.CallCheck(version.AppName, version.Version, start)
-	// prevent panic if multiple flag.Parse called concurrently
 	flag.Parse()
-	cfg, err := kubeutils.GetConfig("", "")
+
+	ctx := contextutils.WithLogger(context.Background(), version.AppName)
+	client, err := getExperimentClient(ctx)
 	if err != nil {
 		return err
 	}
-	ctx := contextutils.WithLogger(context.Background(), version.AppName)
-	cache := kube.NewKubeCache(ctx)
-	rcFactory := &factory.KubeResourceClientFactory{
-		Crd:             v1.ExperimentCrd,
-		Cfg:             cfg,
-		SharedCache:     cache,
-		SkipCrdCreation: true,
-	}
-	client, err := v1.NewExperimentClient(rcFactory)
-	client.Register()
-
 	syncer := NewSyncer()
 	el := v1.NewApiEventLoop(v1.NewApiEmitter(client), syncer)
 	errs, err := el.Run([]string{}, clients.WatchOpts{
@@ -109,4 +136,21 @@ func NewSyncer() glooshotSyncer {
 		lastHash: 0,
 		last:     make(map[string]string),
 	}
+}
+
+func getExperimentClient(ctx context.Context) (v1.ExperimentClient, error) {
+	cfg, err := kubeutils.GetConfig("", "")
+	if err != nil {
+		return nil, err
+	}
+	cache := kube.NewKubeCache(ctx)
+	rcFactory := &factory.KubeResourceClientFactory{
+		Crd:             v1.ExperimentCrd,
+		Cfg:             cfg,
+		SharedCache:     cache,
+		SkipCrdCreation: true,
+	}
+	client, err := v1.NewExperimentClient(rcFactory)
+	client.Register()
+	return client, nil
 }
