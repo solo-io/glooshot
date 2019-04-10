@@ -3,9 +3,9 @@ package e2e
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/solo-io/go-utils/kubeutils"
 	"k8s.io/client-go/kubernetes"
@@ -31,7 +31,7 @@ var _ = Describe("Glooshot", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		var err error
-		client, err = setup.GetExperimentClient(ctx, true)
+		client, err = setup.GetExperimentClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
 		go setup.Run()
 	})
@@ -46,13 +46,13 @@ var _ = Describe("Glooshot", func() {
 		_, err := client.Write(exp, clients.WriteOpts{})
 		Expect(err).NotTo(HaveOccurred())
 
+		time.Sleep(time.Second)
 		body, err := curl(url)
 		Expect(err).NotTo(HaveOccurred())
-		fmt.Println(body)
 		str := `Glooshot stats
 Count: 1
 Experiment Summary
-default, testexperiment: Pending
+default, testexperiment: Accepted
 `
 		ExpectWithOffset(1, body).To(Equal(str))
 

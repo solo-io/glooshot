@@ -39,7 +39,7 @@ func Run() error {
 	}
 
 	ctx := contextutils.WithLogger(context.Background(), version.AppName)
-	client, err := setup.GetExperimentClient(ctx, true)
+	client, err := setup.GetExperimentClient(ctx, false)
 	if err != nil {
 		return err
 	}

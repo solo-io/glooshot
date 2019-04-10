@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-checkpoint"
@@ -38,7 +40,7 @@ func (d StatsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return true
 	}
-	client, err := GetExperimentClient(d.ctx, false)
+	client, err := GetExperimentClient(d.ctx, true)
 	if !ok(err) {
 		return
 	}
@@ -77,11 +79,11 @@ func Run() error {
 	go http.ListenAndServe("localhost:8085", nil)
 
 	ctx := contextutils.WithLogger(context.Background(), version.AppName)
-	client, err := GetExperimentClient(ctx, false)
+	client, err := GetExperimentClient(ctx, true)
 	if err != nil {
 		return err
 	}
-	syncer := NewSyncer()
+	syncer := NewSyncer(client)
 	el := v1.NewApiEventLoop(v1.NewApiEmitter(client), syncer)
 	errs, err := el.Run([]string{}, clients.WatchOpts{
 		Ctx:         ctx,
@@ -95,8 +97,9 @@ func Run() error {
 }
 
 type glooshotSyncer struct {
-	lastHash uint64
-	last     map[string]string
+	expClient v1.ExperimentClient
+	lastHash  uint64
+	last      map[string]string
 }
 
 func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
@@ -123,6 +126,9 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 		} else {
 			createdCount++
 			fmt.Printf("Created experiment: %v\n", key)
+			if err := g.mutateNewlyCreatedExperiments(exp); err != nil {
+				contextutils.LoggerFrom(ctx).Errorf("sync mutation failed on %v: %v", key, err)
+			}
 		}
 		existingKeys[key] = true
 		g.last[key] = exp.Metadata.ResourceVersion
@@ -142,14 +148,28 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	return nil
 }
 
-func NewSyncer() glooshotSyncer {
+func (g glooshotSyncer) getClient() v1.ExperimentClient {
+	if g.expClient != nil {
+		return g.expClient
+	}
+	return g.expClient
+}
+
+func (g glooshotSyncer) mutateNewlyCreatedExperiments(exp *v1.Experiment) error {
+	exp.Status.State = core.Status_Accepted
+	_, err := g.expClient.Write(exp, clients.WriteOpts{OverwriteExisting: true})
+	return err
+}
+
+func NewSyncer(client v1.ExperimentClient) glooshotSyncer {
 	return glooshotSyncer{
-		lastHash: 0,
-		last:     make(map[string]string),
+		expClient: client,
+		lastHash:  0,
+		last:      make(map[string]string),
 	}
 }
 
-func GetExperimentClient(ctx context.Context, registerCrd bool) (v1.ExperimentClient, error) {
+func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.ExperimentClient, error) {
 	cfg, err := kubeutils.GetConfig("", "")
 	if err != nil {
 		return nil, err
@@ -159,7 +179,7 @@ func GetExperimentClient(ctx context.Context, registerCrd bool) (v1.ExperimentCl
 		Crd:             v1.ExperimentCrd,
 		Cfg:             cfg,
 		SharedCache:     cache,
-		SkipCrdCreation: registerCrd,
+		SkipCrdCreation: skipCrdCreation,
 	}
 	client, err := v1.NewExperimentClient(rcFactory)
 	client.Register()
