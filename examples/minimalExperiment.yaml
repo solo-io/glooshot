@@ -1,0 +1,5 @@
+apiVersion: glooshot.solo.io/v1
+kind: Experiment
+metadata:
+  name: minimal4
+  namespace: default

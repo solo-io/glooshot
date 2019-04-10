@@ -1,0 +1,4 @@
+changelog:
+- type: NEW_FEATURE
+  description: Watch Experiment CRDs and log updates.
+  issueLink: https://github.com/solo-io/glooshot/issues/4
