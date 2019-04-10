@@ -6,6 +6,74 @@
 
 Gloo Shot is a chaos engineering framework for service meshes.
 
+<div style="background:yellow;color:black"><b>START pre-release notes >>>>>>>>>>>>>>>>>>>>></b></div>
+
+<br> <div style="background:yellow;color:black"><b>:::: TODO ::::</b></div>
+### High-level
+
+ - [x] get CI running
+ - [ ] require approvals before commit
+ - [ ] cli
+ - [ ] documentation
+ - [ ] publish documentation to glooshot.solo.io
+ - [ ] demo app
+ - [ ] tutorial app
+ - [ ] fill in the Readme
+ - [ ] link with Squash (in demo at least)
+ - [ ] basic ui for demo purposes
+ - [ ] e2e tests
+ 
+### Core features
+
+- [ ] Experiment specification
+- [ ] Results report
+
+### E2E Tests (BDD)
+- **make test and check off list as features are implmented**
+- [ ] CLI should allow user to define an experiment
+- [ ] CLI should allow user to start an experiment
+- [ ] CLI should allow user to terminate an experiment
+- [ ] CLI should allow user to schedule an experiment for later
+- [ ] CLI should allow user to define auto-termination conditions for experiments
+- [ ] CLI should allow user to view results??
+  - results will manifest as system metrics, what sort of report summary should Glooshot produce?
+- [ ] Glooshot should watch Experiment CRDs and respond to their changes
+- [ ] Glooshot should clean up all of its resources
+- [ ] Glooshot should be able to deploy concurrent experiments
+- [ ] Glooshot should be able terminate one experiment without affecting others
+- [ ] Glooshot should be able to verify that an experiment is active
+- [ ] (P2) CLI should provide simple before/during experiment stats
+
+### Details
+
+- [ ] watch experiment crds from glooshot
+- [ ] create sample yamls for experiments
+- [ ] document how to create experiments from cli (with kubectl)
+
+### Research
+
+- [ ] identify api gaps
+- [ ] connect to istio
+- [ ] connect to appmesh
+- [ ] connect to linkerd
+
+<div style="background:yellow;color:black"><b>:::: Development Notes ::::</b></div>
+
+### How to run
+- see [DEVELOPMENT](./DEVELOPMENT.md)
+
+### Verify status
+```
+kubectl port-forward -n deploy/glooshot 8085
+## check the dummy endpoints
+curl localhost:8085
+# expect "Hello from default"
+curl localhost:8085/todo
+# expect "TODO"
+```
+
+<div style="background:yellow;color:black"><b>END pre-release notes <<<<<<<<<<<<<<<<<<<<<</b></div>
+
 
 [**Installation**](https://gloo.solo.io/installation/) &nbsp; |
 &nbsp; [**Documentation**](https://gloo.solo.io) &nbsp; |
