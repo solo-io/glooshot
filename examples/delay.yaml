@@ -1,0 +1,21 @@
+apiVersion: glooshot.solo.io/v1
+kind: Experiment
+metadata:
+  name: sample
+  namespace: default
+spec:
+  spec:
+    faults:
+    - fault:
+        delay:
+          fixedDelay: 1s
+          percentage: 100
+      service:
+        upstream:
+          name: todo
+          namespace: default
+    stopCondition:
+      duration: 60s
+      metric:
+      - metricName: dinner
+        value: 1800

@@ -13,6 +13,8 @@ import (
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 
+	gloov1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
+	faultinjection "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection"
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-utils/contextutils"
@@ -45,34 +47,59 @@ func Run() error {
 	}
 
 	minute := time.Minute
+	delayTime := time.Second
 	exp := &v1.Experiment{
 		Metadata: core.Metadata{
 			Namespace: namespace,
 			Name:      name,
 		},
 	}
+	faults1 := []*v1.ExperimentSpec_InjectedFault{{
+		Service: &gloov1.Destination{
+			Upstream: core.ResourceRef{
+				Name:      "todo",
+				Namespace: "default",
+			},
+		},
+		Fault: &faultinjection.RouteFaults{
+			Delay: &faultinjection.RouteDelay{
+				Percentage: 100,
+				FixedDelay: &delayTime,
+			},
+		},
+	}}
+	faults2 := []*v1.ExperimentSpec_InjectedFault{{
+		Service: &gloov1.Destination{
+			Upstream: core.ResourceRef{
+				Name:      "todo",
+				Namespace: "default",
+			},
+		},
+		Fault: &faultinjection.RouteFaults{
+			Abort: &faultinjection.RouteAbort{
+				Percentage: 100,
+				HttpStatus: 404,
+			},
+		},
+	}}
+	stop1 := &v1.StopCondition{
+		Duration: &minute,
+		Metric: []*v1.MetricThreshold{
+			{
+				MetricName: "dinner",
+				Value:      1800,
+			}},
+	}
 	switch mode {
 	case "a":
 		exp.Spec = &v1.ExperimentSpec{
-			StopCondition: &v1.StopCondition{
-				Duration: &minute,
-				Metric: []*v1.MetricThreshold{
-					{
-						MetricName: "frank",
-						Value:      9000,
-					}},
-			},
+			Faults:        faults1,
+			StopCondition: stop1,
 		}
 	case "b":
 		exp.Spec = &v1.ExperimentSpec{
-			StopCondition: &v1.StopCondition{
-				Duration: &minute,
-				Metric: []*v1.MetricThreshold{
-					{
-						MetricName: "cores",
-						Value:      10,
-					}},
-			},
+			Faults:        faults2,
+			StopCondition: stop1,
 		}
 	default:
 	}
