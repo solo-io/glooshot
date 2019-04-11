@@ -7,9 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/solo-io/go-utils/kubeutils"
-	"k8s.io/client-go/kubernetes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
@@ -70,14 +67,7 @@ func getNewExperiment(namespace, name string) *v1.Experiment {
 	}
 }
 
-func MustKubeClient() kubernetes.Interface {
-	restConfig, err := kubeutils.GetConfig("", "")
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	kubeClient, err := kubernetes.NewForConfig(restConfig)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	return kubeClient
-}
-
+// TODO(mitchdraft) migrate this to go-utils https://github.com/solo-io/glooshot/issues/16
 func curl(url string) (string, error) {
 	body := bytes.NewReader([]byte(url))
 	req, err := http.NewRequest("GET", url, body)

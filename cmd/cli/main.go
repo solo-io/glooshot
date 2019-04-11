@@ -4,8 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"time"
+
+	"github.com/solo-io/glooshot/pkg/version"
+	"go.uber.org/zap"
 
 	"github.com/solo-io/glooshot/pkg/setup"
 
@@ -14,20 +16,27 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 
 	gloov1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
-	faultinjection "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection"
+	"github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection"
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
-	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-utils/contextutils"
 )
 
+func getInitialContext() context.Context {
+	loggingContext := []interface{}{"version", version.Version}
+	ctx := contextutils.WithLogger(context.Background(), version.CliAppName)
+	ctx = contextutils.WithLoggerValues(ctx, loggingContext...)
+	return ctx
+}
+
 func main() {
 
-	if err := Run(); err != nil {
-		log.Fatal(err)
+	ctx := getInitialContext()
+	if err := Run(ctx); err != nil {
+		contextutils.LoggerFrom(ctx).Fatalw("msg", zap.Error(err))
 	}
 }
 
-func Run() error {
+func Run(ctx context.Context) error {
 	var mode string
 	var namespace string
 	var name string
@@ -40,7 +49,6 @@ func Run() error {
 		return fmt.Errorf("must provide an experiment namme")
 	}
 
-	ctx := contextutils.WithLogger(context.Background(), version.AppName)
 	client, err := setup.GetExperimentClient(ctx, false)
 	if err != nil {
 		return err

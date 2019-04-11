@@ -8,10 +8,6 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = BeforeSuite(func() {
-
-})
-
 func TestE2e(t *testing.T) {
 
 	helpers.RegisterCommonFailHandlers()
