@@ -5,7 +5,6 @@ package v1
 import (
 	"sort"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube/crd"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
@@ -15,22 +14,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// TODO: modify as needed to populate additional fields
 func NewExperiment(namespace, name string) *Experiment {
-	return &Experiment{
-		Metadata: core.Metadata{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-}
-
-func (r *Experiment) SetStatus(status core.Status) {
-	r.Status = status
+	experiment := &Experiment{}
+	experiment.SetMetadata(core.Metadata{
+		Name:      name,
+		Namespace: namespace,
+	})
+	return experiment
 }
 
 func (r *Experiment) SetMetadata(meta core.Metadata) {
 	r.Metadata = meta
+}
+
+func (r *Experiment) SetStatus(status core.Status) {
+	r.Status = status
 }
 
 func (r *Experiment) Hash() uint64 {
@@ -48,8 +46,8 @@ type ExperimentsByNamespace map[string]ExperimentList
 // namespace is optional, if left empty, names can collide if the list contains more than one with the same name
 func (list ExperimentList) Find(namespace, name string) (*Experiment, error) {
 	for _, experiment := range list {
-		if experiment.Metadata.Name == name {
-			if namespace == "" || experiment.Metadata.Namespace == namespace {
+		if experiment.GetMetadata().Name == name {
+			if namespace == "" || experiment.GetMetadata().Namespace == namespace {
 				return experiment, nil
 			}
 		}
@@ -76,7 +74,7 @@ func (list ExperimentList) AsInputResources() resources.InputResourceList {
 func (list ExperimentList) Names() []string {
 	var names []string
 	for _, experiment := range list {
-		names = append(names, experiment.Metadata.Name)
+		names = append(names, experiment.GetMetadata().Name)
 	}
 	return names
 }
@@ -84,14 +82,14 @@ func (list ExperimentList) Names() []string {
 func (list ExperimentList) NamespacesDotNames() []string {
 	var names []string
 	for _, experiment := range list {
-		names = append(names, experiment.Metadata.Namespace+"."+experiment.Metadata.Name)
+		names = append(names, experiment.GetMetadata().Namespace+"."+experiment.GetMetadata().Name)
 	}
 	return names
 }
 
 func (list ExperimentList) Sort() ExperimentList {
 	sort.SliceStable(list, func(i, j int) bool {
-		return list[i].Metadata.Less(list[j].Metadata)
+		return list[i].GetMetadata().Less(list[j].GetMetadata())
 	})
 	return list
 }
@@ -99,7 +97,7 @@ func (list ExperimentList) Sort() ExperimentList {
 func (list ExperimentList) Clone() ExperimentList {
 	var experimentList ExperimentList
 	for _, experiment := range list {
-		experimentList = append(experimentList, proto.Clone(experiment).(*Experiment))
+		experimentList = append(experimentList, resources.Clone(experiment).(*Experiment))
 	}
 	return experimentList
 }
@@ -120,7 +118,7 @@ func (list ExperimentList) AsInterfaces() []interface{} {
 
 func (byNamespace ExperimentsByNamespace) Add(experiment ...*Experiment) {
 	for _, item := range experiment {
-		byNamespace[item.Metadata.Namespace] = append(byNamespace[item.Metadata.Namespace], item)
+		byNamespace[item.GetMetadata().Namespace] = append(byNamespace[item.GetMetadata().Namespace], item)
 	}
 }
 

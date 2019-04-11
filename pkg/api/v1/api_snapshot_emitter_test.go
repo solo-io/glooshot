@@ -57,6 +57,7 @@ var _ = Describe("V1Emitter", func() {
 			Cfg:         cfg,
 			SharedCache: kuberc.NewKubeCache(context.TODO()),
 		}
+
 		experimentClient, err = NewExperimentClient(experimentClientFactory)
 		Expect(err).NotTo(HaveOccurred())
 		emitter = NewApiEmitter(experimentClient)
@@ -88,12 +89,12 @@ var _ = Describe("V1Emitter", func() {
 				select {
 				case snap = <-snapshots:
 					for _, expected := range expectExperiments {
-						if _, err := snap.Experiments.List().Find(expected.Metadata.Ref().Strings()); err != nil {
+						if _, err := snap.Experiments.List().Find(expected.GetMetadata().Ref().Strings()); err != nil {
 							continue drain
 						}
 					}
 					for _, unexpected := range unexpectExperiments {
-						if _, err := snap.Experiments.List().Find(unexpected.Metadata.Ref().Strings()); err == nil {
+						if _, err := snap.Experiments.List().Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
 							continue drain
 						}
 					}
@@ -124,16 +125,16 @@ var _ = Describe("V1Emitter", func() {
 
 		assertSnapshotExperiments(ExperimentList{experiment1a, experiment1b, experiment2a, experiment2b}, nil)
 
-		err = experimentClient.Delete(experiment2a.Metadata.Namespace, experiment2a.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = experimentClient.Delete(experiment2a.GetMetadata().Namespace, experiment2a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
-		err = experimentClient.Delete(experiment2b.Metadata.Namespace, experiment2b.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = experimentClient.Delete(experiment2b.GetMetadata().Namespace, experiment2b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotExperiments(ExperimentList{experiment1a, experiment1b}, ExperimentList{experiment2a, experiment2b})
 
-		err = experimentClient.Delete(experiment1a.Metadata.Namespace, experiment1a.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = experimentClient.Delete(experiment1a.GetMetadata().Namespace, experiment1a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
-		err = experimentClient.Delete(experiment1b.Metadata.Namespace, experiment1b.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = experimentClient.Delete(experiment1b.GetMetadata().Namespace, experiment1b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotExperiments(nil, ExperimentList{experiment1a, experiment1b, experiment2a, experiment2b})
@@ -161,12 +162,12 @@ var _ = Describe("V1Emitter", func() {
 				select {
 				case snap = <-snapshots:
 					for _, expected := range expectExperiments {
-						if _, err := snap.Experiments.List().Find(expected.Metadata.Ref().Strings()); err != nil {
+						if _, err := snap.Experiments.List().Find(expected.GetMetadata().Ref().Strings()); err != nil {
 							continue drain
 						}
 					}
 					for _, unexpected := range unexpectExperiments {
-						if _, err := snap.Experiments.List().Find(unexpected.Metadata.Ref().Strings()); err == nil {
+						if _, err := snap.Experiments.List().Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
 							continue drain
 						}
 					}
@@ -197,16 +198,16 @@ var _ = Describe("V1Emitter", func() {
 
 		assertSnapshotExperiments(ExperimentList{experiment1a, experiment1b, experiment2a, experiment2b}, nil)
 
-		err = experimentClient.Delete(experiment2a.Metadata.Namespace, experiment2a.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = experimentClient.Delete(experiment2a.GetMetadata().Namespace, experiment2a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
-		err = experimentClient.Delete(experiment2b.Metadata.Namespace, experiment2b.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = experimentClient.Delete(experiment2b.GetMetadata().Namespace, experiment2b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotExperiments(ExperimentList{experiment1a, experiment1b}, ExperimentList{experiment2a, experiment2b})
 
-		err = experimentClient.Delete(experiment1a.Metadata.Namespace, experiment1a.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = experimentClient.Delete(experiment1a.GetMetadata().Namespace, experiment1a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
-		err = experimentClient.Delete(experiment1b.Metadata.Namespace, experiment1b.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = experimentClient.Delete(experiment1b.GetMetadata().Namespace, experiment1b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotExperiments(nil, ExperimentList{experiment1a, experiment1b, experiment2a, experiment2b})
