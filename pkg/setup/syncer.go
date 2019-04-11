@@ -2,7 +2,6 @@ package setup
 
 import (
 	"context"
-	"fmt"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/go-utils/contextutils"
@@ -36,11 +35,11 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 				unchangedCount++
 			} else {
 				updatedCount++
-				fmt.Printf("Updated experiment: %v\n", key)
+				contextutils.LoggerFrom(ctx).Infow("Experiment", "updated", key)
 			}
 		} else {
 			createdCount++
-			fmt.Printf("Created experiment: %v\n", key)
+			contextutils.LoggerFrom(ctx).Infow("Experiment", "created", key)
 			if err := g.mutateNewlyCreatedExperiments(exp); err != nil {
 				contextutils.LoggerFrom(ctx).Errorf("sync mutation failed on %v: %v", key, err)
 			}
@@ -52,14 +51,14 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 		if _, ok := existingKeys[k]; !ok {
 			delete(g.last, k)
 			deletedCount++
-			fmt.Printf("Deleted experiment: %v\n", k)
+			contextutils.LoggerFrom(ctx).Infow("Experiment", "deleted", k)
 		}
 	}
-	fmt.Printf("Experiments: Created: %v, updated: %v, deleted %v, unchanged: %v\n",
-		createdCount,
-		updatedCount,
-		deletedCount,
-		unchangedCount)
+	contextutils.LoggerFrom(ctx).Infow("Experiment",
+		"created", createdCount,
+		"updated", updatedCount,
+		"deleted", deletedCount,
+		"unchanged", unchangedCount)
 	return nil
 }
 
