@@ -30,7 +30,7 @@ var _ = Describe("Glooshot", func() {
 		var err error
 		client, err = setup.GetExperimentClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
-		go setup.Run()
+		go setup.Run(ctx)
 	})
 
 	AfterEach(func() {
