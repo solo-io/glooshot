@@ -1,0 +1,4 @@
+changelog:
+- type: NEW_FEATURE
+  description: Create a service account for glooshot.
+  issueLink: https://github.com/solo-io/glooshot/issues/19
