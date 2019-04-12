@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/gsutil"
+
 	"github.com/solo-io/glooshot/pkg/version"
 	"go.uber.org/zap"
-
-	"github.com/solo-io/glooshot/pkg/setup"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 
@@ -29,7 +29,6 @@ func getInitialContext() context.Context {
 }
 
 func main() {
-
 	ctx := getInitialContext()
 	if err := Run(ctx); err != nil {
 		contextutils.LoggerFrom(ctx).Fatalw("msg", zap.Error(err))
@@ -49,7 +48,7 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("must provide an experiment namme")
 	}
 
-	client, err := setup.GetExperimentClient(ctx, false)
+	client, err := gsutil.GetExperimentClient(ctx, false)
 	if err != nil {
 		return err
 	}

@@ -12,16 +12,10 @@ import (
 
 type glooshotSyncer struct {
 	expClient v1.ExperimentClient
-	lastHash  uint64
 	last      map[string]string
 }
 
 func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
-	hash := snap.Hash()
-	if hash == g.lastHash {
-		return nil
-	}
-	g.lastHash = hash
 	unchangedCount := 0
 	updatedCount := 0
 	createdCount := 0
@@ -62,13 +56,6 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	return nil
 }
 
-func (g glooshotSyncer) getClient() v1.ExperimentClient {
-	if g.expClient != nil {
-		return g.expClient
-	}
-	return g.expClient
-}
-
 func (g glooshotSyncer) mutateNewlyCreatedExperiments(exp *v1.Experiment) error {
 	exp.Status.State = core.Status_Accepted
 	_, err := g.expClient.Write(exp, clients.WriteOpts{OverwriteExisting: true})
@@ -78,7 +65,6 @@ func (g glooshotSyncer) mutateNewlyCreatedExperiments(exp *v1.Experiment) error 
 func NewSyncer(client v1.ExperimentClient) glooshotSyncer {
 	return glooshotSyncer{
 		expClient: client,
-		lastHash:  0,
 		last:      make(map[string]string),
 	}
 }

@@ -7,16 +7,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/gsutil"
+
 	"go.uber.org/zap"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-checkpoint"
 	"github.com/solo-io/go-utils/contextutils"
-	"github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients/factory"
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
 )
 
 type StatsHandler struct {
@@ -37,7 +36,7 @@ func (d StatsHandler) reportError(err error, w http.ResponseWriter) {
 
 func (d StatsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Glooshot stats\n")
-	client, err := GetExperimentClient(d.ctx, true)
+	client, err := gsutil.GetExperimentClient(d.ctx, true)
 	if err != nil {
 		d.reportError(err, w)
 		return
@@ -77,7 +76,7 @@ func Run(ctx context.Context) error {
 	http.Handle("/", sh)
 	go http.ListenAndServe("localhost:8085", nil)
 
-	client, err := GetExperimentClient(ctx, true)
+	client, err := gsutil.GetExperimentClient(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -92,21 +91,4 @@ func Run(ctx context.Context) error {
 		contextutils.LoggerFrom(ctx).Fatalw("error in setup", zap.Error(err))
 	}
 	return nil
-}
-
-func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.ExperimentClient, error) {
-	cfg, err := kubeutils.GetConfig("", "")
-	if err != nil {
-		return nil, err
-	}
-	cache := kube.NewKubeCache(ctx)
-	rcFactory := &factory.KubeResourceClientFactory{
-		Crd:             v1.ExperimentCrd,
-		Cfg:             cfg,
-		SharedCache:     cache,
-		SkipCrdCreation: skipCrdCreation,
-	}
-	client, err := v1.NewExperimentClient(rcFactory)
-	client.Register()
-	return client, nil
 }
