@@ -5,7 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/solo-io/solo-kit/pkg/utils/stats"
 
 	"github.com/solo-io/glooshot/pkg/gsutil"
 
@@ -67,10 +70,18 @@ func getExperimentNamespaces(ctx context.Context) []string {
 	return []string{"default"}
 }
 
+const (
+	START_STATS_SERVER = "START_STATS_SERVER"
+)
+
 func Run(ctx context.Context) error {
 	start := time.Now()
 	checkpoint.CallCheck(version.AppName, version.Version, start)
 	flag.Parse()
+
+	if os.Getenv(START_STATS_SERVER) != "" {
+		stats.StartStatsServer()
+	}
 
 	sh := NewStatsHandler(ctx)
 	http.Handle("/", sh)
