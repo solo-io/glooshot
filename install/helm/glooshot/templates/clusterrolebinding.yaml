@@ -1,10 +1,9 @@
 {{- if .Values.rbac.create }}
 
-kind: RoleBinding
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: glooshot-role-binding
-  namespace: {{ .Release.Namespace }}
+  name: glooshot-clusterrole-binding
   labels:
     app: glooshot
     glooshot: rbac
@@ -13,8 +12,8 @@ subjects:
   name: glooshot-serviceaccount
   namespace: {{ .Release.Namespace }}
 roleRef:
-  kind: Role
-  name: glooshot-role
+  kind: ClusterRole
+  name: glooshot-clusterrole
   apiGroup: rbac.authorization.k8s.io
 
 {{- end -}}
