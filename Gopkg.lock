@@ -220,6 +220,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:f14364057165381ea296e49f8870a9ffce2b8a95e34d6ae06c759106aaef428c"
+  name = "github.com/hashicorp/go-uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4f571afc59f3043a65f8fe6bf46d887b10a01d43"
+
+[[projects]]
+  branch = "master"
   digest = "1:cf296baa185baae04a9a7004efee8511d08e2f5f51d4cbe5375da89722d681db"
   name = "github.com/hashicorp/golang-lru"
   packages = [
@@ -499,7 +507,7 @@
   version = "v0.1"
 
 [[projects]]
-  digest = "1:b91219bfc74941be3c27a27fc55b2570ad65ef40ef08ae503a39c647446ef257"
+  digest = "1:5c71f77bf587abcb1a1f5fd731ab2cdb70f21b4c1d92d08941f9c9df3b7d9ac4"
   name = "github.com/solo-io/gloo"
   packages = [
     "projects/gloo/pkg/api/v1",
@@ -518,11 +526,19 @@
     "projects/gloo/pkg/api/v1/plugins/transformation",
   ]
   pruneopts = "UT"
-  revision = "c38c1cfdcd7d5d2b1a0cb8c95bd8b9a8e9715515"
-  version = "v0.13.12"
+  revision = "f2fdf602bd6c96b0ebbc0d75bc8ac48c66f83db9"
+  version = "v0.13.14"
 
 [[projects]]
-  digest = "1:35c6759b9ca0df405dfecc1ce4f190cc70ef4e0f26c9997dca8b2d8db331e80d"
+  digest = "1:699918466a9758902a14923851a7fbd230500f93da6982dae7c79959afb0a664"
+  name = "github.com/solo-io/go-checkpoint"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "b798a7563f831f081f2a73ca889888f1ceec06b3"
+  version = "0.0.4"
+
+[[projects]]
+  digest = "1:23271d418a8184850be042784126eae5942180ef7fcacb8961e72b4ca91fe463"
   name = "github.com/solo-io/go-utils"
   packages = [
     "contextutils",
@@ -532,11 +548,11 @@
     "versionutils",
   ]
   pruneopts = "UT"
-  revision = "dbaa11f99e222a82c7f58e28a2ef7e64f43fff1c"
-  version = "v0.6.3"
+  revision = "81b1a649eac8eb3f1243948896bbac1976591ca9"
+  version = "v0.7.3"
 
 [[projects]]
-  digest = "1:c277639778a50c3e8e497524fbbff7349fbdecd9738578fdf6005b37da158d1c"
+  digest = "1:e08d6b53d9b5a3e73812ceecac409bda0ccad6f24587ab6d4b781e51e95e1a3e"
   name = "github.com/solo-io/solo-kit"
   packages = [
     "pkg/api/v1/clients",
@@ -582,8 +598,8 @@
     "test/tests/typed",
   ]
   pruneopts = "UT"
-  revision = "9962953f8c39321f10c3265cc6045eb1386b5e4a"
-  version = "v0.4.2"
+  revision = "256a8a1dab5aa9700f49b74df06627bff196703d"
+  version = "v0.5.3"
 
 [[projects]]
   digest = "1:9424f440bba8f7508b69414634aef3b2b3a877e522d8a4624692412805407bb7"
@@ -1074,7 +1090,9 @@
     "github.com/pkg/errors",
     "github.com/solo-io/gloo/projects/gloo/pkg/api/v1",
     "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection",
+    "github.com/solo-io/go-checkpoint",
     "github.com/solo-io/go-utils/contextutils",
+    "github.com/solo-io/go-utils/errors",
     "github.com/solo-io/go-utils/githubutils",
     "github.com/solo-io/go-utils/kubeutils",
     "github.com/solo-io/go-utils/versionutils",
@@ -1102,6 +1120,7 @@
     "go.uber.org/zap",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
+    "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
   ]

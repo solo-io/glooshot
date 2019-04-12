@@ -37,7 +37,7 @@ Gloo Shot is a chaos engineering framework for service meshes.
 - [ ] CLI should allow user to define auto-termination conditions for experiments
 - [ ] CLI should allow user to view results??
   - results will manifest as system metrics, what sort of report summary should Glooshot produce?
-- [ ] Glooshot should watch Experiment CRDs and respond to their changes
+- [x] Glooshot should watch Experiment CRDs and respond to their changes
 - [ ] Glooshot should clean up all of its resources
 - [ ] Glooshot should be able to deploy concurrent experiments
 - [ ] Glooshot should be able terminate one experiment without affecting others

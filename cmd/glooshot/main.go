@@ -1,24 +1,24 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"context"
+	"log"
+
+	"github.com/solo-io/glooshot/pkg/version"
+	"github.com/solo-io/go-utils/contextutils"
+
+	"github.com/solo-io/glooshot/pkg/setup"
 )
 
+func getInitialContext() context.Context {
+	loggingContext := []interface{}{"version", version.Version}
+	ctx := contextutils.WithLogger(context.Background(), version.AppName)
+	ctx = contextutils.WithLoggerValues(ctx, loggingContext...)
+	return ctx
+}
+
 func main() {
-	fmt.Println("todo - apiserver runner")
-	http.HandleFunc("/todo", handleTODO)
-	dh := defaultHandler{}
-	http.Handle("/", dh)
-	http.ListenAndServe("localhost:8085", nil)
-}
+	ctx := getInitialContext()
+	log.Fatal(setup.Run(ctx))
 
-func handleTODO(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "TODO")
-}
-
-type defaultHandler struct{}
-
-func (d defaultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello from default")
 }

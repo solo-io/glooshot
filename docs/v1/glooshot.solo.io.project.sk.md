@@ -17,6 +17,7 @@ API Version: `glooshot.solo.io.v1`
 ### API Resources:
 - [Experiment](../github.com/solo-io/glooshot/api/v1/glooshot.proto.sk#experiment)
 - [Proxy](../github.com/solo-io/gloo/projects/gloo/api/v1/proxy.proto.sk#proxy)
+- [UpstreamGroup](../github.com/solo-io/gloo/projects/gloo/api/v1/proxy.proto.sk#upstreamgroup)
 
 <!-- Start of HubSpot Embed Code -->
 <script type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/5130874.js"></script>
