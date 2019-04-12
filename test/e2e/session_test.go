@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/gsutil"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
@@ -28,7 +30,7 @@ var _ = Describe("Glooshot", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		var err error
-		client, err = setup.GetExperimentClient(ctx, false)
+		client, err = gsutil.GetExperimentClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
 		go setup.Run(ctx)
 	})
