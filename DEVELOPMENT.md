@@ -19,3 +19,17 @@ eval `minikube docker-env`
 make glooshot-docker
 kubectl apply -f install/glooshot.yaml
 ```
+
+
+## Building and deploying to an external cluster
+```bash
+export VERSION=mkdev1
+export TAGGED_VERSION=mkdev1
+make render-yaml -B
+```
+
+
+# Enable Stats
+- To enable stats, set the env var `START_STATS_SERVER=1`
+- To view stats, access your service's port `9091`
+  - If running locally, that will be `localhost:9091`

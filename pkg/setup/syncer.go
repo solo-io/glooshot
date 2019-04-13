@@ -3,6 +3,8 @@ package setup
 import (
 	"context"
 
+	"go.opencensus.io/trace"
+
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
@@ -34,9 +36,11 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 		} else {
 			createdCount++
 			contextutils.LoggerFrom(ctx).Infow("Experiment", "created", key)
-			if err := g.mutateNewlyCreatedExperiments(exp); err != nil {
-				contextutils.LoggerFrom(ctx).Errorf("sync mutation failed on %v: %v", key, err)
-			}
+			go func() {
+				if err := g.mutateNewlyCreatedExperiments(ctx, exp); err != nil {
+					contextutils.LoggerFrom(ctx).Errorf("sync mutation failed on %v: %v", key, err)
+				}
+			}()
 		}
 		existingKeys[key] = true
 		g.last[key] = exp.Metadata.ResourceVersion
@@ -56,7 +60,9 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	return nil
 }
 
-func (g glooshotSyncer) mutateNewlyCreatedExperiments(exp *v1.Experiment) error {
+func (g glooshotSyncer) mutateNewlyCreatedExperiments(ctx context.Context, exp *v1.Experiment) error {
+	_, span := trace.StartSpan(ctx, "glooshot.solo.io.mutateNewlyCreatedExperiments")
+	defer span.End()
 	exp.Status.State = core.Status_Accepted
 	_, err := g.expClient.Write(exp, clients.WriteOpts{OverwriteExisting: true})
 	return err

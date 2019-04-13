@@ -46,7 +46,7 @@ Gloo Shot is a chaos engineering framework for service meshes.
 
 ### Details
 
-- [ ] watch experiment crds from glooshot
+- [x] watch experiment crds from glooshot
 - [ ] create sample yamls for experiments
 - [ ] document how to create experiments from cli (with kubectl)
 

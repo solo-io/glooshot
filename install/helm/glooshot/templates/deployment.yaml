@@ -15,6 +15,7 @@ spec:
       labels:
         app: glooshot
     spec:
+      serviceAccountName: glooshot-serviceaccount
       containers:
       - image: "{{ .Values.glooshot.deployment.image.repository }}:{{ .Values.glooshot.deployment.image.tag }}"
         imagePullPolicy: {{ .Values.glooshot.deployment.image.pullPolicy }}
