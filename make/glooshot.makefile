@@ -5,8 +5,18 @@
 # - in-cluster process - builds binary and docker image
 #----------------------------------------------------------------------------------
 
-.PHONY: glooshot-cli
+#----------------------------------------------------------------------------------
+# Synopsis
+#----------------------------------------------------------------------------------
+.PHONY: glooshot
 glooshot: glooshot-cli glooshot-operator
+
+.PHONY: glooshot-docker
+glooshot-docker: $(OUTPUT_DIR)/glooshot-docker
+
+.PHONY: glooshot-docker-push
+docker-push: glooshot-docker-push
+	docker push $(CONTAINER_REPO_ORG)/$(GLOOSHOT_OPERATOR_NAME):$(IMAGE_TAG)
 
 #----------------------------------------------------------------------------------
 # CLI
@@ -23,7 +33,6 @@ $(OUTPUT_DIR)/$(GLOOSHOT_CLI_NAME)-linux-amd64: $(GLOOSHOT_CLI_SOURCES)
 
 $(OUTPUT_DIR)/$(GLOOSHOT_CLI_NAME)-darwin: $(GLOOSHOT_CLI_SOURCES)
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -ldflags=$(LDFLAGS) -gcflags=$(GCFLAGS) -o $@ $(GLOOSHOT_CLI_DIR)/main.go
-
 
 #----------------------------------------------------------------------------------
 # OPERATOR
@@ -45,9 +54,6 @@ glooshot-operator: $(OUTPUT_DIR)/$(GLOOSHOT_OPERATOR_NAME)-linux-amd64 $(OUTPUT_
 # copy the docker file into the build dir
 $(OUTPUT_DIR)/Dockerfile.glooshot: $(GLOOSHOT_OPERATOR_DIR)/Dockerfile
 	cp $< $@
-
-.PHONY: glooshot-docker
-glooshot-docker: $(OUTPUT_DIR)/glooshot-docker
 
 $(OUTPUT_DIR)/glooshot-docker: glooshot-operator $(OUTPUT_DIR)/Dockerfile.glooshot
 	docker build -t $(CONTAINER_REPO_ORG)/$(GLOOSHOT_OPERATOR_NAME):$(IMAGE_TAG) $(OUTPUT_DIR) -f $(OUTPUT_DIR)/Dockerfile.glooshot

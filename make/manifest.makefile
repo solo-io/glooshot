@@ -16,7 +16,7 @@ prepare-helm:
 
 .PHONY: update-helm-chart
 update-helm-chart:
-ifeq ($(RELEASE),"true")
+ifeq ($(PHASE),"release")
 	mkdir -p $(HELM_SYNC_DIR)/charts
 	helm package --destination $(HELM_SYNC_DIR)/charts $(HELM_DIR)
 	helm repo index $(HELM_SYNC_DIR)

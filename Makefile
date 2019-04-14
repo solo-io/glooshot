@@ -2,13 +2,28 @@ SOLO_NAME := glooshot
 ROOTDIR := $(shell pwd)
 OUTPUT_DIR ?= $(ROOTDIR)/_output
 
-PHASE:="dev"
-RELEASE := "false"
-ifdef $(TAGGED_VERSION)
-	RELEASE = "true"
-  PHASE = "release"
-else
+# This makefile is oriented around development lifecycle "phases"
+# phases include:
+# - dev: any local builds
+# - buildtest: builds in CI, excluding releases
+# - release: builds in CI for releases
+PHASE := "dev"
+# Passed by cloudbuild
+GCLOUD_PROJECT_ID := $(GCLOUD_PROJECT_ID)
+BUILD_ID := $(BUILD_ID)
+# Determine lifecycle phase
+ifeq ($(TAGGED_VERSION),)
   TAGGED_VERSION := vdev
+  ifeq ($(BUILD_ID),)
+    # not inside CI
+    PHASE = "dev"
+  else
+    # inside CI, but not making a release
+    PHASE = "buildtest"
+  endif
+else
+  # a tagged version has been provided, we are performing a relase
+  PHASE = "release"
 endif
 VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 LAST_COMMIT = $(shell git rev-parse HEAD | cut -c 1-6)
@@ -18,8 +33,6 @@ CONTAINER_ORG ?= soloio
 # the docker documentation states the implied repo url is: registry-1.docker.io
 # https://docs.docker.com/engine/reference/commandline/tag/
 # just in case, we will let the docker tool provide that
-GCLOUD_PROJECT_ID := $(GCLOUD_PROJECT_ID) # Passed by cloudbuild
-BUILD_ID := $(BUILD_ID) # Passed by cloudbuild
 GCR_REPO_PREFIX := gcr.io/$(GCLOUD_PROJECT_ID)
 
 # default to DDHHMMSS-dev
@@ -82,9 +95,13 @@ include make/glooshot.makefile
 include make/manifest.makefile
 
 # these are phase-specific
-ifeq ($(PHASE), "release")
-  include make/phase_release.makefile
-endif
 ifeq ($(PHASE), "dev")
   include make/phase_dev.makefile
 endif
+
+.PHONY: docker
+docker: glooshot-cli glooshot-operator glooshot-docker
+
+.PHONY: docker-push
+docker-push: glooshot-docker-push
+	docker push $(CONTAINER_REPO_ORG)/$(GLOOSHOT_OPERATOR_NAME):$(IMAGE_TAG)

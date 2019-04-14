@@ -1,0 +1,4 @@
+changelog:
+- type: NEW_FEATURE
+  description: Install from helm during e2e.
+  issueLink: https://github.com/solo-io/glooshot/issues/18
