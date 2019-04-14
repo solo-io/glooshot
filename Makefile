@@ -105,3 +105,11 @@ docker: glooshot-cli glooshot-operator glooshot-docker
 .PHONY: docker-push
 docker-push: glooshot-docker-push
 	docker push $(CONTAINER_REPO_ORG)/$(GLOOSHOT_OPERATOR_NAME):$(IMAGE_TAG)
+
+.PHONY: release
+release: render-yaml docker-push
+ifeq ($(PHASE), "release")
+	go run ci/upload_github_release_assets.go
+else
+	echo "Cannot release in phase " $(PHASE)
+endif

@@ -15,6 +15,7 @@ steps:
   - name: 'ssh'
     path: /root/.ssh
   id: 'get-ssh-key'
+
 - name: 'gcr.io/cloud-builders/git'
   entrypoint: 'bash'
   args:
@@ -56,6 +57,7 @@ steps:
   entrypoint: mkdir
   args: ['-p', './_output/helm']
   dir: './gopath/src/github.com/solo-io/glooshot'
+
 # sync helm repo data from google cloud bucket
 - name: gcr.io/cloud-builders/gsutil
   args:
@@ -75,6 +77,7 @@ steps:
   args: ['check-format']
   waitFor: ['dep']
   id: 'check-format'
+
 - name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
   entrypoint: 'bash'
   args: ['ci/check-code-and-docs-gen.sh']
@@ -88,6 +91,7 @@ steps:
     path: /root/.ssh
   waitFor: ['dep']
   id: 'check-code-and-docs-gen'
+
 - name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
   args: ['docker', 'render-yaml']
   env:
@@ -100,6 +104,7 @@ steps:
     path: /root/.ssh
   waitFor: ['dep']
   id: 'make'
+
 - name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'
   args: ['-r']
   env:
@@ -114,12 +119,27 @@ steps:
     path: /root/.ssh
   waitFor: ['make']
   id: 'test'
+
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args: ['-c', 'docker login docker.io --username soloiobot --password $$DOCKER_HUB_PASSWORD']
   secretEnv: ['DOCKER_HUB_PASSWORD']
   id: 'docker-login'
   waitFor: ['test']
+
+# Run installation test
+- name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'
+  env:
+    - 'PROJECT_ROOT=github.com/solo-io/glooshot'
+    - 'GOPATH=/workspace/gopath'
+    - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
+    - 'RUN_KUBE2E_TESTS=1'
+  dir: './gopath/src/github.com/solo-io/glooshot'
+  args: ['-r', 'test/install']
+  waitFor: ['docker-login']
+  id: 'installation-tests'
+
 - name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
   args: ['release']
   env:
@@ -130,7 +150,7 @@ steps:
   volumes:
   - name: 'ssh'
     path: /root/.ssh
-  waitFor: ['docker-login']
+  waitFor: ['installation-tests']
   secretEnv: ['GITHUB_TOKEN', 'DOCKER_HUB_PASSWORD']
   id: 'release'
 
