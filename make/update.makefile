@@ -1,8 +1,6 @@
 
+
+# note that the file path is resolved from the directory into which this file is make-included
 .PHONY: update-deps
 update-deps:
-	go get -u golang.org/x/tools/cmd/goimports
-	go get -u github.com/gogo/protobuf/gogoproto
-	go get -u github.com/gogo/protobuf/protoc-gen-gogo
-	go get -u github.com/envoyproxy/protoc-gen-validate
-	go get -u github.com/paulvollmer/2gobytes
+	make/update_deps.sh

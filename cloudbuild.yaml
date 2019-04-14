@@ -32,13 +32,6 @@ steps:
     path: /root/.ssh
   id: 'configure-git'
 
-- name: 'gcr.io/cloud-builders/wget'
-  entrypoint: ./ci/spell.sh
-  args: ['check']
-  waitFor: ['-']
-  env:
-  - 'LSCOMMAND=find * -path gopath -prune -o -print'
-  id: 'check-spelling'
 # Can create a dep cache by running 'gcloud builds submit . --config=cloudbuild-cache.yaml' (make sure you have set your gcloud project correctly)
 # These two steps should populate the cache
 - name: gcr.io/cloud-builders/gsutil
