@@ -15,7 +15,7 @@ glooshot: glooshot-cli glooshot-operator
 glooshot-docker: $(OUTPUT_DIR)/glooshot-docker
 
 .PHONY: glooshot-docker-push
-docker-push: glooshot-docker-push
+glooshot-docker-push: glooshot-docker
 	docker push $(CONTAINER_REPO_ORG)/$(GLOOSHOT_OPERATOR_NAME):$(IMAGE_TAG)
 
 #----------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ $(OUTPUT_DIR)/$(GLOOSHOT_CLI_NAME)-darwin: $(GLOOSHOT_CLI_SOURCES)
 #----------------------------------------------------------------------------------
 # OPERATOR
 #----------------------------------------------------------------------------------
-GLOOSHOT_OPERATOR_NAME=cmd/glooshotop
+GLOOSHOT_OPERATOR_NAME=glooshot-op
 GLOOSHOT_OPERATOR_DIR=cmd/glooshot
 GLOOSHOT_OPERATOR_SOURCES=$(shell find $(GLOOSHOT_OPERATOR_DIR) -name "*.go" | grep -v test | grep -v generated.go)
 

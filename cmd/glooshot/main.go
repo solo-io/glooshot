@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-utils/contextutils"
@@ -19,6 +18,5 @@ func getInitialContext() context.Context {
 
 func main() {
 	ctx := getInitialContext()
-	log.Fatal(setup.Run(ctx))
-
+	contextutils.LoggerFrom(ctx).Fatal(setup.Run(ctx))
 }

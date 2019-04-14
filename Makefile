@@ -2,6 +2,7 @@ SOLO_NAME := glooshot
 ROOTDIR := $(shell pwd)
 OUTPUT_DIR ?= $(ROOTDIR)/_output
 
+#--------------------------- Determine Phase ----------------------------------#
 # This makefile is oriented around development lifecycle "phases"
 # phases include:
 # - dev: any local builds
@@ -25,6 +26,8 @@ else
   # a tagged version has been provided, we are performing a relase
   PHASE = "release"
 endif
+
+#---------------- Compute phase-specific and phase-configurable values ---------#
 VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 LAST_COMMIT = $(shell git rev-parse HEAD | cut -c 1-6)
 
@@ -35,8 +38,9 @@ CONTAINER_ORG ?= soloio
 # just in case, we will let the docker tool provide that
 GCR_REPO_PREFIX := gcr.io/$(GCLOUD_PROJECT_ID)
 
-# default to DDHHMMSS-dev
-IMAGE_TAG ?= $(shell date +%d%H%M%S)-dev
+# Note: need to evaluate this with := to avoid re-evaluation
+STAMP_DDHHMMSS := $(shell date +%d%H%M%S)
+IMAGE_TAG ?= $(STAMP_DDHHMMSS)-dev
 
 ifeq ($(PHASE), "release")
   CONTAINER_REPO = "" # to use docker, the default
@@ -76,11 +80,7 @@ export MAKE_CONFIGURATION
 print_configuration:
 	echo "$$MAKE_CONFIGURATION"
 
-
-
-
-
-
+#--- Specify project-specific constants and import project-specific build logic ---#
 # import the targets that are common to many solo projects
 FORMAT_DIRS = ./pkg/ ./cmd/ ./ci/
 include make/common.makefile
