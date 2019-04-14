@@ -2,24 +2,9 @@
 #----------------------------------------------------------------------------------
 # Docker
 #----------------------------------------------------------------------------------
-#
-#---------
-#--------- Push
-#---------
-
-DOCKER_IMAGES :=
-ifeq ($(RELEASE),"true")
-	DOCKER_IMAGES := docker
-endif
 
 .PHONY: docker docker-push
-docker: glooshot glooshot-docker
+docker: glooshot-cli glooshot-operator glooshot-docker
 
-# Depends on DOCKER_IMAGES, which is set to docker if RELEASE is "true", otherwise empty (making this a no-op).
-# This prevents executing the dependent targets if RELEASE is not true, while still enabling `make docker`
-# to be used for local testing.
-# docker-push is intended to be run by CI
-docker-push: $(DOCKER_IMAGES)
-ifeq ($(RELEASE),"true")
-	docker push soloio/$(SOLO_NAME):$(VERSION)
-endif
+docker-push: docker
+	docker push $(CONTAINER_REPO_ORG)/$(GLOOSHOT_OPERATOR_NAME):$(IMAGE_TAG)

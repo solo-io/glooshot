@@ -8,6 +8,8 @@ import (
 	"github.com/solo-io/solo-kit/pkg/utils/log"
 )
 
+//go:generate go run generate.go
+
 func main() {
 	if err := checkVersions(); err != nil {
 		log.Fatalf("generate failed!: %v", err)
