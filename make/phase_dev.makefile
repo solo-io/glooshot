@@ -1,9 +1,5 @@
 # This file contains make targets related to the development workflow
 
-.PHONY: eval-docker-env
-eval-docker-env:
-	eval `minikube docker-env`
-
 # Note: when deploying remote containers during the dev-phase you should either:
 # - use the -B flag since
 # - provide an explicit IMAGE_TAG
@@ -13,7 +9,7 @@ eval-docker-env:
 deploy-manifest-dev-remote: docker-push render-yaml
 	kubectl apply -f install/glooshot.yaml
 .PHONY: deploy-manifest-dev-local
-deploy-manifest-dev-local: eval-docker-env docker render-yaml
+deploy-manifest-dev-local: docker render-yaml
 ifeq ($(DOCKER_HOST),)
 	echo "Please execute eval \`minikube docker-env\` in this shell before running: make" $@
 else

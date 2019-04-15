@@ -16,16 +16,18 @@ make render-yaml
 - test changes in minikube
 ```
 eval `minikube docker-env`
-make glooshot-docker
-kubectl apply -f install/glooshot.yaml
+make deploy-manifest-dev-local -B
+# test, then remove with:
+make undeploy-manifest-dev
 ```
 
 
 ## Building and deploying to an external cluster
 ```bash
-export VERSION=mkdev1
-export TAGGED_VERSION=mkdev1
-make render-yaml -B
+export CONTAINER_REPO="myrepo.com" # optional
+export CONTAINER_ORG="myorg" # optional
+make docker-push render-yaml -B
+kubectl apply -f install/glooshot.yaml
 ```
 
 
