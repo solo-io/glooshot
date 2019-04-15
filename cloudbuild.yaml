@@ -171,3 +171,5 @@ secrets:
     DOCKER_HUB_PASSWORD: CiQAwdWthjBCYCvT4dzVr1GcKXZhJe+gdSqXaNm7lJ4tHaoBPDISTQD5SXFIDVKxAT5OBQZnkSQpXBIVSUurefR+ry5f4kUqOYho5gONkdtrklW9Wxk4G3oBz8Z5042/GBG6vgjFyUdBBo9ETQirhMA+PH0x
 
 tags: ['glooshot']
+
+timeout: 3000s
