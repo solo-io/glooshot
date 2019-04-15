@@ -1,10 +1,13 @@
 package install
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/go-utils/testutils/exec"
+
+	"github.com/solo-io/go-utils/testutils"
 
 	"github.com/solo-io/solo-kit/test/helpers"
 
@@ -12,6 +15,11 @@ import (
 )
 
 func TestInstall(t *testing.T) {
+
+	if testutils.AreTestsDisabled() {
+		fmt.Fprint(GinkgoWriter, "skipping test install suite")
+		return
+	}
 
 	helpers.RegisterCommonFailHandlers()
 	helpers.SetupLog()
