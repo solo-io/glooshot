@@ -110,7 +110,7 @@ steps:
   volumes:
   - name: 'ssh'
     path: /root/.ssh
-  waitFor: ['dep']
+  waitFor: ['dep', 'check-code-and-docs-gen']
   id: 'build-for-test'
 
 - name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'

@@ -1,9 +1,12 @@
 package install
 
 import (
-	"github.com/solo-io/go-utils/logger"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/solo-io/go-utils/logger"
 
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/go-utils/testutils/exec"
@@ -31,8 +34,12 @@ func TestInstall(t *testing.T) {
 const glooshotManifest = "../../install/glooshot.yaml"
 
 var _ = BeforeSuite(func() {
+	manifest, err := ioutil.ReadFile(glooshotManifest)
+	Expect(err).NotTo(HaveOccurred())
+	// print manifest on failure for easier debugging
+	fmt.Fprint(GinkgoWriter, string(manifest))
 	// install glooshot via the manifest file
-	err := toggleManifest(glooshotManifest, true)
+	err = toggleManifest(glooshotManifest, true)
 	Expect(err).NotTo(HaveOccurred())
 })
 var _ = AfterSuite(func() {
