@@ -102,11 +102,13 @@ endif
 docker: glooshot-cli glooshot-operator glooshot-docker
 
 .PHONY: docker-push
-docker-push: glooshot-docker-push
-	docker push $(CONTAINER_REPO_ORG)/$(GLOOSHOT_OPERATOR_NAME):$(IMAGE_TAG)
+docker-push: docker glooshot-docker-push
+
+.PHONY: prepare-for-test
+prepare-for-test: render-yaml docker-push
 
 .PHONY: release
-release: render-yaml docker-push
+release: prepare-for-test
 ifeq ($(PHASE), $(PHASE_RELEASE))
 	go run ci/upload_github_release_assets.go
 else

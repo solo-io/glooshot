@@ -1,13 +1,12 @@
 package install
 
 import (
-	"fmt"
+	"github.com/solo-io/go-utils/logger"
+	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/go-utils/testutils/exec"
-
-	"github.com/solo-io/go-utils/testutils"
 
 	"github.com/solo-io/solo-kit/test/helpers"
 
@@ -16,8 +15,11 @@ import (
 
 func TestInstall(t *testing.T) {
 
-	if testutils.AreTestsDisabled() {
-		fmt.Fprint(GinkgoWriter, "skipping test install suite")
+	envToggleKey := "RUN_GLOOSHOT_INSTALL_TESTS"
+	envToggleValue := "1"
+	if os.Getenv(envToggleKey) != envToggleValue {
+		logger.Warnf("This test requires a running kubernetes cluster and built images. It is disabled by default. "+
+			"To enable, set %s=%s in your env.", envToggleKey, envToggleValue)
 		return
 	}
 
