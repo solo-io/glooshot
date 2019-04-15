@@ -9,7 +9,8 @@ OUTPUT_DIR ?= $(ROOTDIR)/_output
 # - buildtest: builds in CI, excluding releases
 # - release: builds in CI for releases
 PHASE := "dev"
-GCLOUD_PROJECT_ID := $(GCLOUD_PROJECT_ID) # Passed by cloudbuild
+# Passed by cloudbuild
+GCLOUD_PROJECT_ID := $(GCLOUD_PROJECT_ID)
 # Determine lifecycle phase
 ifeq ($(TAGGED_VERSION),)
   TAGGED_VERSION := vdev
@@ -70,6 +71,7 @@ Images configuration
  repo: $(CONTAINER_REPO)
  org: $(CONTAINER_ORG)
  tag: $(IMAGE_TAG)
+ gcloud_project_id: $(GCLOUD_PROJECT_ID)
  full_spec: $(CONTAINER_REPO_ORG)
  sample: $(CONTAINER_REPO_ORG)/<container_name>:$(IMAGE_TAG)
 endef
