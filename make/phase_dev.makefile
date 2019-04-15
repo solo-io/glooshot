@@ -1,7 +1,7 @@
 # This file contains make targets related to the development workflow
 
 # Note: when deploying remote containers during the dev-phase you should either:
-# - use the -B flag since
+# - use the -B flag
 # - provide an explicit IMAGE_TAG
 # Otherwise, the image tag used in the manifest will not match that of pushed image
 # because the default dev-phase tag uses a timestamp.
