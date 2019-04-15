@@ -98,6 +98,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/glooshot'
   - 'GOPATH=/workspace/gopath'
   - 'TAGGED_VERSION=$TAG_NAME'
+  - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   dir: './gopath/src/github.com/solo-io/glooshot'
   volumes:
   - name: 'ssh'
