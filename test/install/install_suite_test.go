@@ -1,9 +1,12 @@
 package install
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/solo-io/go-utils/logger"
@@ -34,10 +37,8 @@ func TestInstall(t *testing.T) {
 const glooshotManifest = "../../install/glooshot.yaml"
 
 var _ = BeforeSuite(func() {
-	manifest, err := ioutil.ReadFile(glooshotManifest)
+	err := printManifestSummary(glooshotManifest, false, nil, true)
 	Expect(err).NotTo(HaveOccurred())
-	// print manifest on failure for easier debugging
-	fmt.Fprint(GinkgoWriter, string(manifest))
 	// install glooshot via the manifest file
 	err = toggleManifest(glooshotManifest, true)
 	Expect(err).NotTo(HaveOccurred())
@@ -58,4 +59,38 @@ func toggleManifest(manifestFilepath string, enable bool) error {
 	}
 	kubectlSpec = append(kubectlSpec, []string{"-f", manifestFilepath}...)
 	return exec.RunCommand(".", true, kubectlSpec...)
+}
+
+func printManifestSummary(file string, entire bool, matchers []string, useDefaults bool) error {
+	if entire {
+		manifest, err := ioutil.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("glooshot.yaml manifest:\n%s", string(manifest))
+		return nil
+	}
+	defaults := []string{"image"}
+	if useDefaults {
+		matchers = append(matchers, defaults...)
+	}
+	return printFileMatchers(file, matchers)
+}
+
+func printFileMatchers(file string, matchers []string) error {
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	sc := bufio.NewScanner(bytes.NewReader(content))
+	for sc.Scan() {
+		for _, m := range matchers {
+			if matched, _ := regexp.Match(m, sc.Bytes()); matched {
+				fmt.Println(sc.Text())
+				continue
+			}
+		}
+
+	}
+	return nil
 }
