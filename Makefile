@@ -42,7 +42,7 @@ STAMP_DDHHMMSS := $(shell date +%d%H%M%S)
 IMAGE_TAG ?= $(STAMP_DDHHMMSS)-dev
 
 ifeq ($(PHASE), "release")
-  CONTAINER_REPO = "" # to use docker, the default
+  # CONTAINER_REPO uses docker, the default
   CONTAINER_ORG = soloio
   IMAGE_TAG = $(VERSION)
 else ifeq ($(PHASE), "dev")
