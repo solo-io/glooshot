@@ -1,8 +1,6 @@
 package install
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/go-utils/testutils/kube"
@@ -19,7 +17,6 @@ var _ = Describe("Glooshot", func() {
 		pods, err := kc.CoreV1().Pods(glooshotNamespace).List(metav1.ListOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pods.Items)).To(BeNumerically(">", 0))
-		time.Sleep(100 * time.Second)
-		Expect(pods.Items[0].Spec.Containers[0].Image).To(Equal("g"))
+		Expect(pods.Items[0].Spec.Containers[0].Image).To(MatchRegexp("glooshot-op"))
 	})
 })
