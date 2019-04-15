@@ -9,13 +9,11 @@ OUTPUT_DIR ?= $(ROOTDIR)/_output
 # - buildtest: builds in CI, excluding releases
 # - release: builds in CI for releases
 PHASE := "dev"
-# Passed by cloudbuild
-GCLOUD_PROJECT_ID := $(GCLOUD_PROJECT_ID)
-BUILD_ID := $(BUILD_ID)
+GCLOUD_PROJECT_ID := $(GCLOUD_PROJECT_ID) # Passed by cloudbuild
 # Determine lifecycle phase
 ifeq ($(TAGGED_VERSION),)
   TAGGED_VERSION := vdev
-  ifeq ($(BUILD_ID),)
+  ifeq ($(GCLOUD_PROJECT_ID),)
     # not inside CI
     PHASE = "dev"
   else
@@ -88,8 +86,6 @@ include make/common.makefile
 SOURCES := $(shell find . -name "*.go" | grep -v test.go | grep -v '\.\#*')
 LDFLAGS := "-X github.com/solo-io/$(SOLO_NAME)/pkg/version.Version=$(VERSION)"
 GCFLAGS := all="-N -l"
-TEST_IMAGE_TAG := test-$(BUILD_ID)
-TEST_ASSET_DIR := $(ROOTDIR)/_test
 include make/glooshot.makefile
 
 include make/manifest.makefile
