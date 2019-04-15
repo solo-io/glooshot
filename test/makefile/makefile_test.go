@@ -26,13 +26,19 @@ Images configuration
 */
 // Use this make target to validate the configuration for a given set of inputs
 
+const (
+	phaseDev       = "dev"
+	phaseBuildTest = "buildtest"
+	phaseRelease   = "release"
+)
+
 var _ = Describe("verify that the Makefile's configurable variables take expected values", func() {
 
 	It("should work in the dev lifecycle phase, with defaults", func() {
 		envVars := []string{}
 		config, err := callMakeDebugTarget(envVars)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		expectPhase(config, "dev")
+		expectPhase(config, phaseDev)
 		expectRepo(config, "")
 		expectOrg(config, "soloio")
 		expectTag(config, "[0-9]{8}-dev")
@@ -52,7 +58,7 @@ var _ = Describe("verify that the Makefile's configurable variables take expecte
 		}
 		config, err := callMakeDebugTarget(envVars)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		expectPhase(config, "dev")
+		expectPhase(config, phaseDev)
 		expectRepo(config, containerRepo)
 		expectOrg(config, containerOrg)
 		expectTag(config, imageTag)
@@ -65,19 +71,19 @@ var _ = Describe("verify that the Makefile's configurable variables take expecte
 	})
 
 	It("should work in the buildtest lifecycle phase", func() {
-		gcpId := "someproject"
+		gcpId := "somesoloproject"
 		envVars := []string{
 			makeEnvVar("GCLOUD_PROJECT_ID", gcpId),
 		}
 		config, err := callMakeDebugTarget(envVars)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		expectPhase(config, "buildtest")
-		expectRepo(config, fmt.Sprintf("gcr.io/%s", gcpId))
+		expectPhase(config, phaseBuildTest)
+		expectRepo(config, "gcr.io")
 		expectOrg(config, "soloio")
 		expectTag(config, "[a-z0-9]{6}-buildtest")
 		expectGcloudProjectId(config, gcpId)
-		expectFullSpec(config, fmt.Sprintf("gcr.io/%s/soloio", gcpId))
-		expectSample(config, fmt.Sprintf("gcr.io/%s/soloio/<container_name>:[a-z0-9]{6}-buildtest", gcpId))
+		expectFullSpec(config, fmt.Sprintf("gcr.io/%s", gcpId))
+		expectSample(config, fmt.Sprintf("gcr.io/%s/<container_name>:[a-z0-9]{6}-buildtest", gcpId))
 	})
 
 	It("should work in the release lifecycle phase", func() {
@@ -88,7 +94,7 @@ var _ = Describe("verify that the Makefile's configurable variables take expecte
 		}
 		config, err := callMakeDebugTarget(envVars)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		expectPhase(config, "release")
+		expectPhase(config, phaseRelease)
 		expectRepo(config, "")
 		expectOrg(config, "soloio")
 		expectTag(config, version)
@@ -99,7 +105,7 @@ var _ = Describe("verify that the Makefile's configurable variables take expecte
 })
 
 func expectPhase(config, phase string) {
-	ExpectWithOffset(2, config).To(MatchRegexp(fmt.Sprintf("phase: \"%s\"", phase)))
+	ExpectWithOffset(2, config).To(MatchRegexp(fmt.Sprintf("phase: %s", phase)))
 }
 func expectRepo(config, val string) {
 	if val == "" {
