@@ -74,11 +74,11 @@ func (cc *ClientCache) KubeClient() *kubernetes.Clientset {
 	return cc.kubeClient
 }
 
-func (cc *ClientCache) ExpClient() *v1.ExperimentClient {
+func (cc *ClientCache) ExpClient() v1.ExperimentClient {
 	if cc.expClient == nil {
 		expClient, err := GetExperimentClient(cc.ctx, !cc.registerCrds)
 		cc.check(err)
 		cc.expClient = &expClient
 	}
-	return cc.expClient
+	return *cc.expClient
 }

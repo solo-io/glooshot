@@ -355,6 +355,14 @@
   version = "v2.3.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:400e113a367b511b9b09ca642ee11d9885485a93838526d697033af334a2fdde"
+  name = "github.com/kballard/go-shellquote"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "95032a82bc518f77982ea72343cc1ade730072f0"
+
+[[projects]]
   digest = "1:fd54bf7b2ed868354f34178c1d81930250bf978901ad7b0dc649223d79356ae7"
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
@@ -379,12 +387,28 @@
   version = "v0.0.3"
 
 [[projects]]
+  digest = "1:0356f3312c9bd1cbeda81505b7fd437501d8e778ab66998ef69f00d7f9b3a0d7"
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "3ee7d812e62a0804a7d0a324e0249ca2db3476d3"
+  version = "v0.0.4"
+
+[[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
   pruneopts = "UT"
   revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
   version = "v1.0.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:2b32af4d2a529083275afc192d1067d8126b578c7a9613b26600e4df9c735155"
+  name = "github.com/mgutz/ansi"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9520e82c474b0a04dd04f8a40959027271bab992"
 
 [[projects]]
   branch = "master"
@@ -425,6 +449,14 @@
   pruneopts = "UT"
   revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
   version = "1.0.1"
+
+[[projects]]
+  digest = "1:abcdbf03ca6ca13d3697e2186edc1f33863bbdac2b3a44dfa39015e8903f7409"
+  name = "github.com/olekukonko/tablewriter"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e6d60cf7ba1f42d86d54cdf5508611c4aafb3970"
+  version = "v0.0.1"
 
 [[projects]]
   digest = "1:5f4b78246f0bcb105b1e3b2b9e22b52a57cd02f57a8078572fe27c62f4a75ff7"
@@ -571,9 +603,16 @@
   version = "v0.1"
 
 [[projects]]
-  digest = "1:5c71f77bf587abcb1a1f5fd731ab2cdb70f21b4c1d92d08941f9c9df3b7d9ac4"
+  digest = "1:383164861164bbdf063e5e37423c7ec81768f290e6a65ead3a2b622fe7eb7b81"
   name = "github.com/solo-io/gloo"
   packages = [
+    "pkg/cliutil",
+    "projects/gateway/pkg/api/v1",
+    "projects/gloo/cli/pkg/cmd/options",
+    "projects/gloo/cli/pkg/flagutils",
+    "projects/gloo/cli/pkg/helpers",
+    "projects/gloo/cli/pkg/printers",
+    "projects/gloo/cli/pkg/surveyutils",
     "projects/gloo/pkg/api/v1",
     "projects/gloo/pkg/api/v1/plugins",
     "projects/gloo/pkg/api/v1/plugins/aws",
@@ -588,6 +627,7 @@
     "projects/gloo/pkg/api/v1/plugins/retries",
     "projects/gloo/pkg/api/v1/plugins/static",
     "projects/gloo/pkg/api/v1/plugins/transformation",
+    "projects/gloo/pkg/defaults",
   ]
   pruneopts = "UT"
   revision = "f2fdf602bd6c96b0ebbc0d75bc8ac48c66f83db9"
@@ -602,14 +642,16 @@
   version = "0.0.4"
 
 [[projects]]
-  digest = "1:897feb92d2fdb216defba397022bbcec17c169760148a083cd9654b9c804002f"
+  digest = "1:68caf3430ebf5bd282625d2614a81ae4b52bb6d52e12a83c239498c47b507d8e"
   name = "github.com/solo-io/go-utils"
   packages = [
+    "cliutils",
     "contextutils",
     "errors",
     "githubutils",
     "kubeutils",
     "logger",
+    "protoutils",
     "testutils/exec",
     "testutils/kube",
     "versionutils",
@@ -882,6 +924,18 @@
   pruneopts = "UT"
   revision = "236199dd5f8031d698fb64091194aecd1c3895b2"
   version = "v1.20.0"
+
+[[projects]]
+  digest = "1:61e056dd0a189d9f1d07de809181f2ee5d36058d1ce4f9e58f443a1bea745ac0"
+  name = "gopkg.in/AlecAivazis/survey.v1"
+  packages = [
+    ".",
+    "core",
+    "terminal",
+  ]
+  pruneopts = "UT"
+  revision = "ee72c28b95a5ff3e227cfd403f556f0ef4b07ca5"
+  version = "v1.8.2"
 
 [[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
@@ -1191,6 +1245,8 @@
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/pkg/errors",
+    "github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils",
+    "github.com/solo-io/gloo/projects/gloo/cli/pkg/surveyutils",
     "github.com/solo-io/gloo/projects/gloo/pkg/api/v1",
     "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection",
     "github.com/solo-io/go-checkpoint",

@@ -2,23 +2,20 @@ package cli
 
 import (
 	"context"
-	"flag"
-	"fmt"
 	"os"
-	"time"
 
+	"github.com/pkg/errors"
+	"github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils"
+	"github.com/solo-io/gloo/projects/gloo/cli/pkg/surveyutils"
+	"github.com/solo-io/glooshot/pkg/cli/printer"
 	"github.com/solo-io/glooshot/pkg/gsutil"
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 
-	gloov1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
-	"github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection"
-	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/go-utils/contextutils"
 )
 
@@ -29,15 +26,20 @@ Options
 type Options struct {
 	Clients gsutil.ClientCache
 	Top     TopOptions
-	Create  CreateOptions
-	Delete  DeleteOptions
-	Get     GetOptions
+	// Metadata identifies a resource for commands that operate on a particular resource
+	Metadata core.Metadata
+	Create   CreateOptions
+	Delete   DeleteOptions
+	Get      GetOptions
 }
 
 type TopOptions struct {
 	// ConfigFile provides default values for glooshot commands.
 	// Can be overwritten by flags.
 	ConfigFile string
+
+	// Interactive indicates whether or not we are in an interactive input mode
+	Interactive bool
 }
 
 type CreateOptions struct {
@@ -67,8 +69,10 @@ func initialOptions(ctx context.Context, registerCrds bool) Options {
 
 func cliClientErrorHandler(ctx context.Context) func(error) {
 	return func(err error) {
-		contextutils.LoggerFrom(ctx).
-			Fatalw("unable to create clients for glooshot cli", zap.Error(err))
+		if err != nil {
+			contextutils.LoggerFrom(ctx).
+				Fatalw("unable to create clients for glooshot cli", zap.Error(err))
+		}
 	}
 }
 
@@ -92,6 +96,8 @@ func App(ctx context.Context, version string) *cobra.Command {
 		o.getCmd(),
 		completionCmd(),
 	)
+	pflags := app.PersistentFlags()
+	pflags.BoolVarP(&o.Top.Interactive, "interactive", "i", false, "use interactive mode")
 	return app
 }
 
@@ -109,6 +115,7 @@ func (o *Options) createCmd() *cobra.Command {
 	)
 	return cmd
 }
+
 func (o *Options) createExperimentsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "experiment",
@@ -119,6 +126,7 @@ func (o *Options) createExperimentsCmd() *cobra.Command {
 	}
 	return cmd
 }
+
 func (o *Options) doCreateExperiments(cmd *cobra.Command, args []string) error {
 	panic("TODO")
 	return nil
@@ -136,8 +144,11 @@ func (o *Options) deleteCmd() *cobra.Command {
 	cmd.AddCommand(
 		o.deleteExperimentCmd(),
 	)
+	pflags := cmd.PersistentFlags()
+	flagutils.AddMetadataFlags(pflags, &o.Metadata)
 	return cmd
 }
+
 func (o *Options) deleteExperimentCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "experiment",
@@ -148,8 +159,9 @@ func (o *Options) deleteExperimentCmd() *cobra.Command {
 	}
 	return cmd
 }
+
 func (o *Options) doDeleteExperiments(cmd *cobra.Command, args []string) error {
-	panic("TODO")
+	o.MetadataArgsParse(args)
 	return nil
 }
 
@@ -165,8 +177,10 @@ func (o *Options) getCmd() *cobra.Command {
 	cmd.AddCommand(
 		o.getExperimentsCmd(),
 	)
+	// TODO(mitchdraft) - add an --all (namespaces) flag
 	return cmd
 }
+
 func (o *Options) getExperimentsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "experiments",
@@ -175,90 +189,53 @@ func (o *Options) getExperimentsCmd() *cobra.Command {
 			return o.doGetExperiments(c, args)
 		},
 	}
+	pflags := cmd.PersistentFlags()
+	flagutils.AddMetadataFlags(pflags, &o.Metadata)
 	return cmd
 }
 
 func (o *Options) doGetExperiments(cmd *cobra.Command, args []string) error {
-	panic("TODO")
-	return nil
-}
-
-func Run(ctx context.Context) error {
-	var mode string
-	var namespace string
-	var name string
-	flag.StringVar(&mode, "mode", "", "specify a mode (temporary helper cmd, will be removed)")
-	flag.StringVar(&namespace, "namespace", "default", "namespace of experiment")
-	flag.StringVar(&name, "name", "", "name of experiment")
-	flag.Parse()
-
-	if name == "" {
-		return fmt.Errorf("must provide an experiment namme")
+	if err := o.MetadataArgsParse(args); err != nil {
+		return err
 	}
-
-	client, err := gsutil.GetExperimentClient(ctx, false)
+	if o.Metadata.Namespace != "" && o.Metadata.Name != "" {
+		exp, err := o.Clients.ExpClient().Read(o.Metadata.Namespace, o.Metadata.Name, clients.ReadOpts{})
+		if err != nil {
+			return errors.Wrapf(err, "could not get experiments")
+		}
+		printer.Experiment(*exp)
+		return nil
+	}
+	exps, err := o.Clients.ExpClient().List(o.Metadata.Namespace, clients.ListOpts{})
 	if err != nil {
 		return err
 	}
+	printer.PrintExperiments(exps, "")
+	return nil
+}
 
-	minute := time.Minute
-	delayTime := time.Second
-	exp := &v1.Experiment{
-		Metadata: core.Metadata{
-			Namespace: namespace,
-			Name:      name,
-		},
+/*------------------------------------------------------------------------------
+Helpers
+------------------------------------------------------------------------------*/
+
+const nameError = "name must be specified in flag (--name) or via first arg"
+
+func (o *Options) MetadataArgsParse(args []string) error {
+	// even if we are in interactive mode, we first want to check the flags and args for metadata and use those values if given
+	if o.Metadata.Name == "" && len(args) > 0 {
+		// name is a special parameter that can be provided in the command list
+		o.Metadata.Name = args[0]
 	}
-	faults1 := []*v1.ExperimentSpec_InjectedFault{{
-		Service: &gloov1.Destination{
-			Upstream: core.ResourceRef{
-				Name:      "todo",
-				Namespace: "default",
-			},
-		},
-		Fault: &faultinjection.RouteFaults{
-			Delay: &faultinjection.RouteDelay{
-				Percentage: 100,
-				FixedDelay: &delayTime,
-			},
-		},
-	}}
-	faults2 := []*v1.ExperimentSpec_InjectedFault{{
-		Service: &gloov1.Destination{
-			Upstream: core.ResourceRef{
-				Name:      "todo",
-				Namespace: "default",
-			},
-		},
-		Fault: &faultinjection.RouteFaults{
-			Abort: &faultinjection.RouteAbort{
-				Percentage: 100,
-				HttpStatus: 404,
-			},
-		},
-	}}
-	stop1 := &v1.StopCondition{
-		Duration: &minute,
-		Metric: []*v1.MetricThreshold{
-			{
-				MetricName: "dinner",
-				Value:      1800,
-			}},
+
+	// if interactive mode, get any missing fields interactively
+	if o.Top.Interactive {
+		return surveyutils.EnsureMetadataSurvey(&o.Metadata)
 	}
-	switch mode {
-	case "a":
-		exp.Spec = &v1.ExperimentSpec{
-			Faults:        faults1,
-			StopCondition: stop1,
-		}
-	case "b":
-		exp.Spec = &v1.ExperimentSpec{
-			Faults:        faults2,
-			StopCondition: stop1,
-		}
-	default:
+
+	// if not interactive mode, ensure that the required fields were provided
+	if o.Metadata.Name == "" {
+		return errors.Errorf(nameError)
 	}
-	fmt.Println("attempting to write")
-	_, err = client.Write(exp, clients.WriteOpts{})
-	return err
+	// don't need to check namespace as is passed by a flag with a default value
+	return nil
 }
