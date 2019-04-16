@@ -161,8 +161,10 @@ func (o *Options) deleteExperimentCmd() *cobra.Command {
 }
 
 func (o *Options) doDeleteExperiments(cmd *cobra.Command, args []string) error {
-	o.MetadataArgsParse(args)
-	return nil
+	if err := o.MetadataArgsParse(args); err != nil {
+		return err
+	}
+	return o.Clients.ExpClient().Delete(o.Metadata.Namespace, o.Metadata.Name, clients.DeleteOpts{})
 }
 
 /*------------------------------------------------------------------------------
