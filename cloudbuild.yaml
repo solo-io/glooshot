@@ -16,16 +16,16 @@ steps:
 #     path: /root/.ssh
 #   id: 'get-ssh-key'
 
-- name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'bash'
-  args: ['pwd']
-  id: 'time-gcloud'
-  waitFor: ['-']
+# - name: 'gcr.io/cloud-builders/gcloud'
+#   entrypoint: 'bash'
+#   args: ['pwd']
+#   id: 'time-gcloud'
+#   waitFor: ['-']
 - name: 'gcr.io/cloud-builders/gsutil'
   entrypoint: 'bash'
   args: ['pwd']
   id: 'time-gsutil'
-  waitFor: ['time-gcloud']
+  waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args: ['pwd']
