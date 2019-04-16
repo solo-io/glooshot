@@ -109,8 +109,5 @@ prepare-for-test: render-yaml docker-push
 
 .PHONY: release
 release: prepare-for-test
-ifeq ($(PHASE), $(PHASE_RELEASE))
+# note, this only releases when TAGGED_VERSION has been set
 	go run ci/upload_github_release_assets.go
-else
-	echo "Cannot release in phase " $(PHASE)
-endif
