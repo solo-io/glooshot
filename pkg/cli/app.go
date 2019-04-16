@@ -6,8 +6,11 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/solo-io/glooshot/pkg/controller"
+
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/go-utils/protoutils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/pkg/errors"
 	"github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils"
@@ -29,6 +32,7 @@ Options
 ------------------------------------------------------------------------------*/
 
 type Options struct {
+	ctx     context.Context
 	Clients gsutil.ClientCache
 	Top     TopOptions
 	// Metadata identifies a resource for commands that operate on a particular resource
@@ -36,6 +40,7 @@ type Options struct {
 	Create   CreateOptions
 	Delete   DeleteOptions
 	Get      GetOptions
+	cache    optionsCache
 }
 
 type TopOptions struct {
@@ -54,16 +59,38 @@ type CreateOptions struct {
 }
 
 type DeleteOptions struct {
+	// All indicates that all resources in the given namespace should be deleted
+	All bool
+	// EveryResource indicates that all resources in all namespaces should be deleted
+	EveryResource bool
 }
 
 type GetOptions struct {
-	All bool
+	AllNamespaces bool
+}
+
+type optionsCache struct {
+	nsList []string
+}
+
+func (o *Options) GetNamespaces() []string {
+	if o.cache.nsList == nil {
+		nsList, err := o.Clients.KubeClient().CoreV1().Namespaces().List(metav1.ListOptions{})
+		if err != nil {
+			contextutils.LoggerFrom(o.ctx).Fatalw("unable to list namespaces", zap.Error(err))
+		}
+		for _, ns := range nsList.Items {
+			o.cache.nsList = append(o.cache.nsList, ns.Name)
+		}
+	}
+	return o.cache.nsList
 }
 
 const defaultConfigFileLocation = "~/.glooshot/config.yaml"
 
 func initialOptions(ctx context.Context, registerCrds bool) Options {
 	return Options{
+		ctx:     ctx,
 		Clients: gsutil.NewClientCache(ctx, registerCrds, cliClientErrorHandler(ctx)),
 		Top: TopOptions{
 			ConfigFile: defaultConfigFileLocation,
@@ -124,8 +151,9 @@ func (o *Options) createCmd() *cobra.Command {
 
 func (o *Options) createExperimentsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "experiment",
-		Short: "create a glooshot experiment",
+		Use:     "experiment",
+		Short:   "create a glooshot experiment",
+		Aliases: experimentAliases,
 		RunE: func(c *cobra.Command, args []string) error {
 			return o.doCreateExperiments(c, args)
 		},
@@ -169,13 +197,16 @@ func (o *Options) deleteCmd() *cobra.Command {
 	)
 	pflags := cmd.PersistentFlags()
 	flagutils.AddMetadataFlags(pflags, &o.Metadata)
+	pflags.BoolVar(&o.Delete.All, "all", false, "if set, deletes all resources in a given namespace")
+	pflags.BoolVar(&o.Delete.EveryResource, "every-resource", false, "if set, deletes all resources in all namespaces")
 	return cmd
 }
 
 func (o *Options) deleteExperimentCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "experiment",
-		Short: "delete a glooshot experiment",
+		Use:     "experiment",
+		Short:   "delete a glooshot experiment",
+		Aliases: experimentAliases,
 		RunE: func(c *cobra.Command, args []string) error {
 			return o.doDeleteExperiments(c, args)
 		},
@@ -184,10 +215,23 @@ func (o *Options) deleteExperimentCmd() *cobra.Command {
 }
 
 func (o *Options) doDeleteExperiments(cmd *cobra.Command, args []string) error {
-	if err := o.MetadataArgsParse(args); err != nil {
+	if err := o.MetadataArgsParse(args, false); err != nil {
 		return err
 	}
-	return o.Clients.ExpClient().Delete(o.Metadata.Namespace, o.Metadata.Name, clients.DeleteOpts{})
+	ctrl := controller.From(o.Clients)
+	if o.Delete.EveryResource {
+		return ctrl.DeleteAllExperiments()
+	}
+	if o.Delete.All {
+		if o.Metadata.Namespace == "" {
+			return fmt.Errorf("please provide a namespace when using the --all flag")
+		}
+		return ctrl.DeleteExperiments(o.Metadata.Namespace)
+	}
+	if o.Metadata.Namespace == "" || o.Metadata.Name == "" {
+		return fmt.Errorf("please provide a name and namespace")
+	}
+	return controller.From(o.Clients).DeleteExperiment(o.Metadata.Namespace, o.Metadata.Name)
 }
 
 /*------------------------------------------------------------------------------
@@ -208,19 +252,21 @@ func (o *Options) getCmd() *cobra.Command {
 
 func (o *Options) getExperimentsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "experiments",
-		Short: "get a glooshot experiment",
+		Use:     "experiments",
+		Short:   "get a glooshot experiment",
+		Aliases: experimentAliases,
 		RunE: func(c *cobra.Command, args []string) error {
 			return o.doGetExperiments(c, args)
 		},
 	}
 	pflags := cmd.PersistentFlags()
 	flagutils.AddMetadataFlags(pflags, &o.Metadata)
+	pflags.BoolVar(&o.Get.AllNamespaces, "all-namespaces", false, "if set, queries all namespaces")
 	return cmd
 }
 
 func (o *Options) doGetExperiments(cmd *cobra.Command, args []string) error {
-	if err := o.MetadataArgsParse(args); err != nil {
+	if err := o.MetadataArgsParse(args, false); err != nil {
 		return err
 	}
 	if o.Metadata.Namespace != "" && o.Metadata.Name != "" {
@@ -231,9 +277,22 @@ func (o *Options) doGetExperiments(cmd *cobra.Command, args []string) error {
 		printer.Experiment(*exp)
 		return nil
 	}
-	exps, err := o.Clients.ExpClient().List(o.Metadata.Namespace, clients.ListOpts{})
-	if err != nil {
-		return err
+	exps := []*v1.Experiment{}
+	if o.Get.AllNamespaces {
+		for _, ns := range o.GetNamespaces() {
+			nsExps, err := o.Clients.ExpClient().List(ns, clients.ListOpts{})
+			if err != nil {
+				return err
+			}
+			exps = append(exps, nsExps...)
+		}
+
+	} else {
+		var err error
+		exps, err = o.Clients.ExpClient().List(o.Metadata.Namespace, clients.ListOpts{})
+		if err != nil {
+			return err
+		}
 	}
 	printer.PrintExperiments(exps, "")
 	return nil
@@ -245,7 +304,7 @@ Helpers
 
 const nameError = "name must be specified in flag (--name) or via first arg"
 
-func (o *Options) MetadataArgsParse(args []string) error {
+func (o *Options) MetadataArgsParse(args []string, nameRequired bool) error {
 	// even if we are in interactive mode, we first want to check the flags and args for metadata and use those values if given
 	if o.Metadata.Name == "" && len(args) > 0 {
 		// name is a special parameter that can be provided in the command list
@@ -259,9 +318,11 @@ func (o *Options) MetadataArgsParse(args []string) error {
 	}
 
 	// if not interactive mode, ensure that the required fields were provided
-	if o.Metadata.Name == "" {
+	if nameRequired && o.Metadata.Name == "" {
 		return errors.Errorf(nameError)
 	}
 	// don't need to check namespace as is passed by a flag with a default value
 	return nil
 }
+
+var experimentAliases = []string{"experiment", "experiments", "experiment"}

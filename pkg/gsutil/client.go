@@ -82,3 +82,7 @@ func (cc *ClientCache) ExpClient() v1.ExperimentClient {
 	}
 	return *cc.expClient
 }
+
+func (cc *ClientCache) Ctx() context.Context {
+	return cc.ctx
+}
