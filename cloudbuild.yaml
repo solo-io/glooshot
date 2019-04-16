@@ -22,28 +22,28 @@ steps:
 #   id: 'time-gcloud'
 #   waitFor: ['-']
 - name: 'gcr.io/cloud-builders/gsutil'
-  entrypoint: 'ls'
-  # args: ['ls']
+  entrypoint: 'bash'
+  # args: ['pwd']
   id: 'time-gsutil'
   waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
-  args: ['pwd']
+  # args: ['pwd']
   id: 'time-docker'
   waitFor: ['time-gsutil']
 - name: 'gcr.io/$PROJECT_ID/dep:0.1.5'
   entrypoint: 'bash'
-  args: ['pwd']
+  # args: ['pwd']
   id: 'time-dep'
   waitFor: ['time-docker']
 - name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'
   entrypoint: 'bash'
-  args: ['pwd']
+  # args: ['pwd']
   id: 'time-e2e-ginkgo-015'
   waitFor: ['time-dep']
 - name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
   entrypoint: 'bash'
-  args: ['pwd']
+  # args: ['pwd']
   id: 'time-go-make'
   waitFor: ['time-e2e-ginkgo-015']
 
