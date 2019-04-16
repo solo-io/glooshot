@@ -1,0 +1,46 @@
+
+# Notes on cli, TODO - DELETE
+- comment: The top-level command for glooshot
+  use: glooshot
+  short: CLI for glooshot
+  options:
+    - name: config_file
+      in_config: false
+      type: string
+      default: ~/.glooshot/config
+      flag:
+        name: config-file
+        char: f
+        required: false
+        type: string
+  child_commands:
+    - use: create
+      short: Create a glooshot resource
+      type: string
+      in_config: false
+      options:
+        - name: file
+          flag: file
+          char: f
+          required: true
+      child_commands:
+        - use: experiment
+          short: Create an experiment
+    - use: delete
+      short: delete a glooshot resource
+      type: string
+      in_config: false
+      options:
+        - name: file
+          flag: file
+          char: f
+          required: true
+    - use: get
+      short: Create a glooshot resource
+      type: string
+      in_config: false
+      options:
+        - name: file
+          flag: file
+          char: f
+          required: true

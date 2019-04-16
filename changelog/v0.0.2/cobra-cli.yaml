@@ -1,0 +1,4 @@
+changelog:
+- type: NEW_FEATURE
+  description: User can specify an experiment.
+  issueLink: https://github.com/solo-io/glooshot/issues/5
