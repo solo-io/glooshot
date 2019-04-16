@@ -22,8 +22,8 @@ steps:
 #   id: 'time-gcloud'
 #   waitFor: ['-']
 - name: 'gcr.io/cloud-builders/gsutil'
-  entrypoint: 'bash'
-  args: ['ls']
+  entrypoint: 'ls'
+  # args: ['ls']
   id: 'time-gsutil'
   waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
