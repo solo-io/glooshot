@@ -16,20 +16,6 @@ steps:
   waitFor: ['-']
   id: 'get-ssh-key'
 
-## Pre-pull images
-- name: 'gcr.io/$PROJECT_ID/dep:0.1.5'
-  entrypoint: 'bash'
-  id: 'prepull-dep'
-  waitFor: ['-']
-- name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'
-  entrypoint: 'bash'
-  id: 'prepull-e2e-ginkgo-015'
-  waitFor: ['-']
-- name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
-  entrypoint: 'bash'
-  id: 'prepull-go-make'
-  waitFor: ['-']
-
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args: ['-c', 'docker login docker.io --username soloiobot --password $$DOCKER_HUB_PASSWORD']
