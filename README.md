@@ -12,8 +12,8 @@ Gloo Shot is a chaos engineering framework for service meshes.
 ### High-level
 
  - [x] get CI running
- - [ ] require approvals before commit
- - [ ] cli
+ - [x] require approvals before commit
+ - [x] cli
  - [ ] documentation
  - [ ] publish documentation to glooshot.solo.io
  - [ ] demo app
@@ -30,24 +30,24 @@ Gloo Shot is a chaos engineering framework for service meshes.
 
 ### E2E Tests (BDD)
 - **make test and check off list as features are implmented**
-- [ ] CLI should allow user to define an experiment
-- [ ] CLI should allow user to start an experiment
-- [ ] CLI should allow user to terminate an experiment
+- [x] CLI should allow user to define an experiment
+- [x] CLI should allow user to start an experiment
+- [x] CLI should allow user to terminate an experiment
 - [ ] CLI should allow user to schedule an experiment for later
 - [ ] CLI should allow user to define auto-termination conditions for experiments
 - [ ] CLI should allow user to view results??
   - results will manifest as system metrics, what sort of report summary should Glooshot produce?
 - [x] Glooshot should watch Experiment CRDs and respond to their changes
 - [ ] Glooshot should clean up all of its resources
-- [ ] Glooshot should be able to deploy concurrent experiments
-- [ ] Glooshot should be able terminate one experiment without affecting others
+- [x] Glooshot should be able to deploy concurrent experiments
+- [x] Glooshot should be able terminate one experiment without affecting others
 - [ ] Glooshot should be able to verify that an experiment is active
 - [ ] (P2) CLI should provide simple before/during experiment stats
 
 ### Details
 
 - [x] watch experiment crds from glooshot
-- [ ] create sample yamls for experiments
+- [x] create sample yamls for experiments
 - [ ] document how to create experiments from cli (with kubectl)
 
 ### Research

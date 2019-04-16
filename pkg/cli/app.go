@@ -246,7 +246,6 @@ func (o *Options) getCmd() *cobra.Command {
 	cmd.AddCommand(
 		o.getExperimentsCmd(),
 	)
-	// TODO(mitchdraft) - add an --all (namespaces) flag
 	return cmd
 }
 
