@@ -8,7 +8,7 @@ crds:
 glooshot:
   deployment:
     image:
-      repository: soloio/glooshot
+      repository: soloio/glooshot-op
       pullPolicy: Always
       pullSecret: solo-io-docker-secret
     replicas: 1

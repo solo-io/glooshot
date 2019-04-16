@@ -85,7 +85,7 @@ func generateValuesYaml(version, repositoryPrefix string) error {
 
 	cfg.Glooshot.Deployment.Image.Tag = version
 
-	if version == "dev" {
+	if strings.HasSuffix(version, "dev") {
 		cfg.Glooshot.Deployment.Image.PullPolicy = ifNotPresent
 	}
 

@@ -1,165 +1,116 @@
-# Base
-#----------------------------------------------------------------------------------
-
 SOLO_NAME := glooshot
 ROOTDIR := $(shell pwd)
 OUTPUT_DIR ?= $(ROOTDIR)/_output
-SOURCES := $(shell find . -name "*.go" | grep -v test.go | grep -v '\.\#*')
-RELEASE := "true"
-ifeq ($(TAGGED_VERSION),)
-	# TAGGED_VERSION := $(shell git describe --tags)
-	# This doesn't work in CI, need to find another way...
-	TAGGED_VERSION := vdev
-	RELEASE := "false"
-endif
-VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 
-LDFLAGS := "-X github.com/solo-io/$(SOLO_NAME)/pkg/version.Version=$(VERSION)"
-GCFLAGS := all="-N -l"
-
+#--------------------------- Determine Phase ----------------------------------#
+# This makefile is oriented around development lifecycle "phases"
+# phases include:
+# - dev: any local builds
+# - buildtest: builds in CI, excluding releases
+# - release: builds in CI for releases
+PHASE_DEV := dev
+PHASE_BUILDTEST := buildtest
+PHASE_RELEASE := release
+PHASE := $(PHASE_DEV)
 # Passed by cloudbuild
 GCLOUD_PROJECT_ID := $(GCLOUD_PROJECT_ID)
-BUILD_ID := $(BUILD_ID)
-
-TEST_IMAGE_TAG := test-$(BUILD_ID)
-TEST_ASSET_DIR := $(ROOTDIR)/_test
-GCR_REPO_PREFIX := gcr.io/$(GCLOUD_PROJECT_ID)
-
-#----------------------------------------------------------------------------------
-# Repo setup
-#----------------------------------------------------------------------------------
-
-# https://www.viget.com/articles/two-ways-to-share-git-hooks-with-your-team/
-.PHONY: init
-init:
-	git config core.hooksPath .githooks
-
-.PHONY: update-deps
-update-deps:
-	go get -u golang.org/x/tools/cmd/goimports
-	go get -u github.com/gogo/protobuf/gogoproto
-	go get -u github.com/gogo/protobuf/protoc-gen-gogo
-	go get -u github.com/envoyproxy/protoc-gen-validate
-	go get -u github.com/paulvollmer/2gobytes
-
-.PHONY: pin-repos
-pin-repos:
-	go run ci/pin_repos.go
-
-.PHONY: check-format
-check-format:
-	NOT_FORMATTED=$$(gofmt -l ./pkg/ ./cmd/ ./ci/) && if [ -n "$$NOT_FORMATTED" ]; then echo These files are not formatted: $$NOT_FORMATTED; exit 1; fi
-
-.PHONY: check-spelling
-check-spelling:
-	./ci/spell.sh check
-
-#----------------------------------------------------------------------------------
-# Generated Code and Docs
-#----------------------------------------------------------------------------------
-
-.PHONY: generated-code
-generated-code: $(OUTPUT_DIR)/.generated-code
-
-SUBDIRS:=pkg cmd ci
-$(OUTPUT_DIR)/.generated-code:
-	go run generate.go
-	gofmt -w $(SUBDIRS)
-	goimports -w $(SUBDIRS)
-	mkdir -p $(OUTPUT_DIR)
-	touch $@
-
-#----------------------------------------------------------------------------------
-# Deployment Manifests / Helm
-#----------------------------------------------------------------------------------
-
-HELM_SYNC_DIR := $(OUTPUT_DIR)/helm
-HELM_DIR := install/helm/$(SOLO_NAME)
-INSTALL_NAMESPACE ?= $(SOLO_NAME)
-
-.PHONY: manifest
-manifest: prepare-helm install/$(SOLO_NAME).yaml update-helm-chart
-
-# creates Chart.yaml, values.yaml
-prepare-helm:
-	go run install/helm/$(SOLO_NAME)/generate/cmd/generate.go $(VERSION)
-
-update-helm-chart:
-ifeq ($(RELEASE),"true")
-	mkdir -p $(HELM_SYNC_DIR)/charts
-	helm package --destination $(HELM_SYNC_DIR)/charts $(HELM_DIR)
-	helm repo index $(HELM_SYNC_DIR)
+# Determine lifecycle phase
+ifeq ($(TAGGED_VERSION),)
+  TAGGED_VERSION := vdev
+  ifeq ($(GCLOUD_PROJECT_ID),)
+    # not inside CI
+    PHASE = $(PHASE_DEV)
+  else
+    # inside CI, but not making a release
+    PHASE = $(PHASE_BUILDTEST)
+  endif
+else
+  # a tagged version has been provided, we are performing a relase
+  PHASE = $(PHASE_RELEASE)
 endif
 
-HELMFLAGS := --namespace $(INSTALL_NAMESPACE) --set namespace.create=true
+#---------------- Compute phase-specific and phase-configurable values ---------#
+VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
+LAST_COMMIT = $(shell git rev-parse HEAD | cut -c 1-6)
 
-install/$(SOLO_NAME).yaml: prepare-helm
-	helm template install/helm/$(SOLO_NAME) $(HELMFLAGS) > $@
+CONTAINER_ORG ?= soloio
+CONTAINER_REPO := $(CONTAINER_REPO)
+# defaults to docker
+# the docker documentation states the implied repo url is: registry-1.docker.io
+# https://docs.docker.com/engine/reference/commandline/tag/
+# just in case, we will let the docker tool provide that
 
-.PHONY: render-yaml
-render-yaml: install/$(SOLO_NAME).yaml
+# Note: need to evaluate this with := to avoid re-evaluation
+STAMP_DDHHMMSS := $(shell date +%d%H%M%S)
+IMAGE_TAG ?= $(STAMP_DDHHMMSS)-dev
 
-#----------------------------------------------------------------------------------
-# glooshot
-#----------------------------------------------------------------------------------
+ifeq ($(PHASE), $(PHASE_RELEASE))
+  # CONTAINER_REPO uses docker, the default
+  CONTAINER_ORG = soloio
+  CONTAINER_REPO_ORG=$(CONTAINER_ORG)
+  IMAGE_TAG = $(VERSION)
+else ifeq ($(PHASE), $(PHASE_DEV))
+  ifeq ($(CONTAINER_REPO),)
+    CONTAINER_REPO_ORG=$(CONTAINER_ORG)
+  else
+    CONTAINER_REPO_ORG=$(CONTAINER_REPO)/$(CONTAINER_ORG)
+  endif
+else ifeq ($(PHASE), $(PHASE_BUILDTEST))
+  CONTAINER_REPO = gcr.io
+  CONTAINER_REPO_ORG = $(CONTAINER_REPO)/$(GCLOUD_PROJECT_ID)
+  IMAGE_TAG = $(LAST_COMMIT)-buildtest
+  # TODO - delete these images from the repo after the test runs
+  # consider adding $(shell date +%m%d%H%M%s) to the end of this tag if it helps to clean old builds
+endif
 
-GLOOSHOT_DIR=cmd/glooshot
-GLOOSHOT_SOURCES=$(shell find $(GLOOSHOT_DIR) -name "*.go" | grep -v test | grep -v generated.go)
 
-$(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64: $(GLOOSHOT_SOURCES)
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags=$(LDFLAGS) -gcflags=$(GCFLAGS) -o $@ $(GLOOSHOT_DIR)/main.go
+# For value debugging or preview
+define MAKE_CONFIGURATION
+Build state
+ phase: $(PHASE)
+Images configuration
+ repo: $(CONTAINER_REPO)
+ org: $(CONTAINER_ORG)
+ tag: $(IMAGE_TAG)
+ gcloud_project_id: $(GCLOUD_PROJECT_ID)
+ full_spec: $(CONTAINER_REPO_ORG)
+ sample: $(CONTAINER_REPO_ORG)/<container_name>:$(IMAGE_TAG)
+endef
+export MAKE_CONFIGURATION
+.PHONY: print_configuration
+print_configuration:
+	echo "$$MAKE_CONFIGURATION"
 
-$(OUTPUT_DIR)/$(SOLO_NAME)-darwin: $(GLOOSHOT_SOURCES)
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -ldflags=$(LDFLAGS) -gcflags=$(GCFLAGS) -o $@ $(GLOOSHOT_DIR)/main.go
+#--- Specify project-specific constants and import project-specific build logic ---#
+# import the targets that are common to many solo projects
+FORMAT_DIRS = ./pkg/ ./cmd/ ./ci/
+include make/common.makefile
 
-.PHONY: glooshot
-glooshot: $(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64 $(OUTPUT_DIR)/$(SOLO_NAME)-darwin
+SOURCES := $(shell find . -name "*.go" | grep -v test.go | grep -v '\.\#*')
+LDFLAGS := "-X github.com/solo-io/$(SOLO_NAME)/pkg/version.Version=$(VERSION)"
+GCFLAGS := all="-N -l"
+include make/glooshot.makefile
 
-$(OUTPUT_DIR)/Dockerfile.glooshot: $(GLOOSHOT_DIR)/Dockerfile
-	cp $< $@
+include make/manifest.makefile
 
-.PHONY: glooshot-docker
-glooshot-docker: $(OUTPUT_DIR)/glooshot-docker
+# these are phase-specific
+ifeq ($(PHASE), $(PHASE_DEV))
+  include make/phase_dev.makefile
+endif
 
-$(OUTPUT_DIR)/glooshot-docker: $(OUTPUT_DIR)/$(SOLO_NAME)-linux-amd64 $(OUTPUT_DIR)/Dockerfile.glooshot
-	docker build -t soloio/$(SOLO_NAME):$(VERSION) $(call get_test_tag_option,$(SOLO_NAME)) $(OUTPUT_DIR) -f $(OUTPUT_DIR)/Dockerfile.glooshot
-	touch $@
+.PHONY: docker
+docker: glooshot-cli glooshot-operator glooshot-docker
 
-#----------------------------------------------------------------------------------
-# Release
-#----------------------------------------------------------------------------------
+.PHONY: docker-push
+docker-push: docker glooshot-docker-push
 
-.PHONY: upload-github-release-assets
-upload-github-release-assets: render-yaml
-	go run ci/upload_github_release_assets.go
+.PHONY: prepare-for-test
+prepare-for-test: render-yaml docker-push
 
 .PHONY: release
-release: docker-push upload-github-release-assets
-
-#----------------------------------------------------------------------------------
-# Docker
-#----------------------------------------------------------------------------------
-#
-#---------
-#--------- Push
-#---------
-
-DOCKER_IMAGES :=
-ifeq ($(RELEASE),"true")
-	DOCKER_IMAGES := docker
+release: prepare-for-test
+ifeq ($(PHASE), $(PHASE_RELEASE))
+	go run ci/upload_github_release_assets.go
+else
+	echo "Cannot release in phase " $(PHASE)
 endif
-
-.PHONY: docker docker-push
-docker: glooshot glooshot-docker
-
-# Depends on DOCKER_IMAGES, which is set to docker if RELEASE is "true", otherwise empty (making this a no-op).
-# This prevents executing the dependent targets if RELEASE is not true, while still enabling `make docker`
-# to be used for local testing.
-# docker-push is intended to be run by CI
-docker-push: $(DOCKER_IMAGES)
-ifeq ($(RELEASE),"true")
-	docker push soloio/$(SOLO_NAME):$(VERSION)
-endif
-
-push-kind-images: docker
-	kind load docker-image soloio/$(SOLO_NAME):$(VERSION) --name $(CLUSTER_NAME)
