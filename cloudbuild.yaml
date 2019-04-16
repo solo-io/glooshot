@@ -1,26 +1,4 @@
 steps:
-## Pre-pull images
-- name: 'gcr.io/cloud-builders/gsutil'
-  entrypoint: 'bash'
-  id: 'time-gsutil'
-  waitFor: ['-']
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: 'bash'
-  id: 'time-docker'
-  waitFor: ['-']
-- name: 'gcr.io/$PROJECT_ID/dep:0.1.5'
-  entrypoint: 'bash'
-  id: 'time-dep'
-  waitFor: ['-']
-- name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'
-  entrypoint: 'bash'
-  id: 'time-e2e-ginkgo-015'
-  waitFor: ['-']
-- name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
-  entrypoint: 'bash'
-  id: 'time-go-make'
-  waitFor: ['-']
-
 # Setup SSH
 # These are required before dep
 - name: gcr.io/cloud-builders/gcloud
@@ -35,7 +13,22 @@ steps:
   volumes:
   - name: 'ssh'
     path: /root/.ssh
+  waitFor: ['-']
   id: 'get-ssh-key'
+
+## Pre-pull images
+- name: 'gcr.io/$PROJECT_ID/dep:0.1.5'
+  entrypoint: 'bash'
+  id: 'prepull-dep'
+  waitFor: ['-']
+- name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'
+  entrypoint: 'bash'
+  id: 'prepull-e2e-ginkgo-015'
+  waitFor: ['-']
+- name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
+  entrypoint: 'bash'
+  id: 'prepull-go-make'
+  waitFor: ['-']
 
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
