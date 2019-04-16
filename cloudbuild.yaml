@@ -44,23 +44,23 @@ steps:
 
 - name: 'gcr.io/cloud-builders/gsutil'
   entrypoint: 'bash'
-  id: 'time-gsutil'
+  id: 'time-gsutil-dup'
   waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
-  id: 'time-docker'
+  id: 'time-docker-dup'
   waitFor: ['-']
 - name: 'gcr.io/$PROJECT_ID/dep:0.1.5'
   entrypoint: 'bash'
-  id: 'time-dep'
+  id: 'time-dep-dup'
   waitFor: ['-']
 - name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'
   entrypoint: 'bash'
-  id: 'time-e2e-ginkgo-015'
+  id: 'time-e2e-ginkgo-015-dup'
   waitFor: ['-']
 - name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
   entrypoint: 'bash'
-  id: 'time-go-make'
+  id: 'time-go-make-dup'
   waitFor: ['-']
 
 # - name: 'gcr.io/cloud-builders/docker'
