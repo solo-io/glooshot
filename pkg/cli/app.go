@@ -2,7 +2,12 @@ package cli
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"os"
+
+	v1 "github.com/solo-io/glooshot/pkg/api/v1"
+	"github.com/solo-io/go-utils/protoutils"
 
 	"github.com/pkg/errors"
 	"github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils"
@@ -36,6 +41,7 @@ type Options struct {
 type TopOptions struct {
 	// ConfigFile provides default values for glooshot commands.
 	// Can be overwritten by flags.
+	// TODO(mitchdraft) -add config file
 	ConfigFile string
 
 	// Interactive indicates whether or not we are in an interactive input mode
@@ -48,11 +54,10 @@ type CreateOptions struct {
 }
 
 type DeleteOptions struct {
-	Experiment core.ResourceRef
 }
 
 type GetOptions struct {
-	Experiment core.ResourceRef
+	All bool
 }
 
 const defaultConfigFileLocation = "~/.glooshot/config.yaml"
@@ -87,6 +92,7 @@ func App(ctx context.Context, version string) *cobra.Command {
 		Version: version,
 	}
 
+	// TODO(mitchdraft) - put this in a config file
 	register := os.Getenv("REGISTER_GLOOSHOT") == "1"
 	o := initialOptions(ctx, register)
 
@@ -124,11 +130,28 @@ func (o *Options) createExperimentsCmd() *cobra.Command {
 			return o.doCreateExperiments(c, args)
 		},
 	}
+	pflags := cmd.PersistentFlags()
+	pflags.StringVarP(&o.Create.CreateFile, "file", "f", "",
+		"name of file containing the specification of the resource to be created")
 	return cmd
 }
 
 func (o *Options) doCreateExperiments(cmd *cobra.Command, args []string) error {
-	panic("TODO")
+	if o.Create.CreateFile == "" {
+		return fmt.Errorf("no experiment specification file provided")
+	}
+	content, err := ioutil.ReadFile(o.Create.CreateFile)
+	if err != nil {
+		return err
+	}
+	exp := &v1.Experiment{}
+	if err := protoutils.UnmarshalYaml(content, exp); err != nil {
+		return err
+	}
+	_, err = o.Clients.ExpClient().Write(exp, clients.WriteOpts{OverwriteExisting: false})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -231,6 +254,7 @@ func (o *Options) MetadataArgsParse(args []string) error {
 
 	// if interactive mode, get any missing fields interactively
 	if o.Top.Interactive {
+		// TODO(mitchdraft) - make an variant of this util that takes an optional list for autocompletion help
 		return surveyutils.EnsureMetadataSurvey(&o.Metadata)
 	}
 
