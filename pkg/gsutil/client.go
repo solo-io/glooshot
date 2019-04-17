@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"k8s.io/client-go/kubernetes"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
@@ -31,7 +30,7 @@ func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.Experime
 }
 
 func GetKubeClient() (*kubernetes.Clientset, error) {
-	restCfg, err := gokubeutils.GetConfig("", "")
+	restCfg, err := kubeutils.GetConfig("", "")
 	if err != nil {
 		return &kubernetes.Clientset{}, errors.Wrapf(err, "no Kubernetes context config found; please double check your Kubernetes environment")
 	}
