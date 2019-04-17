@@ -21,6 +21,6 @@ func main() {
 	ctx := getInitialContext()
 	app := cli.App(ctx, version.Version)
 	if err := app.Execute(); err != nil {
-		contextutils.LoggerFrom(ctx).Fatalw("msg", zap.Error(err))
+		contextutils.LoggerFrom(ctx).Fatalw("error during glooshot cli execution", zap.Error(err))
 	}
 }

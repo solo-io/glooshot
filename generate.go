@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/go-utils/errors"
 	version "github.com/solo-io/go-utils/versionutils"
@@ -21,14 +23,14 @@ func getInitialContext() context.Context {
 func main() {
 	ctx := getInitialContext()
 	if err := checkVersions(ctx); err != nil {
-		contextutils.LoggerFrom(ctx).Fatalf("generate failed!: %v", err)
+		contextutils.LoggerFrom(ctx).Fatalw("generate failed", zap.Error(err))
 	}
 	contextutils.LoggerFrom(ctx).Infow("starting generate")
 	docsOpts := cmd.DocsOptions{
 		Output: options.Hugo,
 	}
 	if err := cmd.Run(".", true, &docsOpts, nil, nil); err != nil {
-		contextutils.LoggerFrom(ctx).Fatalf("generate failed!: %v", err)
+		contextutils.LoggerFrom(ctx).Fatalw("generate failed", zap.Error(err))
 	}
 }
 
