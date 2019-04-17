@@ -37,6 +37,11 @@ var _ = Describe("Glooshot CLI", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		FIt("should return human-friendly errors on bad input", func() {
+			_, err := glooshot("--h")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		It("should perform basic create, get, and delete commands", func() {
 			out, err := glooshot("get experiments --all-namespaces")
 			Expect(err).NotTo(HaveOccurred())
