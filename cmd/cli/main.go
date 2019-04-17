@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/mitchellh/go-homedir"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
+
+	"github.com/mitchellh/go-homedir"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/solo-io/glooshot/pkg/cli"
 	"github.com/solo-io/glooshot/pkg/version"
