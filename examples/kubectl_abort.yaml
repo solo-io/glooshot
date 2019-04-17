@@ -1,7 +1,7 @@
 apiVersion: glooshot.solo.io/v1
 kind: Experiment
 metadata:
-  name: abortsample
+  name: sample-abort
   namespace: default
 spec:
   spec:

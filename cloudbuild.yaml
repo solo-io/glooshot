@@ -1,5 +1,4 @@
 steps:
-
 # Setup SSH
 # These are required before dep
 - name: gcr.io/cloud-builders/gcloud
@@ -14,6 +13,7 @@ steps:
   volumes:
   - name: 'ssh'
     path: /root/.ssh
+  waitFor: ['-']
   id: 'get-ssh-key'
 
 - name: 'gcr.io/cloud-builders/docker'

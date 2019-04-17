@@ -1,30 +1,39 @@
 package main
 
 import (
+	"context"
+
+	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/go-utils/errors"
 	version "github.com/solo-io/go-utils/versionutils"
 	"github.com/solo-io/solo-kit/pkg/code-generator/cmd"
 	"github.com/solo-io/solo-kit/pkg/code-generator/docgen/options"
-	"github.com/solo-io/solo-kit/pkg/utils/log"
 )
 
 //go:generate go run generate.go
 
+func getInitialContext() context.Context {
+	loggingContext := []interface{}{"build script", "code generation"}
+	ctx := contextutils.WithLogger(context.Background(), "code generation")
+	return contextutils.WithLoggerValues(ctx, loggingContext...)
+}
+
 func main() {
-	if err := checkVersions(); err != nil {
-		log.Fatalf("generate failed!: %v", err)
+	ctx := getInitialContext()
+	if err := checkVersions(ctx); err != nil {
+		contextutils.LoggerFrom(ctx).Fatalf("generate failed!: %v", err)
 	}
-	log.Printf("starting generate")
+	contextutils.LoggerFrom(ctx).Infow("starting generate")
 	docsOpts := cmd.DocsOptions{
 		Output: options.Hugo,
 	}
 	if err := cmd.Run(".", true, &docsOpts, nil, nil); err != nil {
-		log.Fatalf("generate failed!: %v", err)
+		contextutils.LoggerFrom(ctx).Fatalf("generate failed!: %v", err)
 	}
 }
 
-func checkVersions() error {
-	log.Printf("Checking expected solo kit and gloo versions...")
+func checkVersions(ctx context.Context) error {
+	contextutils.LoggerFrom(ctx).Infow("Checking expected solo kit and gloo versions...")
 	tomlTree, err := version.ParseToml()
 	if err != nil {
 		return err
@@ -40,7 +49,7 @@ func checkVersions() error {
 		return err
 	}
 
-	log.Printf("Checking repo versions...")
+	contextutils.LoggerFrom(ctx).Infow("Checking repo versions...")
 	actualGlooVersion, err := version.GetGitVersion("../gloo")
 	if err != nil {
 		return err
@@ -58,6 +67,6 @@ func checkVersions() error {
 	if expectedTaggedSoloKitVersion != actualSoloKitVersion {
 		return errors.Errorf("Expected solo kit version %s, found solo kit version %s in repo. Run 'make pin-repos' or fix manually.", expectedTaggedSoloKitVersion, actualSoloKitVersion)
 	}
-	log.Printf("Versions are pinned correctly.")
+	contextutils.LoggerFrom(ctx).Infow("Versions are pinned correctly.")
 	return nil
 }

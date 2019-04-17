@@ -9,6 +9,10 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/avast/retry-go"
+	"github.com/solo-io/go-utils/testutils/clusterlock"
+	"github.com/solo-io/go-utils/testutils/kube"
+
 	"github.com/solo-io/go-utils/logger"
 
 	. "github.com/onsi/gomega"
@@ -18,6 +22,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 )
+
+var locker *clusterlock.TestClusterLocker
 
 func TestInstall(t *testing.T) {
 
@@ -37,13 +43,20 @@ func TestInstall(t *testing.T) {
 const glooshotManifest = "../../install/glooshot.yaml"
 
 var _ = BeforeSuite(func() {
-	err := printManifestSummary(glooshotManifest, false, nil, true)
+	var err error
+	locker, err = clusterlock.NewTestClusterLocker(kube.MustKubeClient(), clusterlock.Options{})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(locker.AcquireLock(retry.Attempts(20))).NotTo(HaveOccurred())
+
+	err = printManifestSummary(glooshotManifest, false, nil, true)
 	Expect(err).NotTo(HaveOccurred())
 	// install glooshot via the manifest file
 	err = toggleManifest(glooshotManifest, true)
 	Expect(err).NotTo(HaveOccurred())
 })
+
 var _ = AfterSuite(func() {
+	defer locker.ReleaseLock()
 	// uninstall glooshot via the manifest file
 	err := toggleManifest(glooshotManifest, false)
 	Expect(err).NotTo(HaveOccurred())
