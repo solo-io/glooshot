@@ -2,7 +2,6 @@ package install
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"os"
 	"strings"
@@ -92,7 +91,7 @@ func glooshot(args string) (string, string, error) {
 	testCliLogger := cli.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
 	ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
 	app := cli.App(ctx, "testglooshotcli")
-	cStdout, cStderr, err := ExecuteCliOutErr(ctx, app, args)
+	cStdout, cStderr, err := ExecuteCliOutErr(app, args, nil)
 	return cStdout, cStderr, err
 }
 
@@ -103,7 +102,12 @@ func glooshotWithLogger(args string) CliOutput {
 	app := cli.App(ctx, "testglooshotcli")
 	cliOut := CliOutput{}
 	var err error
-	cliOut.CobraStdout, cliOut.CobraStderr, err = ExecuteCliOutErr(ctx, app, args)
+	commandErrorHandler := func(commandErr error) {
+		if commandErr != nil {
+			contextutils.LoggerFrom(ctx).Errorw("error during glooshot cli execution", zap.Error(commandErr))
+		}
+	}
+	cliOut.CobraStdout, cliOut.CobraStderr, err = ExecuteCliOutErr(app, args, commandErrorHandler)
 	Expect(err).NotTo(HaveOccurred())
 	// After the command has been executed, there should be content in the logs
 	cliOut.LoggerConsoleStout, _, _ = mockTargets.Stdout.Summarize()
@@ -130,7 +134,10 @@ func ExecuteCli(command *cobra.Command, args string) error {
 	return command.Execute()
 }
 
-func ExecuteCliOutErr(ctx context.Context, command *cobra.Command, args string) (string, string, error) {
+// ExecuteCliOutErr is a helper for calling a cobra command within a test
+// handleCommandError is an optional parameter that can be used for replicating the error handler that you use
+// when calling the command from your main file
+func ExecuteCliOutErr(command *cobra.Command, args string, handleCommandError func(error)) (string, string, error) {
 	stdOut := os.Stdout
 	stdErr := os.Stderr
 	r1, w1, err := os.Pipe()
@@ -146,8 +153,8 @@ func ExecuteCliOutErr(ctx context.Context, command *cobra.Command, args string) 
 
 	command.SetArgs(strings.Split(args, " "))
 	commandErr := command.Execute()
-	if commandErr != nil {
-		contextutils.LoggerFrom(ctx).Errorw("error during glooshot cli execution", zap.Error(commandErr))
+	if handleCommandError != nil {
+		handleCommandError(commandErr)
 	}
 
 	chan1 := make(chan string)
