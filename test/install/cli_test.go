@@ -44,36 +44,35 @@ var _ = Describe("Glooshot CLI", func() {
 		It("should perform basic create, get, and delete commands", func() {
 			out, stdErr, err := glooshot("get experiments --all-namespaces")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(stdErr).NotTo(HaveOccurred())
+			Expect(stdErr).To(Equal(""))
 			Expect(out).To(Equal(noResourcesTable))
 
 			out, stdErr, err = glooshot("create experiment -f ../../examples/gs_delay.yaml")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(stdErr).NotTo(HaveOccurred())
+			Expect(stdErr).To(Equal(""))
 			Expect(out).To(Equal(""))
 
 			out, stdErr, err = glooshot("get experiments --all-namespaces")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(stdErr).NotTo(HaveOccurred())
+			Expect(stdErr).To(Equal(""))
 			Expect(out).NotTo(Equal(noResourcesTable))
 
 			out, stdErr, err = glooshot("delete experiments -n default --all")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(stdErr).NotTo(HaveOccurred())
+			Expect(stdErr).To(Equal(""))
 			Expect(out).NotTo(Equal(noResourcesTable))
 
 			out, stdErr, err = glooshot("get experiments --all-namespaces")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(stdErr).NotTo(HaveOccurred())
+			Expect(stdErr).To(Equal(""))
 			Expect(out).To(Equal(noResourcesTable))
 		})
 	})
 
 	Context("expect human-friendly errors", func() {
 
-		FIt("should return human-friendly errors on bad input", func() {
-			cliOut, err := glooshotWithLogger("--h")
-			Expect(err).To(HaveOccurred())
+		It("should return human-friendly errors on bad input", func() {
+			cliOut := glooshotWithLogger("--h")
 			Expect(cliOut.CobraStdout).To(Equal(""))
 			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
 			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
@@ -83,14 +82,6 @@ var _ = Describe("Glooshot CLI", func() {
 			// Assert the details for documentation purposes (flake-prone)
 			Expect(cliOut.LoggerConsoleStderr).To(Equal(`error during glooshot cli execution	{"version": "dev", "error": "unknown flag: --h"}
 `))
-		})
-
-		It("should return human-friendly errors on bad input", func() {
-			stdOut, stdErr, err := glooshot("")
-			Expect(err).To(HaveOccurred())
-			Expect(stdErr).NotTo(HaveOccurred())
-			Expect(err.Error()).To(Equal("unknown flag: --h"))
-			Expect(stdOut).To(standardCobraHelpBlockMatcher)
 		})
 
 	})
@@ -105,7 +96,7 @@ func glooshot(args string) (string, string, error) {
 	return cStdout, cStderr, err
 }
 
-func glooshotWithLogger(args string) (CliOutput, error) {
+func glooshotWithLogger(args string) CliOutput {
 	mockTargets := cli.NewMockTargets()
 	testCliLogger := cli.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
 	ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
@@ -113,10 +104,11 @@ func glooshotWithLogger(args string) (CliOutput, error) {
 	cliOut := CliOutput{}
 	var err error
 	cliOut.CobraStdout, cliOut.CobraStderr, err = ExecuteCliOutErr(ctx, app, args)
+	Expect(err).NotTo(HaveOccurred())
 	// After the command has been executed, there should be content in the logs
 	cliOut.LoggerConsoleStout, _, _ = mockTargets.Stdout.Summarize()
 	cliOut.LoggerConsoleStderr, _, _ = mockTargets.Stderr.Summarize()
-	return cliOut, err
+	return cliOut
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -153,9 +145,9 @@ func ExecuteCliOutErr(ctx context.Context, command *cobra.Command, args string) 
 	os.Stderr = w2
 
 	command.SetArgs(strings.Split(args, " "))
-	err = command.Execute()
-	if err != nil {
-		contextutils.LoggerFrom(ctx).Errorw("error during glooshot cli execution", zap.Error(err))
+	commandErr := command.Execute()
+	if commandErr != nil {
+		contextutils.LoggerFrom(ctx).Errorw("error during glooshot cli execution", zap.Error(commandErr))
 	}
 
 	chan1 := make(chan string)

@@ -11,7 +11,7 @@ GCFLAGS := all="-N -l"
 # Establish container values
 #-------------------------------------------------------------------------------
 # Passed by cloudbuild
-GCLOUD_PROJECT_ID := $(GCLOUD_PROJECT_ID)
+GCLOUD_PROJECT_ID ?= gloo-ee
 VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 LAST_COMMIT = $(shell git rev-parse HEAD | cut -c 1-6)
 # Note: need to evaluate this with := to avoid re-evaluation
