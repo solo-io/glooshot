@@ -112,6 +112,8 @@ func printFileMatchers(file string, matchers []string) error {
 	return nil
 }
 
+// TODO(mitchdraft) - move to go-utils https://github.com/solo-io/go-utils/issues/131
+
 func printTrimmedStack() {
 	stack := debug.Stack()
 	fmt.Println(trimVendorStack(stack))

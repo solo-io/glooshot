@@ -3,9 +3,14 @@ package install
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/solo-io/go-utils/contextutils"
+	"go.uber.org/zap"
 
 	"github.com/solo-io/glooshot/pkg/cli"
 	"github.com/spf13/cobra"
@@ -70,6 +75,12 @@ var _ = Describe("Glooshot CLI", func() {
 
 		FIt("should return human-friendly errors on bad input", func() {
 			stdOut, stdErr, err := glooshot("--h")
+			fmt.Println("start summary")
+			fmt.Println(stdOut)
+			fmt.Println(stdErr)
+			fmt.Println(err)
+			fmt.Println("end summary")
+			time.Sleep(16 * time.Second)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("unknown flag: --h"))
 			Expect(stdErr).NotTo(HaveOccurred())
@@ -88,8 +99,24 @@ var _ = Describe("Glooshot CLI", func() {
 })
 
 func glooshot(args string) (string, string, error) {
-	app := cli.App(context.Background(), "testglooshotcli")
-	return ExecuteCliOutErr(app, args)
+	mockTargets := cli.NewMockTargets()
+	c, e := mockTargets.Stdout.Write([]byte("hello"))
+	_, _ = mockTargets.Stdout.Write([]byte("hello2"))
+	fmt.Println(c)
+	if e != nil {
+		fmt.Println("error")
+		fmt.Println(e)
+	}
+	testCliLogger := cli.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
+	ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
+	app := cli.App(ctx, "testglooshotcli")
+	cStdout, cStderr, err := ExecuteCliOutErr(ctx, app, args)
+	fmt.Println("summary stdout:")
+	mts, mtw, mtsc := mockTargets.Stdout.Summarize()
+	fmt.Printf("stdout %v\n%v\n%v", mts, mtw, mtsc)
+	fmt.Println("summary stderr:")
+	fmt.Println(mockTargets.Stderr.Summarize())
+	return cStdout, cStderr, err
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -100,7 +127,7 @@ func ExecuteCli(command *cobra.Command, args string) error {
 	return command.Execute()
 }
 
-func ExecuteCliOutErr(command *cobra.Command, args string) (string, string, error) {
+func ExecuteCliOutErr(ctx context.Context, command *cobra.Command, args string) (string, string, error) {
 	stdOut := os.Stdout
 	stdErr := os.Stderr
 	r1, w1, err := os.Pipe()
@@ -116,6 +143,9 @@ func ExecuteCliOutErr(command *cobra.Command, args string) (string, string, erro
 
 	command.SetArgs(strings.Split(args, " "))
 	err = command.Execute()
+	if err != nil {
+		contextutils.LoggerFrom(ctx).Errorw("error during glooshot cli execution", zap.Error(err))
+	}
 
 	chan1 := make(chan string)
 	chan2 := make(chan string)
@@ -154,6 +184,14 @@ func ExecuteCliOutErr(command *cobra.Command, args string) (string, string, erro
 	}
 	capturedStdout := <-chan1
 	capturedStderr := <-chan2
+	//capturedStdout := ""
+	//for len(chan1) > 0 {
+	//	capturedStdout += <-chan1
+	//}
+	//capturedStderr := ""
+	//for len(chan2) > 0 {
+	//	capturedStderr += <-chan2
+	//}
 
 	return strings.TrimSuffix(capturedStdout, "\n"),
 		strings.TrimSuffix(capturedStderr, "\n"),
