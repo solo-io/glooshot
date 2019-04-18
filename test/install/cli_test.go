@@ -1,15 +1,14 @@
 package install
 
 import (
-	"github.com/solo-io/go-utils/contextutils"
-	"go.uber.org/zap"
+	"fmt"
 
 	"github.com/solo-io/glooshot/pkg/cli"
+	clilog "github.com/solo-io/glooshot/pkg/pregoutils-clilog"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/gloo/projects/gloo/cli/pkg/helpers"
-	clitestutils "github.com/solo-io/glooshot/test/pregoutils-clitestutils"
 )
 
 var _ = Describe("Glooshot CLI", func() {
@@ -65,12 +64,13 @@ var _ = Describe("Glooshot CLI", func() {
 
 	Context("expect human-friendly errors", func() {
 
-		It("should return human-friendly errors on bad input", func() {
+		FIt("should return human-friendly errors on bad input", func() {
 			cliOut := glooshotWithLogger("--h")
 			Expect(cliOut.CobraStdout).To(Equal(""))
 			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
 			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
 			// Assert the intention with regexes
+			fmt.Println(cliOut)
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp("unknown flag: --h"))
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
 			// Assert the details for documentation purposes (flake-prone)
@@ -82,30 +82,20 @@ var _ = Describe("Glooshot CLI", func() {
 })
 
 func glooshot(args string) (string, string, error) {
-	mockTargets := cli.NewMockTargets()
-	testCliLogger := cli.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
-	ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
-	app := cli.App(ctx, "testglooshotcli")
-	cStdout, cStderr, err := clitestutils.ExecuteCliOutErr(app, args, nil)
-	return cStdout, cStderr, err
+	co := glooshotWithLogger(args)
+	return co.CobraStdout, co.CobraStderr, nil
+	//mockTargets := clilog.NewMockTargets()
+	//testCliLogger := clilog.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
+	//ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
+	//app := cli.App(ctx, "testglooshotcli")
+	//fmt.Println(app)
+	//return "", "", nil
+	//cStdout, cStderr, err := clilog.ExecuteCliOutErr(app, args, nil)
+	//return cStdout, cStderr, err
 }
 
-func glooshotWithLogger(args string) clitestutils.CliOutput {
-	mockTargets := cli.NewMockTargets()
-	testCliLogger := cli.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
-	ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
-	app := cli.App(ctx, "testglooshotcli")
-	cliOut := clitestutils.CliOutput{}
-	var err error
-	commandErrorHandler := func(commandErr error) {
-		if commandErr != nil {
-			contextutils.LoggerFrom(ctx).Errorw(cli.ErrorMessagePreamble, zap.Error(commandErr))
-		}
-	}
-	cliOut.CobraStdout, cliOut.CobraStderr, err = clitestutils.ExecuteCliOutErr(app, args, commandErrorHandler)
+func glooshotWithLogger(args string) clilog.CliOutput {
+	cliOutput, err := cli.GlooshotConfig.RunForTest(args)
 	Expect(err).NotTo(HaveOccurred())
-	// After the command has been executed, there should be content in the logs
-	cliOut.LoggerConsoleStout, _, _ = mockTargets.Stdout.Summarize()
-	cliOut.LoggerConsoleStderr, _, _ = mockTargets.Stderr.Summarize()
-	return cliOut
+	return cliOutput
 }
