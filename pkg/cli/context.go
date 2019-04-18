@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/solo-io/glooshot/pkg/version"
@@ -92,11 +93,7 @@ func (m *MockWriteSyncer) Sync() error {
 	return nil
 }
 func (m *MockWriteSyncer) Summarize() (string, uint, uint) {
-	summary := ""
-	for _, input := range m.inputs {
-		summary += fmt.Sprintln(input)
-	}
-	return summary, m.inputCount, m.syncCount
+	return strings.Join(m.inputs, "\n"), m.inputCount, m.syncCount
 }
 
 type MockTargets struct {

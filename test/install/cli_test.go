@@ -82,7 +82,6 @@ var _ = Describe("Glooshot CLI", func() {
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
 			// Assert the details for documentation purposes (flake-prone)
 			Expect(cliOut.LoggerConsoleStderr).To(Equal(`error during glooshot cli execution	{"version": "dev", "error": "unknown flag: --h"}
-
 `))
 		})
 
