@@ -3,14 +3,11 @@ package install
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"github.com/solo-io/go-utils/contextutils"
+	"go.uber.org/zap"
 	"io"
 	"os"
 	"strings"
-	"time"
-
-	"github.com/solo-io/go-utils/contextutils"
-	"go.uber.org/zap"
 
 	"github.com/solo-io/glooshot/pkg/cli"
 	"github.com/spf13/cobra"
@@ -74,17 +71,18 @@ var _ = Describe("Glooshot CLI", func() {
 	Context("expect human-friendly errors", func() {
 
 		FIt("should return human-friendly errors on bad input", func() {
-			stdOut, stdErr, err := glooshot("--h")
-			fmt.Println("start summary")
-			fmt.Println(stdOut)
-			fmt.Println(stdErr)
-			fmt.Println(err)
-			fmt.Println("end summary")
-			time.Sleep(16 * time.Second)
+			cliOut, err := glooshotWithLogger("--h")
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("unknown flag: --h"))
-			Expect(stdErr).NotTo(HaveOccurred())
-			Expect(stdOut).To(standardCobraHelpBlockMatcher)
+			Expect(cliOut.CobraStdout).To(Equal(""))
+			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
+			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
+			// Assert the intention with regexes
+			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp("unknown flag: --h"))
+			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
+			// Assert the details for documentation purposes (flake-prone)
+			Expect(cliOut.LoggerConsoleStderr).To(Equal(`error during glooshot cli execution	{"version": "dev", "error": "unknown flag: --h"}
+
+`))
 		})
 
 		It("should return human-friendly errors on bad input", func() {
@@ -100,28 +98,41 @@ var _ = Describe("Glooshot CLI", func() {
 
 func glooshot(args string) (string, string, error) {
 	mockTargets := cli.NewMockTargets()
-	c, e := mockTargets.Stdout.Write([]byte("hello"))
-	_, _ = mockTargets.Stdout.Write([]byte("hello2"))
-	fmt.Println(c)
-	if e != nil {
-		fmt.Println("error")
-		fmt.Println(e)
-	}
 	testCliLogger := cli.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
 	ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
 	app := cli.App(ctx, "testglooshotcli")
 	cStdout, cStderr, err := ExecuteCliOutErr(ctx, app, args)
-	fmt.Println("summary stdout:")
-	mts, mtw, mtsc := mockTargets.Stdout.Summarize()
-	fmt.Printf("stdout %v\n%v\n%v", mts, mtw, mtsc)
-	fmt.Println("summary stderr:")
-	fmt.Println(mockTargets.Stderr.Summarize())
 	return cStdout, cStderr, err
+}
+
+func glooshotWithLogger(args string) (CliOutput, error) {
+	mockTargets := cli.NewMockTargets()
+	testCliLogger := cli.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
+	ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
+	app := cli.App(ctx, "testglooshotcli")
+	cliOut := CliOutput{}
+	var err error
+	cliOut.CobraStdout, cliOut.CobraStderr, err = ExecuteCliOutErr(ctx, app, args)
+	// After the command has been executed, there should be content in the logs
+	cliOut.LoggerConsoleStout, _, _ = mockTargets.Stdout.Summarize()
+	cliOut.LoggerConsoleStderr, _, _ = mockTargets.Stderr.Summarize()
+	return cliOut, err
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // TODO(mitchdraft) replace with https://github.com/solo-io/go-utils/pull/125 on merge
 ////////////////////////////////////////////////////////////////////////////////
+// CliOutput captures all the relevant output from a Cobra Command
+// For clarity and simplicity, output from zapcore loggers are stored separately
+// otherwise, it would be neccessary to coordinate the initialization of the loggers
+// with the os.Std*** manipulation done in ExecuteCliOutErr
+type CliOutput struct {
+	LoggerConsoleStderr string
+	LoggerConsoleStout  string
+	CobraStderr         string
+	CobraStdout         string
+}
+
 func ExecuteCli(command *cobra.Command, args string) error {
 	command.SetArgs(strings.Split(args, " "))
 	return command.Execute()

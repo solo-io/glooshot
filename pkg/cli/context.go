@@ -14,6 +14,7 @@ import (
 )
 
 var OutputModeEnvVar = "GLOOSHOT_CLI_OUTPUT_MODE"
+var ErrorMessagePreamble = "error during glooshot cli execution"
 
 func GetInitialContextAndSetLogger(cliLogger *zap.SugaredLogger) context.Context {
 	contextutils.SetFallbackLogger(cliLogger)
