@@ -3,11 +3,12 @@ package install
 import (
 	"bytes"
 	"context"
-	"github.com/solo-io/go-utils/contextutils"
-	"go.uber.org/zap"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/solo-io/go-utils/contextutils"
+	"go.uber.org/zap"
 
 	"github.com/solo-io/glooshot/pkg/cli"
 	"github.com/spf13/cobra"
