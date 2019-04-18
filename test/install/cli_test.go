@@ -104,7 +104,7 @@ func glooshotWithLogger(args string) CliOutput {
 	var err error
 	commandErrorHandler := func(commandErr error) {
 		if commandErr != nil {
-			contextutils.LoggerFrom(ctx).Errorw("error during glooshot cli execution", zap.Error(commandErr))
+			contextutils.LoggerFrom(ctx).Errorw(cli.ErrorMessagePreamble, zap.Error(commandErr))
 		}
 	}
 	cliOut.CobraStdout, cliOut.CobraStderr, err = ExecuteCliOutErr(app, args, commandErrorHandler)
@@ -120,7 +120,7 @@ func glooshotWithLogger(args string) CliOutput {
 ////////////////////////////////////////////////////////////////////////////////
 // CliOutput captures all the relevant output from a Cobra Command
 // For clarity and simplicity, output from zapcore loggers are stored separately
-// otherwise, it would be neccessary to coordinate the initialization of the loggers
+// otherwise, it would be necessary to coordinate the initialization of the loggers
 // with the os.Std*** manipulation done in ExecuteCliOutErr
 type CliOutput struct {
 	LoggerConsoleStderr string
@@ -136,7 +136,9 @@ func ExecuteCli(command *cobra.Command, args string) error {
 
 // ExecuteCliOutErr is a helper for calling a cobra command within a test
 // handleCommandError is an optional parameter that can be used for replicating the error handler that you use
-// when calling the command from your main file
+// when calling the command from your main file. This overcomes the chicken-and-egg problem of calling os.Exit on
+// CLI errors. Suggestion: duplicate the error handling used when calling command.Execute(), but replace fatal logging
+// with a non-fatal equivalent
 func ExecuteCliOutErr(command *cobra.Command, args string, handleCommandError func(error)) (string, string, error) {
 	stdOut := os.Stdout
 	stdErr := os.Stderr
@@ -194,14 +196,6 @@ func ExecuteCliOutErr(command *cobra.Command, args string, handleCommandError fu
 	}
 	capturedStdout := <-chan1
 	capturedStderr := <-chan2
-	//capturedStdout := ""
-	//for len(chan1) > 0 {
-	//	capturedStdout += <-chan1
-	//}
-	//capturedStderr := ""
-	//for len(chan2) > 0 {
-	//	capturedStderr += <-chan2
-	//}
 
 	return strings.TrimSuffix(capturedStdout, "\n"),
 		strings.TrimSuffix(capturedStderr, "\n"),
