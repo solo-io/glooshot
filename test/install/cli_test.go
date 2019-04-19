@@ -1,8 +1,10 @@
 package install
 
 import (
+	"fmt"
+
 	"github.com/solo-io/glooshot/pkg/cli"
-	"github.com/solo-io/glooshot/pkg/pregoutils-clilog"
+	clilog "github.com/solo-io/glooshot/pkg/pregoutils-clilog"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -62,12 +64,14 @@ var _ = Describe("Glooshot CLI", func() {
 
 	Context("expect human-friendly errors", func() {
 
-		It("should return human-friendly errors on bad input", func() {
+		FIt("should return human-friendly errors on bad input", func() {
 			cliOut := glooshotWithLoggerOutput("--h")
 			Expect(cliOut.CobraStdout).To(Equal(""))
 			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
 			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
 			// Assert the intention with regexes
+			fmt.Println("cliOut.LoggerConsoleStderr-------")
+			fmt.Println(cliOut.LoggerConsoleStderr)
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp("unknown flag: --h"))
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
 			// Assert the details for documentation purposes (flake-prone)

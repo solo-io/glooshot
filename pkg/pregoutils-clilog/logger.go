@@ -92,7 +92,8 @@ func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapco
 		consoleLoggerEncoderConfig.LevelKey = ""
 		consoleLoggerEncoderConfig.NameKey = ""
 	}
-	consoleEncoder := zapcore.NewConsoleEncoder(consoleLoggerEncoderConfig)
+	//consoleEncoder := zapcore.NewConsoleEncoder(consoleLoggerEncoderConfig)
+	consoleEncoder := NewCliEncoder(consoleLoggerEncoderConfig)
 
 	consoleStdoutCore := zapcore.NewCore(consoleEncoder, consoleInfo, stdOutMessages)
 	if verboseMode {
