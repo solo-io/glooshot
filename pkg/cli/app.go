@@ -128,6 +128,8 @@ func App(ctx context.Context, version string) *cobra.Command {
 			if o.Top.Temp {
 				// Trigger some warnings, this will be removed
 				premerge_contextutils.CliLogInfo(ctx, "this info log should go to file and console")
+				premerge_contextutils.CliLogWarn(ctx, "this warn log should go to file and console")
+				premerge_contextutils.CliLogError(ctx, "this error log should go to file and console")
 			}
 			return nil
 		},
