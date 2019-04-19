@@ -24,13 +24,15 @@ func (m *MockWriteSyncer) Summarize() (string, uint, uint) {
 }
 
 type MockTargets struct {
-	Stdout *MockWriteSyncer
-	Stderr *MockWriteSyncer
+	Stdout  *MockWriteSyncer
+	Stderr  *MockWriteSyncer
+	FileLog *MockWriteSyncer
 }
 
 func NewMockTargets() MockTargets {
 	return MockTargets{
-		Stdout: &MockWriteSyncer{},
-		Stderr: &MockWriteSyncer{},
+		Stdout:  &MockWriteSyncer{},
+		Stderr:  &MockWriteSyncer{},
+		FileLog: &MockWriteSyncer{},
 	}
 }

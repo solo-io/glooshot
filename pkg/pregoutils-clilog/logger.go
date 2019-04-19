@@ -25,7 +25,7 @@ func FilePathFromHomeDir(pathElementsRelativeToHome []string) (string, error) {
 	return filepath.Join(pathElements...), nil
 }
 
-func buildCliZapCoreFile(pathElements []string, verboseMode bool) zapcore.Core {
+func buildCliZapCoreFile(pathElements []string, verboseMode bool, mockTargets *MockTargets) zapcore.Core {
 	path, err := FilePathFromHomeDir(pathElements)
 	if err != nil {
 		if verboseMode {
@@ -57,6 +57,9 @@ func buildCliZapCoreFile(pathElements []string, verboseMode bool) zapcore.Core {
 
 	// apply zap's lock and WriteSyncer helpers
 	fileDebug := zapcore.Lock(zapcore.AddSync(file))
+	if mockTargets != nil {
+		fileDebug = zapcore.Lock(mockTargets.FileLog)
+	}
 	fileLoggerEncoderConfig := zap.NewProductionEncoderConfig()
 	fileLoggerEncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	fileEncoder := zapcore.NewJSONEncoder(fileLoggerEncoderConfig)
@@ -115,7 +118,7 @@ func BuildMockedCliLogger(pathElements []string, outputModeEnvVar string, mockTa
 
 func buildCliLoggerOptions(pathElements []string, outputModeEnvVar string, mockTargets *MockTargets) *zap.SugaredLogger {
 	verboseMode := os.Getenv(outputModeEnvVar) == "1"
-	fileCore := buildCliZapCoreFile(pathElements, verboseMode)
+	fileCore := buildCliZapCoreFile(pathElements, verboseMode, mockTargets)
 	consoleCores := buildCliZapCoreConsoles(verboseMode, mockTargets)
 	allCores := consoleCores
 	if fileCore != nil {

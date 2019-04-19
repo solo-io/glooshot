@@ -50,6 +50,7 @@ func (ct *CliTestConfig) callCobraCommandForTest() (CliOutput, error) {
 	// After the command has been executed, there should be content in the logs
 	cliOut.LoggerConsoleStout, _, _ = ct.MockTargets.Stdout.Summarize()
 	cliOut.LoggerConsoleStderr, _, _ = ct.MockTargets.Stderr.Summarize()
+	cliOut.LoggerFileContent, _, _ = ct.MockTargets.FileLog.Summarize()
 	return cliOut, err
 }
 

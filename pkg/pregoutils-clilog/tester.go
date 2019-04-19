@@ -27,6 +27,7 @@ type CliTestConfig struct {
 type CliOutput struct {
 	LoggerConsoleStderr string
 	LoggerConsoleStout  string
+	LoggerFileContent   string
 	CobraStderr         string
 	CobraStdout         string
 }

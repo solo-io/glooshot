@@ -72,7 +72,7 @@ var _ = Describe("Glooshot CLI", func() {
 	})
 
 	Context("expect human-friendly logs", func() {
-		It("should return human-friendly errors on bad input", func() {
+		FIt("should return human-friendly errors on bad input", func() {
 			cliOut := glooshotWithLoggerOutput("--temp")
 			Expect(cliOut.CobraStdout).
 				To(Equal("cobra says 'hisssss' - but he should leave the console logs to the CliLog* utils."))
@@ -85,10 +85,32 @@ var _ = Describe("Glooshot CLI", func() {
 this warn log should go to file and console`))
 			Expect(cliOut.LoggerConsoleStderr).To(Equal(`this error log should go to file and console
 `))
+			// match the tags that are part of the rich log output
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("level"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("ts"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("warn"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("error"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("dev"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("msg"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("logger"))
+			// match (or not) the fragments that we get in the console. Using regex since timestamp is random
+			// see sampleLogFileContent for an example of the full output
+			Expect(cliOut.LoggerFileContent).NotTo(MatchRegexp("CliLog* utils"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("ok because this is a passed error"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("info log"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("warn log"))
+			Expect(cliOut.LoggerFileContent).To(MatchRegexp("error log"))
+
 		})
 
 	})
 })
+
+const sampleLogFileContent = `{"level":"info","ts":"2019-04-19T16:43:36.214-0400","logger":"dev","msg":"this info log should go to file and console","version":"dev","cli":"this info log should go to file and console"}
+{"level":"warn","ts":"2019-04-19T16:43:36.214-0400","logger":"dev","msg":"this warn log should go to file and console","version":"dev","cli":"this warn log should go to file and console"}
+{"level":"error","ts":"2019-04-19T16:43:36.214-0400","logger":"dev","msg":"this error log should go to file and console","version":"dev","cli":"this error log should go to file and console"}
+{"level":"error","ts":"2019-04-19T16:43:36.215-0400","logger":"dev","msg":"error during glooshot cli execution","version":"dev","error":"cobra says 'hisssss' again - it's ok because this is a passed error"}
+`
 
 func glooshot(args string) (string, string, error) {
 	co := glooshotWithLoggerOutput(args)
