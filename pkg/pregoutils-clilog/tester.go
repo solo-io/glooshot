@@ -14,7 +14,7 @@ import (
 
 type CliTestConfig struct {
 	CommandConfig *CommandConfig
-	MockTargets   MockTargets
+	MockTargets   *MockTargets
 	TestArgs      string
 	preparedCmd   *cobra.Command
 	ctx           context.Context

@@ -63,12 +63,7 @@ func buildCliZapCoreFile(pathElements []string, verboseMode bool) zapcore.Core {
 	return fileCore
 }
 
-type TargetPair struct {
-	Stdout zapcore.WriteSyncer
-	Stderr zapcore.WriteSyncer
-}
-
-func buildCliZapCoreConsoles(verboseMode bool, mockTargets *TargetPair) []zapcore.Core {
+func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapcore.Core {
 
 	// define error filter levels
 	errorMessages := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
@@ -119,12 +114,7 @@ func BuildMockedCliLogger(pathElements []string, outputModeEnvVar string, mockTa
 func buildCliLoggerOptions(pathElements []string, outputModeEnvVar string, mockTargets *MockTargets) *zap.SugaredLogger {
 	verboseMode := os.Getenv(outputModeEnvVar) == "1"
 	fileCore := buildCliZapCoreFile(pathElements, verboseMode)
-	targets := &TargetPair{}
-	if mockTargets != nil {
-		targets.Stdout = mockTargets.Stdout
-		targets.Stderr = mockTargets.Stderr
-	}
-	consoleCores := buildCliZapCoreConsoles(verboseMode, targets)
+	consoleCores := buildCliZapCoreConsoles(verboseMode, mockTargets)
 	allCores := consoleCores
 	if fileCore != nil {
 		allCores = append(allCores, fileCore)

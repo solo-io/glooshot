@@ -36,7 +36,7 @@ func (cc *CommandConfig) setContextAndPrepareCommandForTest(args string) *CliTes
 	cc.setInitialContextAndSetLoggerFromConfig(&mockTargets)
 	return &CliTestConfig{
 		CommandConfig: cc,
-		MockTargets:   mockTargets,
+		MockTargets:   &mockTargets,
 		TestArgs:      args,
 		preparedCmd:   cc.prepareCommand(),
 		ctx:           cc.ctx,
@@ -44,14 +44,13 @@ func (cc *CommandConfig) setContextAndPrepareCommandForTest(args string) *CliTes
 }
 
 func (ct *CliTestConfig) callCobraCommandForTest() (CliOutput, error) {
-	mockTargets := NewMockTargets()
 	cliOut := CliOutput{}
 	var err error
 	cliOut.CobraStdout, cliOut.CobraStderr, err = ExecuteCliOutErr(ct)
 	//Expect(err).NotTo(HaveOccurred())
 	// After the command has been executed, there should be content in the logs
-	cliOut.LoggerConsoleStout, _, _ = mockTargets.Stdout.Summarize()
-	cliOut.LoggerConsoleStderr, _, _ = mockTargets.Stderr.Summarize()
+	cliOut.LoggerConsoleStout, _, _ = ct.MockTargets.Stdout.Summarize()
+	cliOut.LoggerConsoleStderr, _, _ = ct.MockTargets.Stderr.Summarize()
 	return cliOut, err
 }
 

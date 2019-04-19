@@ -70,11 +70,19 @@ var _ = Describe("Glooshot CLI", func() {
 			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
 			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
 			// Assert the intention with regexes
-			fmt.Println(cliOut)
+			fmt.Println("---------")
+			fmt.Println(cliOut.CobraStderr)
+			fmt.Println("---------")
+			fmt.Println(cliOut.CobraStdout)
+			fmt.Println("---------")
+			fmt.Println(cliOut.LoggerConsoleStderr)
+			fmt.Println("---------")
+			fmt.Println(cliOut.LoggerConsoleStout)
+			fmt.Println("---------")
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp("unknown flag: --h"))
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
 			// Assert the details for documentation purposes (flake-prone)
-			Expect(cliOut.LoggerConsoleStderr).To(Equal(`error during glooshot cli execution	{"version": "dev", "error": "unknown flag: --h"}
+			Expect(cliOut.LoggerConsoleStderr).To(Equal(`error during glooshot cli execution {"version": "dev", "error": "unknown flag: --h"}
 `))
 		})
 

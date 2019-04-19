@@ -1,6 +1,8 @@
 package clilog
 
-import "strings"
+import (
+	"strings"
+)
 
 type MockWriteSyncer struct {
 	inputs     []string
