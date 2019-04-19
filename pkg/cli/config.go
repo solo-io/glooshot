@@ -11,4 +11,5 @@ var GlooshotConfig = clilog.CommandConfig{
 	FileLogPathElements: FileLogPathElements,
 	OutputModeEnvVar:    OutputModeEnvVar,
 	RootErrorMessage:    ErrorMessagePreamble,
+	LoggingContext:      []interface{}{"version", version.Version},
 }
