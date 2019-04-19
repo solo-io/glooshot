@@ -7,8 +7,26 @@ import (
 	"go.uber.org/zap"
 )
 
+/*
+Long form:
+	contextutils.LoggerFrom(ctx).Infow("message going to file only", zap.String("cli", "info that will go to the console and file")
+	contextutils.LoggerFrom(ctx).Warnw("message going to file only", zap.String("cli", "a warning that will go to the console and file"))
+	contextutils.LoggerFrom(ctx).Errorw("message going to file only", zap.String("cli", "an error that will go to the console and file")
+
+Short form with the helper:
+	contextutils.CliLogInfo(ctx, "this info log should go to file and console")
+	contextutils.CliLogWarn(ctx, "this warn log should go to file and console")
+	contextutils.CliLogError(ctx, "this error log should go to file and console")
+
+The helpers reduce your responsibilities from 7 decisions to 3 decisions.
+So use the helpers!
+*/
+
 type cliLogLevel int
 
+// Note that there is no Fatal log level. This is intentional.
+// All errors should be surfaced up to the main entry point so that we can use
+// Cobra's built-in error pipeline effectively.
 const (
 	cliLogLevelInfo cliLogLevel = iota + 1
 	cliLogLevelWarn

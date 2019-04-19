@@ -64,9 +64,8 @@ var _ = Describe("Glooshot CLI", func() {
 
 	Context("expect human-friendly errors", func() {
 
-		FIt("should return human-friendly errors on bad input", func() {
-			//cliOut := glooshotWithLoggerOutput("--h")
-			cliOut := glooshotWithLoggerOutput("--temp")
+		It("should return human-friendly errors on bad input", func() {
+			cliOut := glooshotWithLoggerOutput("--h")
 			fmt.Println("cliOut.LoggerConsoleStdout-------")
 			fmt.Println(cliOut.LoggerConsoleStout)
 			fmt.Println("cliOut.LoggerConsoleStderr-------")
@@ -83,6 +82,33 @@ var _ = Describe("Glooshot CLI", func() {
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
 			// Assert the details for documentation purposes (flake-prone)
 			Expect(cliOut.LoggerConsoleStderr).To(Equal(`error during glooshot cli execution	{"version": "dev", "error": "unknown flag: --h"}
+`))
+		})
+
+	})
+
+	Context("expect human-friendly logs", func() {
+		FIt("should return human-friendly errors on bad input", func() {
+			cliOut := glooshotWithLoggerOutput("--temp")
+			fmt.Println("cliOut.LoggerConsoleStdout-------")
+			fmt.Println(cliOut.LoggerConsoleStout)
+			fmt.Println("cliOut.LoggerConsoleStderr-------")
+			fmt.Println(cliOut.LoggerConsoleStderr)
+			fmt.Println("cliOut.CobraStdout-------")
+			fmt.Println(cliOut.CobraStdout)
+			fmt.Println("cliOut.CobraStderr-------")
+			fmt.Println(cliOut.CobraStderr)
+			Expect(cliOut.CobraStdout).
+				To(Equal("cobra says 'hisssss' - but he should leave the console logs to the CliLog* utils."))
+			Expect(cliOut.CobraStderr).
+				To(MatchRegexp("Error: cobra says 'hisssss' again - it's ok because this is a passed error"))
+			Expect(cliOut.CobraStderr).
+				To(standardCobraHelpBlockMatcher)
+			// Assert the intention with regexes
+			Expect(cliOut.LoggerConsoleStout).
+				To(Equal(`this info log should go to file and console
+this warn log should go to file and console`))
+			Expect(cliOut.LoggerConsoleStderr).To(Equal(`this error log should go to file and console
 `))
 		})
 
