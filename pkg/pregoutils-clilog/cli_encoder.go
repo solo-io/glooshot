@@ -9,9 +9,9 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"go.uber.org/zap/buffer"
-	///Users/mitch/go/src/github.com/solo-io/glooshot/vendor/go.uber.org/zap/zapcore/memory_encoder.go:127
 )
 
+// Unlike zap's built-in console encoder, this encoder just prints strings, in the manner of fmt.Println.
 type cliEncoder struct {
 	buf        *buffer.Buffer
 	printedKey string
@@ -77,6 +77,7 @@ func (c *cliEncoder) clone() *cliEncoder {
 	return clone
 }
 
+//EncodeEntry implements the distinguishing features of this encoder type.
 func (c cliEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	final := c.clone()
 	for _, f := range fields {

@@ -13,8 +13,42 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 // TODO - move this to go-utils/contextutils/context_and_logging.go
 ////////////////////////////////////////////////////////////////////////////////
+
+// CliLoggerKey is the key passed through zap logs that indicates that its value should be written to the console,
+// in addition to the full log file.
 const CliLoggerKey = "cli"
 
+// BuildCliLogger creates a set of loggers for use in CLI applications.
+// - A json-formatted file logger that writes all log messages to the specified filename
+// - A human-friendly console logger that writes info and warning messages to stdout
+// - A human-friendly console logger that writes info and warning messages to stderr
+func BuildCliLogger(pathElements []string, outputModeEnvVar string) *zap.SugaredLogger {
+	return buildCliLoggerOptions(pathElements, outputModeEnvVar, nil)
+}
+
+//BuildMockedCliLogger is the test-environment counterpart of BuildCliLogger
+// It stores log output in buffers that can be inspected by tests.
+func BuildMockedCliLogger(pathElements []string, outputModeEnvVar string, mockTargets *MockTargets) *zap.SugaredLogger {
+	return buildCliLoggerOptions(pathElements, outputModeEnvVar, mockTargets)
+}
+
+func buildCliLoggerOptions(pathElements []string, outputModeEnvVar string, mockTargets *MockTargets) *zap.SugaredLogger {
+	verboseMode := os.Getenv(outputModeEnvVar) == "1"
+	fileCore := buildCliZapCoreFile(pathElements, verboseMode, mockTargets)
+	consoleCores := buildCliZapCoreConsoles(verboseMode, mockTargets)
+	allCores := consoleCores
+	if fileCore != nil {
+		allCores = append(allCores, fileCore)
+	}
+	core := zapcore.NewTee(allCores...)
+	logger := zap.New(core).Sugar()
+	return logger
+}
+
+//FilePathFromHomeDir is a utility that makes it easier to find the absolute path to a file, given its file path
+// elements relative to its home directory.
+// pathElementsRelativeToHome is passed as an array to avoid os-specific directory delimiter complications
+// example: []string{".config","default.yaml"}
 func FilePathFromHomeDir(pathElementsRelativeToHome []string) (string, error) {
 	// Find home directory.
 	home, err := homedir.Dir()
@@ -51,6 +85,7 @@ func buildCliZapCoreFile(pathElements []string, verboseMode bool, mockTargets *M
 		return nil
 	}
 
+	// we want all messages to go to the file log
 	passAllMessages := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return true
 	})
@@ -105,26 +140,4 @@ func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapco
 	}
 	consoleErrCore := zapcore.NewCore(consoleEncoder, consoleErrors, errorMessages)
 	return []zapcore.Core{consoleStdoutCore, consoleErrCore}
-}
-
-// BuildCliLogger creates a logger that writes output to the specified filename
-func BuildCliLogger(pathElements []string, outputModeEnvVar string) *zap.SugaredLogger {
-	return buildCliLoggerOptions(pathElements, outputModeEnvVar, nil)
-}
-
-func BuildMockedCliLogger(pathElements []string, outputModeEnvVar string, mockTargets *MockTargets) *zap.SugaredLogger {
-	return buildCliLoggerOptions(pathElements, outputModeEnvVar, mockTargets)
-}
-
-func buildCliLoggerOptions(pathElements []string, outputModeEnvVar string, mockTargets *MockTargets) *zap.SugaredLogger {
-	verboseMode := os.Getenv(outputModeEnvVar) == "1"
-	fileCore := buildCliZapCoreFile(pathElements, verboseMode, mockTargets)
-	consoleCores := buildCliZapCoreConsoles(verboseMode, mockTargets)
-	allCores := consoleCores
-	if fileCore != nil {
-		allCores = append(allCores, fileCore)
-	}
-	core := zapcore.NewTee(allCores...)
-	logger := zap.New(core).Sugar()
-	return logger
 }

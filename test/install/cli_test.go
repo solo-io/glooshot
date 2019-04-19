@@ -117,6 +117,7 @@ func glooshot(args string) (string, string, error) {
 	return co.CobraStdout, co.CobraStderr, nil
 }
 
+// This is all you need to do to use the cli logger in a test environment
 func glooshotWithLoggerOutput(args string) clilog.CliOutput {
 	cliOutput, err := cli.GlooshotConfig.RunForTest(args)
 	Expect(err).NotTo(HaveOccurred())
