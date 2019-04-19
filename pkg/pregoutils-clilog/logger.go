@@ -13,6 +13,8 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 // TODO - move this to go-utils/contextutils/context_and_logging.go
 ////////////////////////////////////////////////////////////////////////////////
+const CliLoggerKey = "cli"
+
 func FilePathFromHomeDir(pathElementsRelativeToHome []string) (string, error) {
 	// Find home directory.
 	home, err := homedir.Dir()
@@ -93,10 +95,11 @@ func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapco
 		consoleLoggerEncoderConfig.NameKey = ""
 	}
 	//consoleEncoder := zapcore.NewConsoleEncoder(consoleLoggerEncoderConfig)
-	consoleEncoder := NewCliEncoder(consoleLoggerEncoderConfig)
+	consoleEncoder := NewCliEncoder(CliLoggerKey)
 
 	consoleStdoutCore := zapcore.NewCore(consoleEncoder, consoleInfo, stdOutMessages)
-	if verboseMode {
+	// TODO - remove force true
+	if true || verboseMode {
 		consoleStdoutCore = zapcore.NewCore(consoleEncoder, consoleInfo, stdOutMessagesVerbose)
 	}
 	consoleErrCore := zapcore.NewCore(consoleEncoder, consoleErrors, errorMessages)

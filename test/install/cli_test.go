@@ -21,7 +21,7 @@ var _ = Describe("Glooshot CLI", func() {
 
 	BeforeEach(func() {
 		helpers.UseMemoryClients()
-		_, _, _ = glooshot("delete experiment --every-resource")
+		//_, _, _ = glooshot("delete experiment --every-resource")
 	})
 
 	Context("basic args and flags", func() {
@@ -66,12 +66,18 @@ var _ = Describe("Glooshot CLI", func() {
 
 		FIt("should return human-friendly errors on bad input", func() {
 			cliOut := glooshotWithLoggerOutput("--h")
-			Expect(cliOut.CobraStdout).To(Equal(""))
-			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
-			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
-			// Assert the intention with regexes
+			fmt.Println("cliOut.LoggerConsoleStdout-------")
+			fmt.Println(cliOut.LoggerConsoleStout)
 			fmt.Println("cliOut.LoggerConsoleStderr-------")
 			fmt.Println(cliOut.LoggerConsoleStderr)
+			fmt.Println("cliOut.CobraStdout-------")
+			fmt.Println(cliOut.CobraStdout)
+			fmt.Println("cliOut.CobraStderr-------")
+			fmt.Println(cliOut.CobraStderr)
+			Expect(cliOut.CobraStdout).To(Equal(""))
+			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
+			// Assert the intention with regexes
+			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp("unknown flag: --h"))
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
 			// Assert the details for documentation purposes (flake-prone)

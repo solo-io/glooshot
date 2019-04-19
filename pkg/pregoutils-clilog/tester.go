@@ -3,6 +3,7 @@ package clilog
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -50,6 +51,18 @@ func ExecuteCliOutErr(ct *CliTestConfig) (string, string, error) {
 	os.Stdout = w1
 	os.Stderr = w2
 
+	contextutils.LoggerFrom(ct.ctx).Info(zap.String("cli", "tester"))
+	//	Desugar().Core().With([]zap.Field{{
+	//	Key:       "cli",
+	//	Type:      zapcore.StringType,
+	//	Integer:   0,
+	//	String:    "from zapcore",
+	//	Interface: nil,
+	//}})
+	//contextutils.LoggerFrom(ct.ctx).With([]interface{}{"cli", "how about this"}...)
+	contextutils.LoggerFrom(ct.ctx).Errorw("e2", zap.Error(fmt.Errorf("something2")))
+	contextutils.LoggerFrom(ct.ctx).Errorw("e1", zap.Error(fmt.Errorf("something")))
+	contextutils.LoggerFrom(ct.ctx).Infow("sup", zap.String("cli", "holla"))
 	ct.preparedCmd.SetArgs(strings.Split(ct.TestArgs, " "))
 	commandErr := ct.preparedCmd.Execute()
 	if commandErr != nil {

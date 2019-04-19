@@ -27,7 +27,7 @@ func (cc CommandConfig) Run() {
 	}
 }
 
-func (cc CommandConfig) RunForTest(args string) (CliOutput, error) {
+func (cc *CommandConfig) RunForTest(args string) (CliOutput, error) {
 	return cc.setContextAndPrepareCommandForTest(args).callCobraCommandForTest()
 }
 
@@ -47,7 +47,6 @@ func (ct *CliTestConfig) callCobraCommandForTest() (CliOutput, error) {
 	cliOut := CliOutput{}
 	var err error
 	cliOut.CobraStdout, cliOut.CobraStderr, err = ExecuteCliOutErr(ct)
-	//Expect(err).NotTo(HaveOccurred())
 	// After the command has been executed, there should be content in the logs
 	cliOut.LoggerConsoleStout, _, _ = ct.MockTargets.Stdout.Summarize()
 	cliOut.LoggerConsoleStderr, _, _ = ct.MockTargets.Stderr.Summarize()
