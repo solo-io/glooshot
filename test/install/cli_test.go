@@ -1,8 +1,6 @@
 package install
 
 import (
-	"fmt"
-
 	"github.com/solo-io/glooshot/pkg/cli"
 	clilog "github.com/solo-io/glooshot/pkg/pregoutils-clilog"
 
@@ -63,41 +61,19 @@ var _ = Describe("Glooshot CLI", func() {
 	})
 
 	Context("expect human-friendly errors", func() {
-
 		It("should return human-friendly errors on bad input", func() {
 			cliOut := glooshotWithLoggerOutput("--h")
-			fmt.Println("cliOut.LoggerConsoleStdout-------")
-			fmt.Println(cliOut.LoggerConsoleStout)
-			fmt.Println("cliOut.LoggerConsoleStderr-------")
-			fmt.Println(cliOut.LoggerConsoleStderr)
-			fmt.Println("cliOut.CobraStdout-------")
-			fmt.Println(cliOut.CobraStdout)
-			fmt.Println("cliOut.CobraStderr-------")
-			fmt.Println(cliOut.CobraStderr)
 			Expect(cliOut.CobraStdout).To(Equal(""))
 			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
-			// Assert the intention with regexes
+			// logs are not used in this code path so they should be empty
 			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
-			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp("unknown flag: --h"))
-			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
-			// Assert the details for documentation purposes (flake-prone)
-			Expect(cliOut.LoggerConsoleStderr).To(Equal(`error during glooshot cli execution	{"version": "dev", "error": "unknown flag: --h"}
-`))
+			Expect(cliOut.LoggerConsoleStderr).To(Equal(""))
 		})
-
 	})
 
 	Context("expect human-friendly logs", func() {
-		FIt("should return human-friendly errors on bad input", func() {
+		It("should return human-friendly errors on bad input", func() {
 			cliOut := glooshotWithLoggerOutput("--temp")
-			fmt.Println("cliOut.LoggerConsoleStdout-------")
-			fmt.Println(cliOut.LoggerConsoleStout)
-			fmt.Println("cliOut.LoggerConsoleStderr-------")
-			fmt.Println(cliOut.LoggerConsoleStderr)
-			fmt.Println("cliOut.CobraStdout-------")
-			fmt.Println(cliOut.CobraStdout)
-			fmt.Println("cliOut.CobraStderr-------")
-			fmt.Println(cliOut.CobraStderr)
 			Expect(cliOut.CobraStdout).
 				To(Equal("cobra says 'hisssss' - but he should leave the console logs to the CliLog* utils."))
 			Expect(cliOut.CobraStderr).
