@@ -72,7 +72,7 @@ var _ = Describe("Glooshot CLI", func() {
 	})
 
 	Context("expect human-friendly logs", func() {
-		FIt("should return human-friendly errors on bad input", func() {
+		It("should return human-friendly errors on bad input", func() {
 			cliOut := glooshotWithLoggerOutput("--temp")
 			Expect(cliOut.CobraStdout).
 				To(Equal("cobra says 'hisssss' - but he should leave the console logs to the CliLog* utils."))
