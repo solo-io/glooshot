@@ -94,12 +94,10 @@ func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapco
 		consoleLoggerEncoderConfig.LevelKey = ""
 		consoleLoggerEncoderConfig.NameKey = ""
 	}
-	//consoleEncoder := zapcore.NewConsoleEncoder(consoleLoggerEncoderConfig)
 	consoleEncoder := NewCliEncoder(CliLoggerKey)
 
 	consoleStdoutCore := zapcore.NewCore(consoleEncoder, consoleInfo, stdOutMessages)
-	// TODO - remove force true
-	if true || verboseMode {
+	if verboseMode {
 		consoleStdoutCore = zapcore.NewCore(consoleEncoder, consoleInfo, stdOutMessagesVerbose)
 	}
 	consoleErrCore := zapcore.NewCore(consoleEncoder, consoleErrors, errorMessages)

@@ -19,7 +19,7 @@ var _ = Describe("Glooshot CLI", func() {
 
 	BeforeEach(func() {
 		helpers.UseMemoryClients()
-		//_, _, _ = glooshot("delete experiment --every-resource")
+		_, _, _ = glooshot("delete experiment --every-resource")
 	})
 
 	Context("basic args and flags", func() {
@@ -80,7 +80,6 @@ var _ = Describe("Glooshot CLI", func() {
 				To(MatchRegexp("Error: cobra says 'hisssss' again - it's ok because this is a passed error"))
 			Expect(cliOut.CobraStderr).
 				To(standardCobraHelpBlockMatcher)
-			// Assert the intention with regexes
 			Expect(cliOut.LoggerConsoleStout).
 				To(Equal(`this info log should go to file and console
 this warn log should go to file and console`))
