@@ -1,10 +1,8 @@
 package install
 
 import (
-	"fmt"
-
 	"github.com/solo-io/glooshot/pkg/cli"
-	clilog "github.com/solo-io/glooshot/pkg/pregoutils-clilog"
+	"github.com/solo-io/glooshot/pkg/pregoutils-clilog"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -64,21 +62,12 @@ var _ = Describe("Glooshot CLI", func() {
 
 	Context("expect human-friendly errors", func() {
 
-		FIt("should return human-friendly errors on bad input", func() {
-			cliOut := glooshotWithLogger("--h")
+		It("should return human-friendly errors on bad input", func() {
+			cliOut := glooshotWithLoggerOutput("--h")
 			Expect(cliOut.CobraStdout).To(Equal(""))
 			Expect(cliOut.CobraStderr).To(standardCobraHelpBlockMatcher)
 			Expect(cliOut.LoggerConsoleStout).To(Equal(""))
 			// Assert the intention with regexes
-			fmt.Println("---------")
-			fmt.Println(cliOut.CobraStderr)
-			fmt.Println("---------")
-			fmt.Println(cliOut.CobraStdout)
-			fmt.Println("---------")
-			fmt.Println(cliOut.LoggerConsoleStderr)
-			fmt.Println("---------")
-			fmt.Println(cliOut.LoggerConsoleStout)
-			fmt.Println("---------")
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp("unknown flag: --h"))
 			Expect(cliOut.LoggerConsoleStderr).To(MatchRegexp(cli.ErrorMessagePreamble))
 			// Assert the details for documentation purposes (flake-prone)
@@ -90,19 +79,11 @@ var _ = Describe("Glooshot CLI", func() {
 })
 
 func glooshot(args string) (string, string, error) {
-	co := glooshotWithLogger(args)
+	co := glooshotWithLoggerOutput(args)
 	return co.CobraStdout, co.CobraStderr, nil
-	//mockTargets := clilog.NewMockTargets()
-	//testCliLogger := clilog.BuildMockedCliLogger([]string{".glooshot", "log"}, cli.OutputModeEnvVar, &mockTargets)
-	//ctx := cli.GetInitialContextAndSetLogger(testCliLogger)
-	//app := cli.App(ctx, "testglooshotcli")
-	//fmt.Println(app)
-	//return "", "", nil
-	//cStdout, cStderr, err := clilog.ExecuteCliOutErr(app, args, nil)
-	//return cStdout, cStderr, err
 }
 
-func glooshotWithLogger(args string) clilog.CliOutput {
+func glooshotWithLoggerOutput(args string) clilog.CliOutput {
 	cliOutput, err := cli.GlooshotConfig.RunForTest(args)
 	Expect(err).NotTo(HaveOccurred())
 	return cliOutput
