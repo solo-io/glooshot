@@ -15,10 +15,9 @@ import (
 type cliEncoder struct {
 	buf        *buffer.Buffer
 	printedKey string
-	debug      bool
 }
 
-// non-relevant interface methods
+// these interface methods are irrelevant to the current needs of the CLI encoder
 func (c *cliEncoder) AddArray(key string, marshaler zapcore.ArrayMarshaler) error   { return nil }
 func (c *cliEncoder) AddObject(key string, marshaler zapcore.ObjectMarshaler) error { return nil }
 func (c *cliEncoder) AddBinary(key string, value []byte)                            {}
@@ -35,6 +34,7 @@ func (c *cliEncoder) AddInt32(key string, value int32)                          
 func (c *cliEncoder) AddInt16(key string, value int16)                              {}
 func (c *cliEncoder) AddInt8(key string, value int8)                                {}
 func (c *cliEncoder) AddTime(key string, value time.Time)                           {}
+func (c *cliEncoder) AddString(key, val string)                                     {}
 func (c *cliEncoder) AddUint(key string, value uint)                                {}
 func (c *cliEncoder) AddUint64(key string, value uint64)                            {}
 func (c *cliEncoder) AddUint32(key string, value uint32)                            {}
@@ -44,12 +44,9 @@ func (c *cliEncoder) AddUintptr(key string, value uintptr)                      
 func (c *cliEncoder) AddReflected(key string, value interface{}) error              { return nil }
 func (c *cliEncoder) OpenNamespace(key string)                                      {}
 
-func (c *cliEncoder) AddString(key, val string) {}
-
 func NewCliEncoder(printedKey string) zapcore.Encoder {
 	return &cliEncoder{
 		printedKey: printedKey,
-		debug:      true,
 		buf:        clibufferpool.Get(),
 	}
 }
@@ -61,9 +58,9 @@ var _encoderPool = sync.Pool{New: func() interface{} {
 func getCliEncoder() *cliEncoder {
 	return _encoderPool.Get().(*cliEncoder)
 }
+
 func putCliEncoder(c *cliEncoder) {
 	c.buf = nil
-	c.debug = false
 	c.printedKey = ""
 	_encoderPool.Put(c)
 }
@@ -76,7 +73,6 @@ func (c cliEncoder) Clone() zapcore.Encoder {
 func (c *cliEncoder) clone() *cliEncoder {
 	clone := getCliEncoder()
 	clone.buf = clibufferpool.Get()
-	clone.debug = c.debug
 	clone.printedKey = c.printedKey
 	return clone
 }
@@ -92,3 +88,21 @@ func (c cliEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buf
 	putCliEncoder(final)
 	return ret, nil
 }
+
+//EncodeEntry *Simpler* version:
+// This sufficient for the cli logger.
+// It is unclear if the sync.Pool used above is worth its complexity .
+// Consider swapping out with the simpler form.
+// Keeping as is for now, since it mimics the design of zapcore's built-in encoders
+// and will be a better foundation for future enhancements
+/*
+func (c cliEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
+	buf := &buffer.Buffer{}
+	for _, f := range fields {
+		if f.Key == c.printedKey {
+			buf.AppendString(f.String)
+		}
+	}
+	return buf, nil
+}
+*/
