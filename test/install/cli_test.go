@@ -65,7 +65,8 @@ var _ = Describe("Glooshot CLI", func() {
 	Context("expect human-friendly errors", func() {
 
 		FIt("should return human-friendly errors on bad input", func() {
-			cliOut := glooshotWithLoggerOutput("--h")
+			//cliOut := glooshotWithLoggerOutput("--h")
+			cliOut := glooshotWithLoggerOutput("--temp")
 			fmt.Println("cliOut.LoggerConsoleStdout-------")
 			fmt.Println(cliOut.LoggerConsoleStout)
 			fmt.Println("cliOut.LoggerConsoleStderr-------")

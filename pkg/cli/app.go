@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	premerge_contextutils "github.com/solo-io/glooshot/pkg/cli/premerge-contextutils"
+
 	"github.com/solo-io/glooshot/pkg/controller"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
@@ -51,6 +53,8 @@ type TopOptions struct {
 
 	// Interactive indicates whether or not we are in an interactive input mode
 	Interactive bool
+	// TODO - REMOVE
+	Temp bool
 }
 
 type CreateOptions struct {
@@ -113,15 +117,21 @@ Root
 ------------------------------------------------------------------------------*/
 
 func App(ctx context.Context, version string) *cobra.Command {
+	// TODO(mitchdraft) - put this in a config file
+	register := os.Getenv("REGISTER_GLOOSHOT") == "1"
+	o := initialOptions(ctx, register)
 	app := &cobra.Command{
 		Use:     "glooshot",
 		Short:   "CLI for glooshot",
 		Version: version,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if o.Top.Temp {
+				// Trigger some warnings, this will be removed
+				premerge_contextutils.CliLogInfo(ctx, "this info log should go to file and console")
+			}
+			return nil
+		},
 	}
-
-	// TODO(mitchdraft) - put this in a config file
-	register := os.Getenv("REGISTER_GLOOSHOT") == "1"
-	o := initialOptions(ctx, register)
 
 	app.AddCommand(
 		o.createCmd(),
@@ -131,6 +141,7 @@ func App(ctx context.Context, version string) *cobra.Command {
 	)
 	pflags := app.PersistentFlags()
 	pflags.BoolVarP(&o.Top.Interactive, "interactive", "i", false, "use interactive mode")
+	pflags.BoolVarP(&o.Top.Temp, "temp", "t", false, "this is a temp flag that will be removed after refactor")
 	return app
 }
 
