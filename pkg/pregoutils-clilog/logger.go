@@ -55,6 +55,15 @@ func FilePathFromHomeDir(pathElementsRelativeToHome []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	nPathElements := len(pathElementsRelativeToHome)
+	nDirElements := nPathElements - 1
+	if nDirElements > 0 {
+		dirsToMake := append([]string{home}, pathElementsRelativeToHome[:nDirElements]...)
+		// if the directory already exists, MkdirAll returns nil
+		if err := os.MkdirAll(filepath.Join(dirsToMake...), 0755); err != nil {
+			return "", err
+		}
+	}
 	pathElements := append([]string{home}, pathElementsRelativeToHome...)
 	return filepath.Join(pathElements...), nil
 }
