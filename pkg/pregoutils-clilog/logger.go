@@ -60,6 +60,10 @@ func FilePathFromHomeDir(pathElementsRelativeToHome []string) (string, error) {
 }
 
 func buildCliZapCoreFile(pathElements []string, verboseMode bool, mockTargets *MockTargets) zapcore.Core {
+	// force to verbose mode while running in a test environment
+	if mockTargets != nil {
+		verboseMode = true
+	}
 	path, err := FilePathFromHomeDir(pathElements)
 	if err != nil {
 		if verboseMode {
@@ -95,8 +99,7 @@ func buildCliZapCoreFile(pathElements []string, verboseMode bool, mockTargets *M
 	if mockTargets != nil {
 		fileDebug = zapcore.Lock(mockTargets.FileLog)
 	}
-	fileLoggerEncoderConfig := zap.NewProductionEncoderConfig()
-	fileLoggerEncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	fileLoggerEncoderConfig := soloPreferredEncoderConfig()
 	fileEncoder := zapcore.NewJSONEncoder(fileLoggerEncoderConfig)
 	fileCore := zapcore.NewCore(fileEncoder, fileDebug, passAllMessages)
 
@@ -104,6 +107,10 @@ func buildCliZapCoreFile(pathElements []string, verboseMode bool, mockTargets *M
 }
 
 func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapcore.Core {
+	// force to verbose mode while running in a test environment
+	if mockTargets != nil {
+		verboseMode = true
+	}
 
 	// define error filter levels
 	errorMessages := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
@@ -124,8 +131,8 @@ func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapco
 		consoleErrors = zapcore.Lock(mockTargets.Stderr)
 	}
 
-	consoleLoggerEncoderConfig := zap.NewProductionEncoderConfig()
-	consoleLoggerEncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	consoleLoggerEncoderConfig := soloPreferredEncoderConfig()
+
 	// minimize the noise for non-verbose mode
 	if !verboseMode {
 		consoleLoggerEncoderConfig.EncodeTime = nil
@@ -140,4 +147,10 @@ func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapco
 	}
 	consoleErrCore := zapcore.NewCore(consoleEncoder, consoleErrors, errorMessages)
 	return []zapcore.Core{consoleStdoutCore, consoleErrCore}
+}
+
+func soloPreferredEncoderConfig() zapcore.EncoderConfig {
+	fileLoggerEncoderConfig := zap.NewProductionEncoderConfig()
+	fileLoggerEncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	return fileLoggerEncoderConfig
 }
