@@ -127,9 +127,9 @@ func App(ctx context.Context, version string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if o.Top.Temp {
 				// Trigger some warnings, this will be removed
-				premerge_contextutils.CliLogInfo(ctx, "this info log should go to file and console")
-				premerge_contextutils.CliLogWarn(ctx, "this warn log should go to file and console")
-				premerge_contextutils.CliLogError(ctx, "this error log should go to file and console")
+				premerge_contextutils.CliLogInfow(ctx, "this info log should go to file and console")
+				premerge_contextutils.CliLogWarnw(ctx, "this warn log should go to file and console")
+				premerge_contextutils.CliLogErrorw(ctx, "this error log should go to file and console")
 				premerge_contextutils.CliLogInfow(ctx, "this infow log should go to file and console", "extrakey1", "val1")
 				premerge_contextutils.CliLogWarnw(ctx, "this warnw log should go to file and console", "extrakey2", "val2")
 				premerge_contextutils.CliLogErrorw(ctx, "this errorw log should go to file and console", "extrakey3", "val3")

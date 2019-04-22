@@ -3,8 +3,9 @@ package premerge_contextutils
 import (
 	"context"
 
+	clilog "github.com/solo-io/glooshot/pkg/pregoutils-clilog"
+
 	"github.com/solo-io/go-utils/contextutils"
-	"go.uber.org/zap"
 )
 
 /*
@@ -14,12 +15,13 @@ Long form:
 	contextutils.LoggerFrom(ctx).Errorw("message going to file only", zap.String("cli", "an error that will go to the console and file")
 
 Short form with the helper:
-	contextutils.CliLogInfo(ctx, "this info log should go to file and console")
-	contextutils.CliLogWarn(ctx, "this warn log should go to file and console")
-	contextutils.CliLogError(ctx, "this error log should go to file and console")
+	contextutils.CliLogInfow(ctx, "this info log goes to file and console")
+	contextutils.CliLogWarnw(ctx, "this warn log goes to file and console")
+	contextutils.CliLogErrorw(ctx, "this error log goes to file and console")
 
-The helpers reduce your responsibilities from 7 decisions to 3 decisions.
-So use the helpers!
+Key-value pairs are also supported
+- the extra key-value pairs get printed to the file log, not the console
+	contextutils.CliLogInfow(ctx, "this message goes to the file and console", "extraKey", "extraValue")
 */
 
 type cliLogLevel int
@@ -32,39 +34,15 @@ const (
 	cliLogLevelWarn
 	cliLogLevelError
 )
-const defaultCliLogKey = "cli"
-
-func CliLogError(ctx context.Context, message string) {
-	cliLog(ctx, cliLogLevelError, message, defaultCliLogKey)
-}
-func CliLogWarn(ctx context.Context, message string) {
-	cliLog(ctx, cliLogLevelWarn, message, defaultCliLogKey)
-}
-func CliLogInfo(ctx context.Context, message string) {
-	cliLog(ctx, cliLogLevelInfo, message, defaultCliLogKey)
-}
-
-// if we want to use a custom cliLogKey we can make this public or expose an "advanced" set of methods
-func cliLog(ctx context.Context, level cliLogLevel, message, cliLogKey string) {
-	log := contextutils.LoggerFrom(ctx)
-	switch level {
-	case cliLogLevelInfo:
-		log.Infow(message, zap.String(cliLogKey, message))
-	case cliLogLevelWarn:
-		log.Warnw(message, zap.String(cliLogKey, message))
-	case cliLogLevelError:
-		log.Errorw(message, zap.String(cliLogKey, message))
-	}
-}
 
 func CliLogErrorw(ctx context.Context, message string, keysAndValues ...interface{}) {
-	cliLogw(ctx, cliLogLevelError, message, defaultCliLogKey, keysAndValues...)
+	cliLogw(ctx, cliLogLevelError, message, clilog.CliLoggerKey, keysAndValues...)
 }
 func CliLogWarnw(ctx context.Context, message string, keysAndValues ...interface{}) {
-	cliLogw(ctx, cliLogLevelWarn, message, defaultCliLogKey, keysAndValues...)
+	cliLogw(ctx, cliLogLevelWarn, message, clilog.CliLoggerKey, keysAndValues...)
 }
 func CliLogInfow(ctx context.Context, message string, keysAndValues ...interface{}) {
-	cliLogw(ctx, cliLogLevelInfo, message, defaultCliLogKey, keysAndValues...)
+	cliLogw(ctx, cliLogLevelInfo, message, clilog.CliLoggerKey, keysAndValues...)
 }
 func cliLogw(ctx context.Context, level cliLogLevel, message, cliLogKey string, keysAndValues ...interface{}) {
 	log := contextutils.LoggerFrom(ctx)
@@ -73,12 +51,9 @@ func cliLogw(ctx context.Context, level cliLogLevel, message, cliLogKey string, 
 	switch level {
 	case cliLogLevelInfo:
 		log.Infow(message, kvs...)
-		//log.Infow(message, cliLogKey, message, keysAndValues)
 	case cliLogLevelWarn:
 		log.Warnw(message, kvs...)
-		//log.Warnw(message, cliLogKey, message, keysAndValues)
 	case cliLogLevelError:
 		log.Errorw(message, kvs...)
-		//log.Errorw(message, cliLogKey, message, keysAndValues)
 	}
 }
