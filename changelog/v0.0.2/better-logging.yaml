@@ -1,0 +1,4 @@
+changelog:
+- type: NEW_FEATURE
+  description: Print human-friendly errors to console, and debug logs to file.
+  issueLink: https://github.com/solo-io/glooshot/issues/23

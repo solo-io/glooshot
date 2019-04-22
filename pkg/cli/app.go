@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	premerge_contextutils "github.com/solo-io/glooshot/pkg/cli/premerge-contextutils"
+
 	"github.com/solo-io/glooshot/pkg/controller"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
@@ -51,6 +53,8 @@ type TopOptions struct {
 
 	// Interactive indicates whether or not we are in an interactive input mode
 	Interactive bool
+	// TODO - REMOVE
+	Temp bool
 }
 
 type CreateOptions struct {
@@ -113,15 +117,28 @@ Root
 ------------------------------------------------------------------------------*/
 
 func App(ctx context.Context, version string) *cobra.Command {
+	// TODO(mitchdraft) - put this in a config file
+	register := os.Getenv("REGISTER_GLOOSHOT") == "1"
+	o := initialOptions(ctx, register)
 	app := &cobra.Command{
 		Use:     "glooshot",
 		Short:   "CLI for glooshot",
 		Version: version,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if o.Top.Temp {
+				// Trigger some warnings, this will be removed
+				premerge_contextutils.CliLogInfow(ctx, "this info log should go to file and console")
+				premerge_contextutils.CliLogWarnw(ctx, "this warn log should go to file and console")
+				premerge_contextutils.CliLogErrorw(ctx, "this error log should go to file and console")
+				premerge_contextutils.CliLogInfow(ctx, "this infow log should go to file and console", "extrakey1", "val1")
+				premerge_contextutils.CliLogWarnw(ctx, "this warnw log should go to file and console", "extrakey2", "val2")
+				premerge_contextutils.CliLogErrorw(ctx, "this errorw log should go to file and console", "extrakey3", "val3")
+				fmt.Println("cobra says 'hisssss' - but he should leave the console logs to the CliLog* utils.")
+				return fmt.Errorf("cobra says 'hisssss' again - it's ok because this is a passed error")
+			}
+			return nil
+		},
 	}
-
-	// TODO(mitchdraft) - put this in a config file
-	register := os.Getenv("REGISTER_GLOOSHOT") == "1"
-	o := initialOptions(ctx, register)
 
 	app.AddCommand(
 		o.createCmd(),
@@ -131,6 +148,7 @@ func App(ctx context.Context, version string) *cobra.Command {
 	)
 	pflags := app.PersistentFlags()
 	pflags.BoolVarP(&o.Top.Interactive, "interactive", "i", false, "use interactive mode")
+	pflags.BoolVarP(&o.Top.Temp, "temp", "t", false, "this is a temp flag that will be removed after refactor")
 	return app
 }
 
