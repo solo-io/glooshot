@@ -81,8 +81,8 @@ func (c *cliEncoder) clone() *cliEncoder {
 func (c cliEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	final := c.clone()
 	for _, f := range fields {
-		if f.Key == c.printedKey {
-			final.buf.AppendString(f.String)
+		if f.Key == c.printedKey && f.String != "" {
+			final.buf.AppendString(f.String + "\n")
 		}
 	}
 	ret := final.buf

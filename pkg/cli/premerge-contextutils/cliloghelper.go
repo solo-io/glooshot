@@ -56,3 +56,29 @@ func cliLog(ctx context.Context, level cliLogLevel, message, cliLogKey string) {
 		log.Errorw(message, zap.String(cliLogKey, message))
 	}
 }
+
+func CliLogErrorw(ctx context.Context, message string, keysAndValues ...interface{}) {
+	cliLogw(ctx, cliLogLevelError, message, defaultCliLogKey, keysAndValues...)
+}
+func CliLogWarnw(ctx context.Context, message string, keysAndValues ...interface{}) {
+	cliLogw(ctx, cliLogLevelWarn, message, defaultCliLogKey, keysAndValues...)
+}
+func CliLogInfow(ctx context.Context, message string, keysAndValues ...interface{}) {
+	cliLogw(ctx, cliLogLevelInfo, message, defaultCliLogKey, keysAndValues...)
+}
+func cliLogw(ctx context.Context, level cliLogLevel, message, cliLogKey string, keysAndValues ...interface{}) {
+	log := contextutils.LoggerFrom(ctx)
+	kvs := []interface{}{cliLogKey, message}
+	kvs = append(kvs, keysAndValues...)
+	switch level {
+	case cliLogLevelInfo:
+		log.Infow(message, kvs...)
+		//log.Infow(message, cliLogKey, message, keysAndValues)
+	case cliLogLevelWarn:
+		log.Warnw(message, kvs...)
+		//log.Warnw(message, cliLogKey, message, keysAndValues)
+	case cliLogLevelError:
+		log.Errorw(message, kvs...)
+		//log.Errorw(message, cliLogKey, message, keysAndValues)
+	}
+}

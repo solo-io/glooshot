@@ -130,6 +130,9 @@ func App(ctx context.Context, version string) *cobra.Command {
 				premerge_contextutils.CliLogInfo(ctx, "this info log should go to file and console")
 				premerge_contextutils.CliLogWarn(ctx, "this warn log should go to file and console")
 				premerge_contextutils.CliLogError(ctx, "this error log should go to file and console")
+				premerge_contextutils.CliLogInfow(ctx, "this infow log should go to file and console", "extrakey1", "val1")
+				premerge_contextutils.CliLogWarnw(ctx, "this warnw log should go to file and console", "extrakey2", "val2")
+				premerge_contextutils.CliLogErrorw(ctx, "this errorw log should go to file and console", "extrakey3", "val3")
 				fmt.Println("cobra says 'hisssss' - but he should leave the console logs to the CliLog* utils.")
 				return fmt.Errorf("cobra says 'hisssss' again - it's ok because this is a passed error")
 			}

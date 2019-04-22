@@ -1,6 +1,8 @@
 package install
 
 import (
+	"fmt"
+
 	"github.com/solo-io/glooshot/pkg/cli"
 	clilog "github.com/solo-io/glooshot/pkg/pregoutils-clilog"
 
@@ -82,8 +84,12 @@ var _ = Describe("Glooshot CLI", func() {
 				To(standardCobraHelpBlockMatcher)
 			Expect(cliOut.LoggerConsoleStout).
 				To(Equal(`this info log should go to file and console
-this warn log should go to file and console`))
+this warn log should go to file and console
+this infow log should go to file and console
+this warnw log should go to file and console
+`))
 			Expect(cliOut.LoggerConsoleStderr).To(Equal(`this error log should go to file and console
+this errorw log should go to file and console
 `))
 			// match the tags that are part of the rich log output
 			Expect(cliOut.LoggerFileContent).To(MatchRegexp("level"))
@@ -100,6 +106,10 @@ this warn log should go to file and console`))
 			Expect(cliOut.LoggerFileContent).To(MatchRegexp("info log"))
 			Expect(cliOut.LoggerFileContent).To(MatchRegexp("warn log"))
 			Expect(cliOut.LoggerFileContent).To(MatchRegexp("error log"))
+			for i := 1; i <= 3; i++ {
+				Expect(cliOut.LoggerFileContent).To(MatchRegexp(fmt.Sprintf("extrakey%v", i)))
+				Expect(cliOut.LoggerFileContent).To(MatchRegexp(fmt.Sprintf("val%v", i)))
+			}
 
 		})
 
