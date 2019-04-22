@@ -108,7 +108,7 @@ func buildCliZapCoreFile(pathElements []string, verboseMode bool, mockTargets *M
 	if mockTargets != nil {
 		fileDebug = zapcore.Lock(mockTargets.FileLog)
 	}
-	fileLoggerEncoderConfig := soloPreferredEncoderConfig()
+	fileLoggerEncoderConfig := defaultEncoderConfig()
 	fileEncoder := zapcore.NewJSONEncoder(fileLoggerEncoderConfig)
 	fileCore := zapcore.NewCore(fileEncoder, fileDebug, passAllMessages)
 
@@ -140,7 +140,7 @@ func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapco
 		consoleErrors = zapcore.Lock(mockTargets.Stderr)
 	}
 
-	consoleLoggerEncoderConfig := soloPreferredEncoderConfig()
+	consoleLoggerEncoderConfig := defaultEncoderConfig()
 
 	// minimize the noise for non-verbose mode
 	if !verboseMode {
@@ -158,7 +158,7 @@ func buildCliZapCoreConsoles(verboseMode bool, mockTargets *MockTargets) []zapco
 	return []zapcore.Core{consoleStdoutCore, consoleErrCore}
 }
 
-func soloPreferredEncoderConfig() zapcore.EncoderConfig {
+func defaultEncoderConfig() zapcore.EncoderConfig {
 	fileLoggerEncoderConfig := zap.NewProductionEncoderConfig()
 	fileLoggerEncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	return fileLoggerEncoderConfig
