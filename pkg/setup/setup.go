@@ -2,6 +2,7 @@ package setup
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -21,36 +22,41 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 )
 
-type StatsHandler struct {
+type summaryHandler struct {
 	ctx context.Context
 }
 
-func NewStatsHandler(ctx context.Context) StatsHandler {
+func newSummaryHandler(ctx context.Context) summaryHandler {
 	loggingContext := []interface{}{"type", "stats"}
-	return StatsHandler{
+	return summaryHandler{
 		ctx: contextutils.WithLoggerValues(ctx, loggingContext...),
 	}
 }
 
-func (d StatsHandler) reportError(err error, w http.ResponseWriter) {
+func (d summaryHandler) reportError(err error, status int, w http.ResponseWriter) {
 	contextutils.LoggerFrom(d.ctx).Errorw("error getting client", zap.Error(err))
-	fmt.Fprintf(w, "error in stats handler %v", err)
+	w.WriteHeader(status)
+	fmt.Fprint(w, err)
 }
 
-func (d StatsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Glooshot stats\n")
+type glooshotSummary struct {
+	ExperimentCount int    `json:"experiment_count"`
+	Summary         string `json:"summary"`
+}
+
+func (d summaryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	client, err := gsutil.GetExperimentClient(d.ctx, true)
 	if err != nil {
-		d.reportError(err, w)
+		d.reportError(err, http.StatusInternalServerError, w)
 		return
 	}
 	experimentNamespaces := getExperimentNamespaces(d.ctx)
 	expCount := 0
 	summary := "Experiment Summary\n"
 	for _, ns := range experimentNamespaces {
-		exps, err := client.List(ns, clients.ListOpts{})
+		exps, err := client.List(ns, clients.ListOpts{Ctx: r.Context()})
 		if err != nil {
-			d.reportError(err, w)
+			d.reportError(err, http.StatusInternalServerError, w)
 			return
 		}
 		for _, exp := range exps {
@@ -61,8 +67,14 @@ func (d StatsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			expCount++
 		}
 	}
-	fmt.Fprintf(w, "Count: %v\n", expCount)
-	fmt.Fprintf(w, "%v", summary)
+	err = json.NewEncoder(w).Encode(glooshotSummary{
+		ExperimentCount: expCount,
+		Summary:         summary,
+	})
+	if err != nil {
+		d.reportError(err, http.StatusInternalServerError, w)
+		return
+	}
 }
 
 func getExperimentNamespaces(ctx context.Context) []string {
@@ -74,18 +86,28 @@ const (
 	START_STATS_SERVER = "START_STATS_SERVER"
 )
 
+type Opts struct {
+	SummaryBindAddr string
+}
+
 func Run(ctx context.Context) error {
 	start := time.Now()
 	checkpoint.CallCheck(version.AppName, version.Version, start)
+
+	var opts Opts
+	flag.StringVar(&opts.SummaryBindAddr, "summary-bind-addr", ":8085", "bind address for serving "+
+		"experiment summaries (debug info)")
 	flag.Parse()
 
 	if os.Getenv(START_STATS_SERVER) != "" {
 		stats.StartStatsServer()
 	}
 
-	sh := NewStatsHandler(ctx)
-	http.Handle("/", sh)
-	go http.ListenAndServe("localhost:8085", nil)
+	go func() {
+		mux := http.NewServeMux()
+		mux.Handle("/", newSummaryHandler(ctx))
+		contextutils.LoggerFrom(ctx).Fatal(http.ListenAndServe(opts.SummaryBindAddr, mux))
+	}()
 
 	client, err := gsutil.GetExperimentClient(ctx, true)
 	if err != nil {
