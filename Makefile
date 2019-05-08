@@ -3,13 +3,13 @@ ROOTDIR := $(shell pwd)
 OUTPUT_DIR ?= $(ROOTDIR)/_output
 
 FORMAT_DIRS = ./pkg/ ./cmd/ ./ci/
-SOURCES := $(shell find . -name "*.go" | grep -v test.go | grep -v '\.\#*')
+SOURCES := $(shell find . -name "*.go" | grep -v test.go | grep -v '\.\#*' | grep -v mock)
 LDFLAGS := "-X github.com/solo-io/$(SOLO_NAME)/pkg/version.Version=$(VERSION)"
 GCFLAGS := all="-N -l"
 
 #-------------------------------------------------------------------------------
 # Establish container values
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Passed by cloudbuild
 GCLOUD_PROJECT_ID ?= gloo-ee
 VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
@@ -167,6 +167,7 @@ update-deps:
 	go get -u github.com/envoyproxy/protoc-gen-validate
 	go get -u github.com/paulvollmer/2gobytes
 	go get -v -u github.com/golang/mock/gomock
+	go get -v -u github.com/golang/mock/mockgen
 	go install github.com/golang/mock/mockgen
 
 #----------------------------------------------------------------------------------

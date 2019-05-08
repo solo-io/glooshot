@@ -37,6 +37,7 @@ func (m *MockExperimentReconciler) EXPECT() *MockExperimentReconcilerMockRecorde
 
 // Reconcile mocks base method
 func (m *MockExperimentReconciler) Reconcile(namespace string, desiredResources v1.ExperimentList, transition v1.TransitionExperimentFunc, opts clients.ListOpts) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Reconcile", namespace, desiredResources, transition, opts)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -44,5 +45,6 @@ func (m *MockExperimentReconciler) Reconcile(namespace string, desiredResources 
 
 // Reconcile indicates an expected call of Reconcile
 func (mr *MockExperimentReconcilerMockRecorder) Reconcile(namespace, desiredResources, transition, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reconcile", reflect.TypeOf((*MockExperimentReconciler)(nil).Reconcile), namespace, desiredResources, transition, opts)
 }

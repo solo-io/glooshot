@@ -37,6 +37,7 @@ func (m *MockApiEmitter) EXPECT() *MockApiEmitterMockRecorder {
 
 // Register mocks base method
 func (m *MockApiEmitter) Register() error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -44,11 +45,13 @@ func (m *MockApiEmitter) Register() error {
 
 // Register indicates an expected call of Register
 func (mr *MockApiEmitterMockRecorder) Register() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockApiEmitter)(nil).Register))
 }
 
 // Experiment mocks base method
 func (m *MockApiEmitter) Experiment() v1.ExperimentClient {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Experiment")
 	ret0, _ := ret[0].(v1.ExperimentClient)
 	return ret0
@@ -56,11 +59,13 @@ func (m *MockApiEmitter) Experiment() v1.ExperimentClient {
 
 // Experiment indicates an expected call of Experiment
 func (mr *MockApiEmitterMockRecorder) Experiment() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Experiment", reflect.TypeOf((*MockApiEmitter)(nil).Experiment))
 }
 
 // Snapshots mocks base method
 func (m *MockApiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts) (<-chan *v1.ApiSnapshot, <-chan error, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Snapshots", watchNamespaces, opts)
 	ret0, _ := ret[0].(<-chan *v1.ApiSnapshot)
 	ret1, _ := ret[1].(<-chan error)
@@ -70,5 +75,6 @@ func (m *MockApiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchO
 
 // Snapshots indicates an expected call of Snapshots
 func (mr *MockApiEmitterMockRecorder) Snapshots(watchNamespaces, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Snapshots", reflect.TypeOf((*MockApiEmitter)(nil).Snapshots), watchNamespaces, opts)
 }

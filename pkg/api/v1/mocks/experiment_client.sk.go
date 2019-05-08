@@ -37,6 +37,7 @@ func (m *MockExperimentClient) EXPECT() *MockExperimentClientMockRecorder {
 
 // BaseClient mocks base method
 func (m *MockExperimentClient) BaseClient() clients.ResourceClient {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BaseClient")
 	ret0, _ := ret[0].(clients.ResourceClient)
 	return ret0
@@ -44,11 +45,13 @@ func (m *MockExperimentClient) BaseClient() clients.ResourceClient {
 
 // BaseClient indicates an expected call of BaseClient
 func (mr *MockExperimentClientMockRecorder) BaseClient() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BaseClient", reflect.TypeOf((*MockExperimentClient)(nil).BaseClient))
 }
 
 // Register mocks base method
 func (m *MockExperimentClient) Register() error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -56,11 +59,13 @@ func (m *MockExperimentClient) Register() error {
 
 // Register indicates an expected call of Register
 func (mr *MockExperimentClientMockRecorder) Register() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockExperimentClient)(nil).Register))
 }
 
 // Read mocks base method
 func (m *MockExperimentClient) Read(namespace, name string, opts clients.ReadOpts) (*v1.Experiment, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Read", namespace, name, opts)
 	ret0, _ := ret[0].(*v1.Experiment)
 	ret1, _ := ret[1].(error)
@@ -69,11 +74,13 @@ func (m *MockExperimentClient) Read(namespace, name string, opts clients.ReadOpt
 
 // Read indicates an expected call of Read
 func (mr *MockExperimentClientMockRecorder) Read(namespace, name, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*MockExperimentClient)(nil).Read), namespace, name, opts)
 }
 
 // Write mocks base method
 func (m *MockExperimentClient) Write(resource *v1.Experiment, opts clients.WriteOpts) (*v1.Experiment, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Write", resource, opts)
 	ret0, _ := ret[0].(*v1.Experiment)
 	ret1, _ := ret[1].(error)
@@ -82,11 +89,13 @@ func (m *MockExperimentClient) Write(resource *v1.Experiment, opts clients.Write
 
 // Write indicates an expected call of Write
 func (mr *MockExperimentClientMockRecorder) Write(resource, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*MockExperimentClient)(nil).Write), resource, opts)
 }
 
 // Delete mocks base method
 func (m *MockExperimentClient) Delete(namespace, name string, opts clients.DeleteOpts) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", namespace, name, opts)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -94,11 +103,13 @@ func (m *MockExperimentClient) Delete(namespace, name string, opts clients.Delet
 
 // Delete indicates an expected call of Delete
 func (mr *MockExperimentClientMockRecorder) Delete(namespace, name, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockExperimentClient)(nil).Delete), namespace, name, opts)
 }
 
 // List mocks base method
 func (m *MockExperimentClient) List(namespace string, opts clients.ListOpts) (v1.ExperimentList, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", namespace, opts)
 	ret0, _ := ret[0].(v1.ExperimentList)
 	ret1, _ := ret[1].(error)
@@ -107,11 +118,13 @@ func (m *MockExperimentClient) List(namespace string, opts clients.ListOpts) (v1
 
 // List indicates an expected call of List
 func (mr *MockExperimentClientMockRecorder) List(namespace, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockExperimentClient)(nil).List), namespace, opts)
 }
 
 // Watch mocks base method
 func (m *MockExperimentClient) Watch(namespace string, opts clients.WatchOpts) (<-chan v1.ExperimentList, <-chan error, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Watch", namespace, opts)
 	ret0, _ := ret[0].(<-chan v1.ExperimentList)
 	ret1, _ := ret[1].(<-chan error)
@@ -121,5 +134,6 @@ func (m *MockExperimentClient) Watch(namespace string, opts clients.WatchOpts) (
 
 // Watch indicates an expected call of Watch
 func (mr *MockExperimentClientMockRecorder) Watch(namespace, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Watch", reflect.TypeOf((*MockExperimentClient)(nil).Watch), namespace, opts)
 }
