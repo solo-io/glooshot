@@ -1049,57 +1049,6 @@
   version = "v0.7.3"
 
 [[projects]]
-  digest = "1:2fec3c68f8894171e8d1860205c1f3694b82a449982193dacbb535bc328ef83b"
-  name = "github.com/solo-io/solo-kit"
-  packages = [
-    "pkg/api/v1/clients",
-    "pkg/api/v1/clients/configmap",
-    "pkg/api/v1/clients/consul",
-    "pkg/api/v1/clients/factory",
-    "pkg/api/v1/clients/file",
-    "pkg/api/v1/clients/kube",
-    "pkg/api/v1/clients/kube/cache",
-    "pkg/api/v1/clients/kube/controller",
-    "pkg/api/v1/clients/kube/crd",
-    "pkg/api/v1/clients/kube/crd/client/clientset/versioned",
-    "pkg/api/v1/clients/kube/crd/client/clientset/versioned/scheme",
-    "pkg/api/v1/clients/kube/crd/client/clientset/versioned/typed/solo.io/v1",
-    "pkg/api/v1/clients/kube/crd/solo.io/v1",
-    "pkg/api/v1/clients/kubesecret",
-    "pkg/api/v1/clients/memory",
-    "pkg/api/v1/clients/vault",
-    "pkg/api/v1/reconcile",
-    "pkg/api/v1/resources",
-    "pkg/api/v1/resources/core",
-    "pkg/code-generator",
-    "pkg/code-generator/cmd",
-    "pkg/code-generator/codegen",
-    "pkg/code-generator/codegen/templates",
-    "pkg/code-generator/docgen",
-    "pkg/code-generator/docgen/funcs",
-    "pkg/code-generator/docgen/options",
-    "pkg/code-generator/docgen/templates/markdown",
-    "pkg/code-generator/docgen/templates/restructured",
-    "pkg/code-generator/model",
-    "pkg/code-generator/parser",
-    "pkg/errors",
-    "pkg/utils/errutils",
-    "pkg/utils/fileutils",
-    "pkg/utils/hashutils",
-    "pkg/utils/kubeutils",
-    "pkg/utils/log",
-    "pkg/utils/protoutils",
-    "pkg/utils/stats",
-    "pkg/utils/stringutils",
-    "test/helpers",
-    "test/setup",
-    "test/tests/typed",
-  ]
-  pruneopts = "UT"
-  revision = "256a8a1dab5aa9700f49b74df06627bff196703d"
-  version = "v0.5.3"
-
-[[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
   name = "github.com/spf13/cobra"
   packages = ["."]
