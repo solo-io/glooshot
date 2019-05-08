@@ -166,6 +166,7 @@ update-deps:
 	go get -u github.com/gogo/protobuf/protoc-gen-gogo
 	go get -u github.com/envoyproxy/protoc-gen-validate
 	go get -u github.com/paulvollmer/2gobytes
+	go get -v -u github.com/golang/mock/gomock
 	go install github.com/golang/mock/mockgen
 
 #----------------------------------------------------------------------------------
