@@ -26,23 +26,12 @@
   version = "v2.2.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
-  name = "github.com/beorn7/perks"
-  packages = ["quantile"]
+  digest = "1:5bdd0581421e643e6c3163bb5da785600a2d7d0d73fec58acebaf2e693868e9d"
+  name = "github.com/cskr/pubsub"
+  packages = ["."]
   pruneopts = "UT"
-  revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
-
-[[projects]]
-  branch = "master"
-  digest = "1:7310ec5042e3a0dd73ed9f23f812e73ce0ae88d08039e4473472ebba20bf2996"
-  name = "github.com/bxcodec/faker"
-  packages = [
-    ".",
-    "support/slice",
-  ]
-  pruneopts = "UT"
-  revision = "bf89c38ff1742f295e15df0bd5e8b3e81da95855"
+  revision = "65166f5ae403cbf6dcdced31e1f8f8ad95485cb3"
+  version = "v1.0.2"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -51,14 +40,6 @@
   pruneopts = "UT"
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
-
-[[projects]]
-  digest = "1:58981659bb698cb749d5bf7316e71e2768ffed5fd35f6ba3b182dfa1fed13420"
-  name = "github.com/fgrosse/zaptest"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "88dc3e74eadbccae7fe0cce56e0627cb7bc35b97"
-  version = "v1.0.0"
 
 [[projects]]
   digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
@@ -403,14 +384,6 @@
   version = "v0.0.4"
 
 [[projects]]
-  digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
-  name = "github.com/matttproud/golang_protobuf_extensions"
-  packages = ["pbutil"]
-  pruneopts = "UT"
-  revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
-  version = "v1.0.1"
-
-[[projects]]
   branch = "master"
   digest = "1:2b32af4d2a529083275afc192d1067d8126b578c7a9613b26600e4df9c735155"
   name = "github.com/mgutz/ansi"
@@ -547,44 +520,23 @@
   version = "v0.8.1"
 
 [[projects]]
-  digest = "1:93a746f1060a8acbcf69344862b2ceced80f854170e1caae089b2834c5fbf7f4"
+  digest = "1:2d32e501db06ad1b0df11dbad16e9af769aeadf47e1724b2221aa5ecc317ed26"
   name = "github.com/prometheus/client_golang"
   packages = [
-    "prometheus",
-    "prometheus/internal",
-    "prometheus/promhttp",
+    "api",
+    "api/prometheus/v1",
   ]
   pruneopts = "UT"
   revision = "505eaef017263e299324067d40ca2c48f6a2cf50"
   version = "v0.9.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:2d5cd61daa5565187e1d96bae64dbbc6080dacf741448e9629c64fd93203b0d4"
-  name = "github.com/prometheus/client_model"
-  packages = ["go"]
-  pruneopts = "UT"
-  revision = "fd36f4220a901265f90734c3183c5f0c91daa0b8"
-
-[[projects]]
-  digest = "1:35cf6bdf68db765988baa9c4f10cc5d7dda1126a54bd62e252dbcd0b1fc8da90"
+  digest = "1:eae0ba7dae229f7daf584f2cd4c774fecefdbe0440c79e3de9cd67048055d51f"
   name = "github.com/prometheus/common"
-  packages = [
-    "expfmt",
-    "internal/bitbucket.org/ww/goautoneg",
-    "model",
-  ]
+  packages = ["model"]
   pruneopts = "UT"
   revision = "a82f4c12f983cc2649298185f296632953e50d3e"
   version = "v0.3.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:5e412e2a03bd0cfdb102db97212be2e625df74fa8b2d4a8a51f107b1456e256b"
-  name = "github.com/prometheus/procfs"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "e22ddced71425e65e388b17b7d0289c5ea77d06e"
 
 [[projects]]
   digest = "1:d7aa51c836ace8d00a3d88b4058c470624bdd7045cd3b0f58c2d6ba7ab4433dc"
@@ -611,7 +563,7 @@
   version = "v0.1"
 
 [[projects]]
-  digest = "1:383164861164bbdf063e5e37423c7ec81768f290e6a65ead3a2b622fe7eb7b81"
+  digest = "1:805afabbe170349bf96427e29e05f8fe33345e7f99f1f40561fe3de1668de72e"
   name = "github.com/solo-io/gloo"
   packages = [
     "pkg/cliutil",
@@ -638,8 +590,8 @@
     "projects/gloo/pkg/defaults",
   ]
   pruneopts = "UT"
-  revision = "f2fdf602bd6c96b0ebbc0d75bc8ac48c66f83db9"
-  version = "v0.13.14"
+  revision = "5e7f1ced7e9d89e054d46c7a3a65b8133c584483"
+  version = "v0.13.20"
 
 [[projects]]
   digest = "1:699918466a9758902a14923851a7fbd230500f93da6982dae7c79959afb0a664"
@@ -650,30 +602,35 @@
   version = "0.0.4"
 
 [[projects]]
-  digest = "1:d99a28f3009f8ee7141deee208dd2e18cf791cac3e5c8afcdb4c754ba7836f14"
+  digest = "1:f02433b523b12bc36afdfae58d64986745e8057172493ef382f07345eb65c8c1"
   name = "github.com/solo-io/go-utils"
   packages = [
+    "clicore/constants",
     "cliutils",
     "contextutils",
     "errors",
+    "errutils",
     "githubutils",
+    "hashutils",
     "kubeutils",
-    "logger",
+    "log",
     "protoutils",
+    "stringutils",
     "testutils/clusterlock",
     "testutils/exec",
     "testutils/kube",
     "versionutils",
   ]
   pruneopts = "UT"
-  revision = "81b1a649eac8eb3f1243948896bbac1976591ca9"
-  version = "v0.7.3"
+  revision = "ca41a2fda35b9d676ac551dae6e5dfb60b7c1a5e"
+  version = "v0.8.4"
 
 [[projects]]
-  digest = "1:2fec3c68f8894171e8d1860205c1f3694b82a449982193dacbb535bc328ef83b"
+  digest = "1:6fa4d3f899b708dcc53a7a493d7edd399e8a075a2913c0572ed41029191e5b9a"
   name = "github.com/solo-io/solo-kit"
   packages = [
     "pkg/api/v1/clients",
+    "pkg/api/v1/clients/common",
     "pkg/api/v1/clients/configmap",
     "pkg/api/v1/clients/consul",
     "pkg/api/v1/clients/factory",
@@ -689,6 +646,8 @@
     "pkg/api/v1/clients/kubesecret",
     "pkg/api/v1/clients/memory",
     "pkg/api/v1/clients/vault",
+    "pkg/api/v1/clients/wrapper",
+    "pkg/api/v1/eventloop",
     "pkg/api/v1/reconcile",
     "pkg/api/v1/resources",
     "pkg/api/v1/resources/core",
@@ -704,21 +663,13 @@
     "pkg/code-generator/model",
     "pkg/code-generator/parser",
     "pkg/errors",
-    "pkg/utils/errutils",
     "pkg/utils/fileutils",
-    "pkg/utils/hashutils",
     "pkg/utils/kubeutils",
-    "pkg/utils/log",
     "pkg/utils/protoutils",
-    "pkg/utils/stats",
-    "pkg/utils/stringutils",
-    "test/helpers",
-    "test/setup",
-    "test/tests/typed",
   ]
   pruneopts = "UT"
-  revision = "256a8a1dab5aa9700f49b74df06627bff196703d"
-  version = "v0.5.3"
+  revision = "c9b4cc6f229cdf7508b99609b87ca7074251ae8d"
+  version = "v0.9.0"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
@@ -737,24 +688,19 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:520b3fe2981935aec909ea78b4db76912e47235d9aea024212ffd11ae3b88dbb"
+  digest = "1:64c18dbf9c05549d0b0189cb0325e2145d788d1acc05735103746589c61dcff1"
   name = "go.opencensus.io"
   packages = [
     ".",
-    "exporter/prometheus",
     "internal",
     "internal/tagencoding",
-    "plugin/ocgrpc",
     "stats",
     "stats/internal",
     "stats/view",
     "tag",
     "trace",
     "trace/internal",
-    "trace/propagation",
     "trace/tracestate",
-    "zpages",
-    "zpages/internal",
   ]
   pruneopts = "UT"
   revision = "b11f239c032624b045c4c2bfd3d1287b4012ce89"
@@ -911,28 +857,6 @@
   pruneopts = "UT"
   revision = "4a4468ece617fc8205e99368fa2200e9d1fad421"
   version = "v1.3.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:c3076e7defee87de1236f1814beb588f40a75544c60121e6eb38b3b3721783e2"
-  name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
-  pruneopts = "UT"
-  revision = "64821d5d210748c883cd2b809589555ae4654203"
-
-[[projects]]
-  digest = "1:041b0dc4050bb1be1e15c232c3328019922b2b14931340eca020ec182bf9a98d"
-  name = "google.golang.org/grpc"
-  packages = [
-    "codes",
-    "grpclog",
-    "metadata",
-    "stats",
-    "status",
-  ]
-  pruneopts = "UT"
-  revision = "236199dd5f8031d698fb64091194aecd1c3895b2"
-  version = "v1.20.0"
 
 [[projects]]
   digest = "1:61e056dd0a189d9f1d07de809181f2ee5d36058d1ce4f9e58f443a1bea745ac0"
@@ -1247,28 +1171,25 @@
   analyzer-version = 1
   input-imports = [
     "github.com/avast/retry-go",
+    "github.com/cskr/pubsub",
     "github.com/ghodss/yaml",
-    "github.com/gogo/protobuf/gogoproto",
-    "github.com/gogo/protobuf/proto",
-    "github.com/gogo/protobuf/types",
-    "github.com/hashicorp/go-multierror",
     "github.com/mitchellh/go-homedir",
     "github.com/olekukonko/tablewriter",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/pkg/errors",
+    "github.com/prometheus/client_golang/api",
+    "github.com/prometheus/client_golang/api/prometheus/v1",
+    "github.com/prometheus/common/model",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/helpers",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/surveyutils",
-    "github.com/solo-io/gloo/projects/gloo/pkg/api/v1",
-    "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection",
     "github.com/solo-io/go-checkpoint",
     "github.com/solo-io/go-utils/cliutils",
     "github.com/solo-io/go-utils/contextutils",
     "github.com/solo-io/go-utils/errors",
     "github.com/solo-io/go-utils/githubutils",
     "github.com/solo-io/go-utils/kubeutils",
-    "github.com/solo-io/go-utils/logger",
     "github.com/solo-io/go-utils/protoutils",
     "github.com/solo-io/go-utils/testutils/clusterlock",
     "github.com/solo-io/go-utils/testutils/exec",
@@ -1277,35 +1198,17 @@
     "github.com/solo-io/solo-kit/pkg/api/v1/clients",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/factory",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube",
-    "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube/crd",
-    "github.com/solo-io/solo-kit/pkg/api/v1/clients/memory",
-    "github.com/solo-io/solo-kit/pkg/api/v1/reconcile",
     "github.com/solo-io/solo-kit/pkg/api/v1/resources",
     "github.com/solo-io/solo-kit/pkg/api/v1/resources/core",
     "github.com/solo-io/solo-kit/pkg/code-generator/cmd",
     "github.com/solo-io/solo-kit/pkg/code-generator/docgen/options",
-    "github.com/solo-io/solo-kit/pkg/errors",
-    "github.com/solo-io/solo-kit/pkg/utils/errutils",
-    "github.com/solo-io/solo-kit/pkg/utils/hashutils",
-    "github.com/solo-io/solo-kit/pkg/utils/log",
-    "github.com/solo-io/solo-kit/pkg/utils/stats",
-    "github.com/solo-io/solo-kit/test/helpers",
-    "github.com/solo-io/solo-kit/test/setup",
-    "github.com/solo-io/solo-kit/test/tests/typed",
     "github.com/spf13/cobra",
-    "go.opencensus.io/stats",
-    "go.opencensus.io/stats/view",
-    "go.opencensus.io/tag",
     "go.opencensus.io/trace",
     "go.uber.org/zap",
     "go.uber.org/zap/buffer",
     "go.uber.org/zap/zapcore",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
-    "k8s.io/apimachinery/pkg/runtime",
-    "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/client-go/kubernetes",
-    "k8s.io/client-go/plugin/pkg/client/auth/gcp",
-    "k8s.io/client-go/rest",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

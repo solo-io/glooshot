@@ -6,6 +6,7 @@ import "gogoproto/gogo.proto";
 option (gogoproto.equal_all) = true;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "github.com/solo-io/solo-kit/api/v1/status.proto";
 import "github.com/solo-io/solo-kit/api/v1/metadata.proto";
 import "github.com/solo-io/solo-kit/api/v1/solo-kit.proto";
@@ -28,6 +29,11 @@ message Experiment {
     // configuration for the Experiment
     ExperimentSpec spec = 2;
 
+    // the result of the experiment
+    ExperimentResult result = 4 [(gogoproto.nullable) = false];
+}
+
+message ExperimentResult {
     enum State {
         // Experiment has not started
         Pending = 0;
@@ -45,16 +51,25 @@ message Experiment {
     }
 
     // the current state of the experiment as reported by glooshot
-    State state = 4;
+    State state = 1;
+
+    // the failure conditions that were met, if the experiment failed
+    repeated FailureCondition failure_conditions = 2;
+
+    // time the experiment was started
+    google.protobuf.Timestamp time_started = 3 [(gogoproto.stdtime) = true];
+
+    // the time that elapsed before the experiment completed
+    google.protobuf.Duration time_elapsed = 4 [(gogoproto.stdduration) = true];
 }
 
 message ExperimentSpec {
     // decribes a single fault to  inject
     message InjectedFault {
-        // if specified, the fault will only apply to requests sent from pods sharing these labels
-        map<string, string> source_labels = 1;
-        // if specified, the fault will only apply to requests sent to pods sharing these labels
-        map<string, string> destination_labels = 2;
+        // if specified, the fault will only apply to requests sent from these services
+        repeated core.solo.io.ResourceRef origin_services = 1;
+        // if specified, the fault will only apply to requests sent to these services
+        repeated core.solo.io.ResourceRef destination_services = 2;
         // the type of fault to inject
         supergloo.solo.io.FaultInjection fault = 3;
     }
@@ -64,6 +79,7 @@ message ExperimentSpec {
     repeated InjectedFault faults = 1;
 
     // conditions on which to stop the experiment and mark it as failed
+    // at least one must be specified
     repeated FailureCondition failure_conditions = 2;
 
     // the duration for which to run the experiment
@@ -74,17 +90,46 @@ message ExperimentSpec {
 
 // a condition based on an observed prometheus metric
 message FailureCondition {
-    // the name of the metric to monitor
-    string metric_name  = 1;
+    oneof failure_trigger {
+        // if HTTP GET returns non-200 status code, the condition was met
+        //string webhook_url = 1;
 
-    // consider the failure condition met if the metric falls below this threshold
-    double threshold_value = 2;
+        // trigger a failure on observed prometheus metric
+        PrometheusTrigger prometeheus_trigger = 2;
+    }
 
-    // the comparison operator to use when comparing the threshold and observed metric values
-    // if the comparison evaluates to true, the failure condition will be considered met
-    // possible values are '==', '>', '<', '>=', and '<='
-    // defaults to '<'
-    string comparison_operator = 3;
+    message PrometheusTrigger {
+        oneof query_type {
+            // a user-specified query as an inline string
+            string custom_query = 1;
+
+            // query a well known mesh statistic
+            // TODO: not implemented
+            //MeshQuery mesh_query = 2;
+        }
+
+        // consider the failure condition met if the metric falls below this threshold
+        double threshold_value = 3;
+
+        // the comparison operator to use when comparing the threshold and observed metric values
+        // if the comparison evaluates to true, the failure condition will be considered met
+        // possible values are '==', '>', '<', '>=', and '<='
+        // defaults to '<'
+        string comparison_operator = 4;
+
+
+        message MeshQuery {
+            // the name of the metric to monitor
+            // possible values:
+            // envoy_cluster_upstream_rq
+            // istio_requests_total
+            // istio_request_duration_seconds_bucket
+            string metric = 1;
+
+            // the service for which the query should be made
+            core.solo.io.ResourceRef service = 2;
+        }
+    }
 }
 
 /*
