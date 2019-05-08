@@ -3,14 +3,16 @@ package install
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"testing"
 
+	"github.com/solo-io/go-utils/contextutils"
+
 	"github.com/avast/retry-go"
-	"github.com/solo-io/gloo-ee/pkg/log"
 	"github.com/solo-io/go-utils/testutils"
 	"github.com/solo-io/go-utils/testutils/clusterlock"
 	"github.com/solo-io/go-utils/testutils/kube"
@@ -30,7 +32,7 @@ func TestInstall(t *testing.T) {
 	envToggleKey := "RUN_GLOOSHOT_INSTALL_TESTS"
 	envToggleValue := "1"
 	if os.Getenv(envToggleKey) != envToggleValue {
-		log.Warnf("This test requires a running kubernetes cluster and built images. It is disabled by default. "+
+		contextutils.LoggerFrom(context.TODO()).Warnf("This test requires a running kubernetes cluster and built images. It is disabled by default. "+
 			"To enable, set %s=%s in your env.", envToggleKey, envToggleValue)
 		return
 	}
