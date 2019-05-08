@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-
 	"github.com/solo-io/glooshot/pkg/gsutil"
 
 	"go.uber.org/zap"
@@ -18,6 +17,7 @@ import (
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-checkpoint"
 	"github.com/solo-io/go-utils/contextutils"
+	"github.com/solo-io/go-utils/stats"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 )
 

@@ -9,6 +9,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "github.com/solo-io/solo-kit/api/v1/status.proto";
 import "github.com/solo-io/solo-kit/api/v1/metadata.proto";
+import "github.com/solo-io/solo-kit/api/v1/ref.proto";
 import "github.com/solo-io/solo-kit/api/v1/solo-kit.proto";
 import "github.com/solo-io/supergloo/api/v1/routing.proto";
 
@@ -76,16 +77,16 @@ message ExperimentSpec {
 
     // the faults this experiment will inject
     // if empty, Glooshit will run a "control" experiment with no faults injected
-    repeated InjectedFault faults = 1;
+    repeated InjectedFault faults = 4;
 
     // conditions on which to stop the experiment and mark it as failed
     // at least one must be specified
-    repeated FailureCondition failure_conditions = 2;
+    repeated FailureCondition failure_conditions = 5;
 
     // the duration for which to run the experiment
     // if missing or set to 0 the experiment will run indefinitely
     // only Experiments with a timeout can succeed
-    google.protobuf.Duration duration = 1 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration duration = 6 [(gogoproto.stdduration) = true];
 }
 
 // a condition based on an observed prometheus metric

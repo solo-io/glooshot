@@ -2,72 +2,180 @@ package promquery
 
 import (
 	"context"
-	"github.com/cskr/pubsub"
-	promapi "github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/solo-io/go-utils/errors"
+	"sync"
 	"time"
 )
 
-type QueryResult struct {
-	Value model.Value
+// stream of values for a polled query
+type Results <-chan float64
+type ResultsPush chan float64
+
+type pubSub struct {
+	closeChannels   map[Results]ResultsPush
+	subscriberCache []ResultsPush
+	subscriberLock  sync.RWMutex
 }
 
-type ResultStream <-chan QueryResult
+func newPubsub() *pubSub {
+	return &pubSub{closeChannels: make(map[Results]ResultsPush)}
+}
 
-func ToResultStream(ctx context.Context, untyped <-chan interface{}) ResultStream {
-	qs := make(chan QueryResult)
+func (r *pubSub) close() {
+	r.subscriberLock.Lock()
+	defer r.subscriberLock.Unlock()
+	for _, subscriber := range r.subscriberCache {
+		close(subscriber)
+	}
+	r.subscriberCache = nil
+	r.closeChannels = make(map[Results]ResultsPush)
+}
+
+func (r *pubSub) subscribe() Results {
+	r.subscriberLock.Lock()
+	defer r.subscriberLock.Unlock()
+	c := make(chan float64, 10)
+	r.subscriberCache = append(r.subscriberCache, c)
+	return c
+}
+
+func (r *pubSub) unsubscribe(c Results) {
+	r.subscriberLock.Lock()
+	defer r.subscriberLock.Unlock()
+	closeChan, ok := r.closeChannels[c]
+	if !ok {
+		return
+	}
+	for i, subscriber := range r.subscriberCache {
+		if subscriber == closeChan {
+			delete(r.closeChannels, c)
+			r.subscriberCache = append(r.subscriberCache[:i], r.subscriberCache[i+1:]...)
+			return
+		}
+	}
+}
+
+func (r *pubSub) publish(ctx context.Context, result float64) {
+	r.subscriberLock.RLock()
+	defer r.subscriberLock.RUnlock()
+	for _, subscriber := range r.subscriberCache {
+		select {
+		case <-ctx.Done():
+			return
+		case subscriber <- result:
+		}
+	}
+}
+
+// Publish results of Prometheus Queries on an interval, notifying subscribers of each query result
+type QueryPubSub struct {
+	client promv1.API
+
+	// maintain a pubsub for each query
+	queryPubSubs map[string]*pubSub
+	access       sync.RWMutex
+
+	// poll each query on this interval
+	pollingInterval time.Duration
+}
+
+var defaultPollingInterval = time.Second * 5
+
+func NewQueryPubSub(promClient promv1.API, customPollingInterval time.Duration) *QueryPubSub {
+	interval := defaultPollingInterval
+	if customPollingInterval != 0 {
+		interval = customPollingInterval
+	}
+	return &QueryPubSub{
+		client:          promClient,
+		pollingInterval: interval,
+		queryPubSubs:    make(map[string]*pubSub),
+	}
+}
+
+func (c *QueryPubSub) queryScalar(ctx context.Context, query string) (float64, error) {
+	result, err := c.client.Query(ctx, query, time.Now())
+	if err != nil {
+		return 0, err
+	}
+	scalar, ok := result.(*model.Scalar)
+	if !ok {
+		return 0, errors.Errorf("query result was %s, only scalar values supported", result.Type())
+	}
+	return float64(scalar.Value), nil
+}
+
+// will poll the query for the given interval until the ctx is cancelled
+// subscribers who are watching this query will be notified on every tick
+func (c *QueryPubSub) BeginPolling(ctx context.Context, query string) <-chan error {
+	errs := make(chan error)
+
 	go func() {
-		defer close(qs)
+		defer close(errs)
+		// remove all subscribers for this query when this function exits
+		defer func() {
+			c.access.Lock()
+			if queryPubSub, ok := c.queryPubSubs[query]; ok {
+				queryPubSub.close()
+			}
+			delete(c.queryPubSubs, query)
+			c.access.Unlock()
+		}()
+
+		tick := time.NewTicker(c.pollingInterval)
 		for {
+
 			select {
 			case <-ctx.Done():
 				return
-			case val, ok := <-untyped:
-				if !ok {
-					return
+			case <-tick.C:
+				val, err := c.queryScalar(ctx, query)
+				if err != nil {
+					select {
+					case <-ctx.Done():
+						return
+					case errs <- err:
+					}
+					continue
 				}
-				select {
-				case <-ctx.Done():
-					return
-				case qs <- val.(QueryResult):
-				}
+				c.notifySubscribers(ctx, query, val)
 			}
 		}
 	}()
-	return qs
+	return errs
 }
 
-// caches ongoing prometheus query results and publishes them to a list of subscribers
-type PromCache interface {
-	// publish the results of a query to a topic (query = topic)
-	// when ctx is canceled, close this stream
-	PublishQuery(ctx context.Context, query string, interval, duration time.Duration) error
-
-	// subscribe to query stream
-	Subscribe(ctx context.Context, query string) (ResultStream, <-chan error, error)
-
-	// unsubscribe from query stream
-	Unsubscribe(ctx context.Context, query string, results ResultStream) error
-}
-
-type promQueryCache struct {
-	client promv1.API
-	ps *pubsub.PubSub
-}
-
-func (p *promQueryCache) WatchQuery(ctx context.Context, query string, startTime time.Time, interval, duration time.Duration) (<-chan promv1.RuleType, <-chan error, error) {
-	v, err := p.client.Query(ctx, query, startTime)
-	if err != nil {
-		return nil, err
+func (c *QueryPubSub) notifySubscribers(ctx context.Context, query string, val float64) {
+	queryPubSub, ok := c.getPubSub(query)
+	if ok {
+		queryPubSub.publish(ctx, val)
 	}
-
 }
 
-func NewPromClient(url string) (PromCache, error) {
-	baseClient, err := promapi.NewClient(promapi.Config{Address: url})
-	if err != nil {
-		return nil, err
+func (c *QueryPubSub) getPubSub(query string) (*pubSub, bool) {
+	c.access.RLock()
+	queryPubSub, ok := c.queryPubSubs[query]
+	c.access.RUnlock()
+	return queryPubSub, ok
+}
+
+func (c *QueryPubSub) Subscribe(query string) Results {
+	queryPubSub, ok := c.getPubSub(query)
+	if !ok {
+		queryPubSub = newPubsub()
+		c.access.Lock()
+		c.queryPubSubs[query] = queryPubSub
+		c.access.Unlock()
 	}
-	return &promQueryCache{client: promv1.NewAPI(baseClient), ps: pubsub.New(0)}, nil
+	return queryPubSub.subscribe()
+}
+
+func (c *QueryPubSub) Unsubscribe(query string, results Results) {
+	queryPubSub, ok := c.getPubSub(query)
+	if !ok {
+		return
+	}
+	queryPubSub.unsubscribe(results)
 }

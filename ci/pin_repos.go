@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+
 	version "github.com/solo-io/go-utils/versionutils"
 )
 
