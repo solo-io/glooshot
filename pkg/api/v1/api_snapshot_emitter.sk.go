@@ -140,6 +140,7 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 			sentSnapshot := currentSnapshot.Clone()
 			snapshots <- &sentSnapshot
 		}
+		experimentsByNamespace := make(map[string]ExperimentList)
 
 		for {
 			record := func() { stats.Record(ctx, mApiSnapshotIn.M(1)) }
@@ -159,9 +160,14 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 				record()
 
 				namespace := experimentNamespacedList.namespace
-				experimentList := experimentNamespacedList.list
 
-				currentSnapshot.Experiments[namespace] = experimentList
+				// merge lists by namespace
+				experimentsByNamespace[namespace] = experimentNamespacedList.list
+				var experimentList ExperimentList
+				for _, experiments := range experimentsByNamespace {
+					experimentList = append(experimentList, experiments...)
+				}
+				currentSnapshot.Experiments = experimentList.Sort()
 			}
 		}
 	}()

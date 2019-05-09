@@ -631,7 +631,7 @@
   version = "v0.1"
 
 [[projects]]
-  digest = "1:805afabbe170349bf96427e29e05f8fe33345e7f99f1f40561fe3de1668de72e"
+  digest = "1:f79ff85a70f8cb614e5b3b5bf36d5b3cd1a63b13e2bc57c49d695dba9e86b836"
   name = "github.com/solo-io/gloo"
   packages = [
     "pkg/cliutil",
@@ -658,8 +658,8 @@
     "projects/gloo/pkg/defaults",
   ]
   pruneopts = "UT"
-  revision = "5e7f1ced7e9d89e054d46c7a3a65b8133c584483"
-  version = "v0.13.20"
+  revision = "6a8d3ee81801ac8391a75bd3cd8cc541f48ed222"
+  version = "v0.13.21"
 
 [[projects]]
   digest = "1:699918466a9758902a14923851a7fbd230500f93da6982dae7c79959afb0a664"
@@ -699,12 +699,9 @@
   version = "v0.8.4"
 
 [[projects]]
-  digest = "1:35fe434bfd2023a66f979b22d91542ff3b9b7e3f88567160558deed227871900"
+  digest = "1:0f8eb46549119a4b1d93ee70c32f0c1152207e670e2a7d092734f0614fcdb8d8"
   name = "github.com/solo-io/solo-kit"
   packages = [
-    "api/external/kubernetes/configmap",
-    "api/external/kubernetes/namespace",
-    "api/external/kubernetes/pod",
     "pkg/api/v1/clients",
     "pkg/api/v1/clients/common",
     "pkg/api/v1/clients/configmap",
@@ -726,7 +723,6 @@
     "pkg/api/v1/eventloop",
     "pkg/api/v1/reconcile",
     "pkg/api/v1/resources",
-    "pkg/api/v1/resources/common/kubernetes",
     "pkg/api/v1/resources/core",
     "pkg/code-generator",
     "pkg/code-generator/cmd",
@@ -748,20 +744,8 @@
     "test/tests/typed",
   ]
   pruneopts = "UT"
-  revision = "384dbdaa27e3754a07a4cc65f9331e2f5a0d7d20"
-  version = "v0.8.0"
-
-[[projects]]
-  digest = "1:e94cfaed2849c2e94b282d334d8247555f405010bbb19c961cc23fbcbd45d533"
-  name = "github.com/solo-io/supergloo"
-  packages = [
-    "pkg/api/external/istio/authorization/v1alpha1",
-    "pkg/api/external/istio/networking/v1alpha3",
-    "pkg/api/v1",
-  ]
-  pruneopts = "UT"
-  revision = "65506a77a2a38b79e8d57511eaa2887ac3b5a742"
-  version = "v0.3.17"
+  revision = "c9b4cc6f229cdf7508b99609b87ca7074251ae8d"
+  version = "v0.9.0"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
@@ -1341,7 +1325,6 @@
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/types",
     "github.com/golang/mock/gomock",
-    "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/hashicorp/go-multierror",
     "github.com/olekukonko/tablewriter",
     "github.com/onsi/ginkgo",
@@ -1350,6 +1333,8 @@
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/helpers",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/surveyutils",
+    "github.com/solo-io/gloo/projects/gloo/pkg/api/v1",
+    "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection",
     "github.com/solo-io/go-checkpoint",
     "github.com/solo-io/go-utils/clicore",
     "github.com/solo-io/go-utils/cliutils",
@@ -1381,7 +1366,6 @@
     "github.com/solo-io/solo-kit/pkg/errors",
     "github.com/solo-io/solo-kit/test/helpers",
     "github.com/solo-io/solo-kit/test/tests/typed",
-    "github.com/solo-io/supergloo/pkg/api/v1",
     "github.com/spf13/cobra",
     "go.opencensus.io/stats",
     "go.opencensus.io/stats/view",

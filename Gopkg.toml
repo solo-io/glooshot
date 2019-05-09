@@ -12,7 +12,7 @@
 
 [[constraint]]
   name = "github.com/solo-io/solo-kit"
-  version = "0.8.0"
+  version = "0.9.0"
 
 [[constraint]]
   name = "github.com/solo-io/go-utils"
@@ -48,7 +48,11 @@
 
 [[constraint]]
   name = "github.com/solo-io/gloo"
-  version = "0.13.20"
+  version = "0.13.21"
+
+[[constraint]]
+  name = "github.com/solo-io/supergloo"
+  version = "0.3.18"
 
 [[constraint]]
   name = "github.com/solo-io/supergloo"

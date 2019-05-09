@@ -42,7 +42,6 @@ func (r *Experiment) Hash() uint64 {
 }
 
 type ExperimentList []*Experiment
-type ExperimentsByNamespace map[string]ExperimentList
 
 // namespace is optional, if left empty, names can collide if the list contains more than one with the same name
 func (list ExperimentList) Find(namespace, name string) (*Experiment, error) {
@@ -109,38 +108,18 @@ func (list ExperimentList) Each(f func(element *Experiment)) {
 	}
 }
 
+func (list ExperimentList) EachResource(f func(element resources.Resource)) {
+	for _, experiment := range list {
+		f(experiment)
+	}
+}
+
 func (list ExperimentList) AsInterfaces() []interface{} {
 	var asInterfaces []interface{}
 	list.Each(func(element *Experiment) {
 		asInterfaces = append(asInterfaces, element)
 	})
 	return asInterfaces
-}
-
-func (byNamespace ExperimentsByNamespace) Add(experiment ...*Experiment) {
-	for _, item := range experiment {
-		byNamespace[item.GetMetadata().Namespace] = append(byNamespace[item.GetMetadata().Namespace], item)
-	}
-}
-
-func (byNamespace ExperimentsByNamespace) Clear(namespace string) {
-	delete(byNamespace, namespace)
-}
-
-func (byNamespace ExperimentsByNamespace) List() ExperimentList {
-	var list ExperimentList
-	for _, experimentList := range byNamespace {
-		list = append(list, experimentList...)
-	}
-	return list.Sort()
-}
-
-func (byNamespace ExperimentsByNamespace) Clone() ExperimentsByNamespace {
-	cloned := make(ExperimentsByNamespace)
-	for ns, list := range byNamespace {
-		cloned[ns] = list.Clone()
-	}
-	return cloned
 }
 
 var _ resources.Resource = &Experiment{}
