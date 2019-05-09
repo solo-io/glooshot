@@ -754,7 +754,7 @@
   version = "v0.9.0"
 
 [[projects]]
-  digest = "1:e94cfaed2849c2e94b282d334d8247555f405010bbb19c961cc23fbcbd45d533"
+  digest = "1:a8aaaa484e6950da189e607f281475829c2882ad0b88df1267a1ff78c2e9dad8"
   name = "github.com/solo-io/supergloo"
   packages = [
     "pkg/api/external/istio/authorization/v1alpha1",
@@ -762,8 +762,8 @@
     "pkg/api/v1",
   ]
   pruneopts = "UT"
-  revision = "65506a77a2a38b79e8d57511eaa2887ac3b5a742"
-  version = "v0.3.17"
+  revision = "080916a32bf46f81b39af0ca56c244b5bc17a143"
+  version = "v0.3.18"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
