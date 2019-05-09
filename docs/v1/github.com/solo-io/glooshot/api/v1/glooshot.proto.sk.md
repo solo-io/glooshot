@@ -142,14 +142,14 @@ a condition based on an observed prometheus metric
 
 ```yaml
 "webhookUrl": string
-"prometeheusTrigger": .glooshot.solo.io.PrometheusTrigger
+"prometheusTrigger": .glooshot.solo.io.PrometheusTrigger
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `webhookUrl` | `string` | if HTTP GET returns non-200 status code, the condition was met |  |
-| `prometeheusTrigger` | [.glooshot.solo.io.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
+| `prometheusTrigger` | [.glooshot.solo.io.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
 
 
 

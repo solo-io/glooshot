@@ -17,7 +17,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 )
 
-var _ = Describe("Glooshot", func() {
+var _ = XDescribe("Glooshot", func() {
 
 	var (
 		ctx       context.Context
