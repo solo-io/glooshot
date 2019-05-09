@@ -42,7 +42,7 @@ func GetRoutingRuleClient(ctx context.Context, skipCrdCreation bool) (sgv1.Routi
 	}
 	cache := kube.NewKubeCache(ctx)
 	rcFactory := &factory.KubeResourceClientFactory{
-		Crd:             v1.ExperimentCrd,
+		Crd:             sgv1.RoutingRuleCrd,
 		Cfg:             cfg,
 		SharedCache:     cache,
 		SkipCrdCreation: skipCrdCreation,

@@ -20,6 +20,7 @@ import (
 	"github.com/solo-io/glooshot/pkg/setup"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+	sgv1 "github.com/solo-io/supergloo/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,35 +28,38 @@ import (
 var _ = Describe("Glooshot", func() {
 
 	var (
-		ctx       context.Context
-		client    v1.ExperimentClient
-		clientset kubernetes.Interface
-		namespace string
-		name1     = "testexperiment1"
-		name2     = "testexperiment2"
-		name3     = "testexperiment3"
+		ctx        context.Context
+		client     v1.ExperimentClient
+		rrClient   sgv1.RoutingRuleClient
+		kubeClient kubernetes.Interface
+		namespace  string
+		name1      = "testexperiment1"
+		name2      = "testexperiment2"
+		name3      = "testexperiment3"
 		//url       = "http:http//localhost:8085"
 		err error
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
 		namespace = randomNamespace("glooshot-test")
+		kubeClient = kube.MustKubeClient()
+		_, err = kubeClient.Core().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+		Expect(err).NotTo(HaveOccurred())
+		ctx = context.Background()
 		client, err = gsutil.GetExperimentClient(ctx, false)
+		Expect(err).NotTo(HaveOccurred())
+		rrClient, err = gsutil.GetRoutingRuleClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
 		go func() {
 			err := setup.Run(ctx)
 			Expect(err).NotTo(HaveOccurred())
 		}()
-		clientset = kube.MustKubeClient()
-		_, err := clientset.Core().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		var zero int64
 		zero = 0
-		clientset.Core().Namespaces().Delete(namespace, &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+		kubeClient.Core().Namespaces().Delete(namespace, &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 	})
 
 	It("should watch for experiment crds", func() {
@@ -77,6 +81,11 @@ var _ = Describe("Glooshot", func() {
 			Expect(err).NotTo(HaveOccurred())
 			return len(exps)
 		}).Should(BeNumerically("==", 2))
+		Eventually(func() int {
+			rrs, err := rrClient.List(namespace, clients.ListOpts{Selector: map[string]string{"experiment": name2}})
+			Expect(err).NotTo(HaveOccurred())
+			return len(rrs)
+		}, 3*time.Second, 250*time.Millisecond).Should(BeNumerically("==", 1))
 
 		exp3 := data.GetBasicExperimentDelay(namespace, name3)
 		_, err = client.Write(exp3, clients.WriteOpts{})
@@ -86,6 +95,11 @@ var _ = Describe("Glooshot", func() {
 			Expect(err).NotTo(HaveOccurred())
 			return len(exps)
 		}).Should(BeNumerically("==", 3))
+		Eventually(func() int {
+			rrs, err := rrClient.List(namespace, clients.ListOpts{Selector: map[string]string{"experiment": name3}})
+			Expect(err).NotTo(HaveOccurred())
+			return len(rrs)
+		}, 3*time.Second, 250*time.Millisecond).Should(BeNumerically("==", 1))
 
 	})
 })
