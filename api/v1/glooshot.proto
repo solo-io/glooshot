@@ -54,13 +54,13 @@ message ExperimentResult {
     // the current state of the experiment as reported by glooshot
     State state = 1;
 
-    // the failure conditions that were met, if the experiment failed
-    repeated FailureCondition failure_conditions = 2;
+    // arbitrary data summarizing a failure in case one occurred
+    map<string, string> failure_report = 2;
 
     // time the experiment was started
     google.protobuf.Timestamp time_started = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
 
-    // the time that elapsed before the experiment completed
+    // the time the experiment completed
     google.protobuf.Duration time_finished = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
 }
 
@@ -93,42 +93,42 @@ message ExperimentSpec {
 message FailureCondition {
     oneof failure_trigger {
         // if HTTP GET returns non-200 status code, the condition was met
-        //string webhook_url = 1;
+        string webhook_url = 1;
 
         // trigger a failure on observed prometheus metric
         PrometheusTrigger prometeheus_trigger = 2;
     }
+}
 
-    message PrometheusTrigger {
-        oneof query_type {
-            // a user-specified query as an inline string
-            string custom_query = 1;
+message PrometheusTrigger {
+    oneof query_type {
+        // a user-specified query as an inline string
+        string custom_query = 1;
 
-            // query a well known mesh statistic
-            // TODO: not implemented
-            //MeshQuery mesh_query = 2;
-        }
+        // query a well known mesh statistic
+        // TODO: not implemented
+        MeshQuery mesh_query = 2;
+    }
 
-        // consider the failure condition met if the metric falls below this threshold
-        double threshold_value = 3;
+    // consider the failure condition met if the metric falls below this threshold
+    double threshold_value = 3;
 
-        // the comparison operator to use when comparing the threshold and observed metric values
-        // if the comparison evaluates to true, the failure condition will be considered met
-        // possible values are '==', '>', '<', '>=', and '<='
-        // defaults to '<'
-        string comparison_operator = 4;
+    // the comparison operator to use when comparing the threshold and observed metric values
+    // if the comparison evaluates to true, the failure condition will be considered met
+    // possible values are '==', '>', '<', '>=', and '<='
+    // defaults to '<'
+    string comparison_operator = 4;
 
 
-        message MeshQuery {
-            // the name of the metric to monitor
-            // possible values:
-            // envoy_cluster_upstream_rq
-            // istio_requests_total
-            // istio_request_duration_seconds_bucket
-            string metric = 1;
+    message MeshQuery {
+        // the name of the metric to monitor
+        // possible values:
+        // envoy_cluster_upstream_rq
+        // istio_requests_total
+        // istio_request_duration_seconds_bucket
+        string metric = 1;
 
-            // the service for which the query should be made
-            core.solo.io.ResourceRef service = 2;
-        }
+        // the service for which the query should be made
+        core.solo.io.ResourceRef service = 2;
     }
 }

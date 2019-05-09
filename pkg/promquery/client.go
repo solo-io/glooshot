@@ -186,4 +186,3 @@ func (c *queryPubSub) Unsubscribe(query string, results Results) {
 	}
 	queryPubSub.unsubscribe(results)
 }
-
