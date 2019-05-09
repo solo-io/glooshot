@@ -12,45 +12,6 @@ import (
 	clients "github.com/solo-io/solo-kit/pkg/api/v1/clients"
 )
 
-// MockExperimentWatcher is a mock of ExperimentWatcher interface
-type MockExperimentWatcher struct {
-	ctrl     *gomock.Controller
-	recorder *MockExperimentWatcherMockRecorder
-}
-
-// MockExperimentWatcherMockRecorder is the mock recorder for MockExperimentWatcher
-type MockExperimentWatcherMockRecorder struct {
-	mock *MockExperimentWatcher
-}
-
-// NewMockExperimentWatcher creates a new mock instance
-func NewMockExperimentWatcher(ctrl *gomock.Controller) *MockExperimentWatcher {
-	mock := &MockExperimentWatcher{ctrl: ctrl}
-	mock.recorder = &MockExperimentWatcherMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockExperimentWatcher) EXPECT() *MockExperimentWatcherMockRecorder {
-	return m.recorder
-}
-
-// Watch mocks base method
-func (m *MockExperimentWatcher) Watch(namespace string, opts clients.WatchOpts) (<-chan v1.ExperimentList, <-chan error, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Watch", namespace, opts)
-	ret0, _ := ret[0].(<-chan v1.ExperimentList)
-	ret1, _ := ret[1].(<-chan error)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// Watch indicates an expected call of Watch
-func (mr *MockExperimentWatcherMockRecorder) Watch(namespace, opts interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Watch", reflect.TypeOf((*MockExperimentWatcher)(nil).Watch), namespace, opts)
-}
-
 // MockExperimentClient is a mock of ExperimentClient interface
 type MockExperimentClient struct {
 	ctrl     *gomock.Controller

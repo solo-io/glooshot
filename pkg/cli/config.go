@@ -1,11 +1,11 @@
 package cli
 
 import (
-	clilog "github.com/solo-io/glooshot/pkg/pregoutils-clilog"
 	"github.com/solo-io/glooshot/pkg/version"
+	"github.com/solo-io/go-utils/clicore"
 )
 
-var GlooshotConfig = clilog.CommandConfig{
+var GlooshotConfig = clicore.CommandConfig{
 	Command:             App,
 	Version:             version.Version,
 	FileLogPathElements: FileLogPathElements,
