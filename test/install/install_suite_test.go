@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/solo-io/solo-kit/test/helpers"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -20,22 +21,16 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/go-utils/testutils/exec"
 
-
 	. "github.com/onsi/ginkgo"
 )
 
 var locker *clusterlock.TestClusterLocker
 
 func TestInstall(t *testing.T) {
-
 	envToggleKey := "RUN_GLOOSHOT_INSTALL_TESTS"
 	envToggleValue := "1"
 	if os.Getenv(envToggleKey) != envToggleValue {
-<<<<<<< HEAD
-		log.Warnf("This test requires a running kubernetes cluster and built images. It is disabled by default. "+
-=======
 		contextutils.LoggerFrom(context.TODO()).Warnf("This test requires a running kubernetes cluster and built images. It is disabled by default. "+
->>>>>>> master
 			"To enable, set %s=%s in your env.", envToggleKey, envToggleValue)
 		return
 	}

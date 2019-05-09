@@ -70,8 +70,14 @@ func (r *pubSub) publish(ctx context.Context, result float64) {
 	}
 }
 
+type QueryPubSub interface {
+	BeginPolling(ctx context.Context, query string) <-chan error
+	Subscribe(query string) Results
+	Unsubscribe(query string, results Results)
+}
+
 // Publish results of Prometheus Queries on an interval, notifying subscribers of each query result
-type QueryPubSub struct {
+type queryPubSub struct {
 	client promv1.API
 
 	// maintain a pubsub for each query
@@ -84,19 +90,19 @@ type QueryPubSub struct {
 
 var defaultPollingInterval = time.Second * 5
 
-func NewQueryPubSub(promClient promv1.API, customPollingInterval time.Duration) *QueryPubSub {
+func NewQueryPubSub(promClient promv1.API, customPollingInterval time.Duration) QueryPubSub {
 	interval := defaultPollingInterval
 	if customPollingInterval != 0 {
 		interval = customPollingInterval
 	}
-	return &QueryPubSub{
+	return &queryPubSub{
 		client:          promClient,
 		pollingInterval: interval,
 		queryPubSubs:    make(map[string]*pubSub),
 	}
 }
 
-func (c *QueryPubSub) queryScalar(ctx context.Context, query string) (float64, error) {
+func (c *queryPubSub) queryScalar(ctx context.Context, query string) (float64, error) {
 	result, err := c.client.Query(ctx, query, time.Now())
 	if err != nil {
 		return 0, err
@@ -110,7 +116,7 @@ func (c *QueryPubSub) queryScalar(ctx context.Context, query string) (float64, e
 
 // will poll the query for the given interval until the ctx is cancelled
 // subscribers who are watching this query will be notified on every tick
-func (c *QueryPubSub) BeginPolling(ctx context.Context, query string) <-chan error {
+func (c *queryPubSub) BeginPolling(ctx context.Context, query string) <-chan error {
 	errs := make(chan error)
 
 	go func() {
@@ -148,21 +154,21 @@ func (c *QueryPubSub) BeginPolling(ctx context.Context, query string) <-chan err
 	return errs
 }
 
-func (c *QueryPubSub) notifySubscribers(ctx context.Context, query string, val float64) {
+func (c *queryPubSub) notifySubscribers(ctx context.Context, query string, val float64) {
 	queryPubSub, ok := c.getPubSub(query)
 	if ok {
 		queryPubSub.publish(ctx, val)
 	}
 }
 
-func (c *QueryPubSub) getPubSub(query string) (*pubSub, bool) {
+func (c *queryPubSub) getPubSub(query string) (*pubSub, bool) {
 	c.access.RLock()
 	queryPubSub, ok := c.queryPubSubs[query]
 	c.access.RUnlock()
 	return queryPubSub, ok
 }
 
-func (c *QueryPubSub) Subscribe(query string) Results {
+func (c *queryPubSub) Subscribe(query string) Results {
 	queryPubSub, ok := c.getPubSub(query)
 	if !ok {
 		queryPubSub = newPubsub()
@@ -173,10 +179,11 @@ func (c *QueryPubSub) Subscribe(query string) Results {
 	return queryPubSub.subscribe()
 }
 
-func (c *QueryPubSub) Unsubscribe(query string, results Results) {
+func (c *queryPubSub) Unsubscribe(query string, results Results) {
 	queryPubSub, ok := c.getPubSub(query)
 	if !ok {
 		return
 	}
 	queryPubSub.unsubscribe(results)
 }
+
