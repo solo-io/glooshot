@@ -10,7 +10,7 @@
   version = "1.2.0"
   name = "github.com/golang/protobuf"
 
-[[constraint]]
+[[override]]
   name = "github.com/solo-io/solo-kit"
   version = "0.9.0"
 
