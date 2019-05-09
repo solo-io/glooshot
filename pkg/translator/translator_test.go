@@ -44,8 +44,8 @@ var _ = Describe("translator", func() {
 		destination1 = &core.ResourceRef{"name1", "default"}
 		destination2 = &core.ResourceRef{"name2", "default"}
 		basicFailureCondition = &v1.FailureCondition{
-			FailureTrigger: &v1.FailureCondition_PrometheusTrigger_{
-				PrometheusTrigger: &v1.FailureCondition_PrometheusTrigger{
+			FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
+				PrometheusTrigger: &v1.PrometheusTrigger{
 					QueryType:          nil,
 					ThresholdValue:     0,
 					ComparisonOperator: "",
@@ -72,8 +72,8 @@ var _ = Describe("translator", func() {
 				},
 			},
 			Result: v1.ExperimentResult{
-				State:             0,
-				FailureConditions: []*v1.FailureCondition{basicFailureCondition},
+				State:         0,
+				FailureReport: map[string]string{},
 			},
 		}
 

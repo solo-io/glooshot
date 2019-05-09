@@ -100,6 +100,7 @@ Describes an Experiment that GlooShot should run
 "faults": []glooshot.solo.io.ExperimentSpec.InjectedFault
 "failureConditions": []glooshot.solo.io.FailureCondition
 "duration": .google.protobuf.Duration
+"targetMesh": .core.solo.io.ResourceRef
 
 ```
 
@@ -108,6 +109,7 @@ Describes an Experiment that GlooShot should run
 | `faults` | [[]glooshot.solo.io.ExperimentSpec.InjectedFault](../glooshot.proto.sk#injectedfault) | the faults this experiment will inject if empty, Glooshit will run a "control" experiment with no faults injected |  |
 | `failureConditions` | [[]glooshot.solo.io.FailureCondition](../glooshot.proto.sk#failurecondition) | conditions on which to stop the experiment and mark it as failed at least one must be specified |  |
 | `duration` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the duration for which to run the experiment if missing or set to 0 the experiment will run indefinitely only Experiments with a timeout can succeed |  |
+| `targetMesh` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | The mesh to which the experiment will be applied |  |
 
 
 
