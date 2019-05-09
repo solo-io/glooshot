@@ -138,15 +138,15 @@ func (m *Experiment) GetResult() ExperimentResult {
 type ExperimentResult struct {
 	// the current state of the experiment as reported by glooshot
 	State ExperimentResult_State `protobuf:"varint,1,opt,name=state,proto3,enum=glooshot.solo.io.ExperimentResult_State" json:"state,omitempty"`
-	// the failure conditions that were met, if the experiment failed
-	FailureConditions []*FailureCondition `protobuf:"bytes,2,rep,name=failure_conditions,json=failureConditions,proto3" json:"failure_conditions,omitempty"`
+	// arbitrary data summarizing a failure in case one occurred
+	FailureReport map[string]string `protobuf:"bytes,2,rep,name=failure_report,json=failureReport,proto3" json:"failure_report,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// time the experiment was started
-	TimeStarted *time.Time `protobuf:"bytes,3,opt,name=time_started,json=timeStarted,proto3,stdtime" json:"time_started,omitempty"`
-	// the time that elapsed before the experiment completed
-	TimeElapsed          *time.Duration `protobuf:"bytes,4,opt,name=time_elapsed,json=timeElapsed,proto3,stdduration" json:"time_elapsed,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
-	XXX_unrecognized     []byte         `json:"-"`
-	XXX_sizecache        int32          `json:"-"`
+	TimeStarted time.Time `protobuf:"bytes,3,opt,name=time_started,json=timeStarted,proto3,stdtime" json:"time_started"`
+	// the time the experiment completed
+	TimeFinished         time.Time `protobuf:"bytes,4,opt,name=time_finished,json=timeFinished,proto3,stdtime" json:"time_finished"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
 }
 
 func (m *ExperimentResult) Reset()         { *m = ExperimentResult{} }
@@ -180,25 +180,25 @@ func (m *ExperimentResult) GetState() ExperimentResult_State {
 	return ExperimentResult_Pending
 }
 
-func (m *ExperimentResult) GetFailureConditions() []*FailureCondition {
+func (m *ExperimentResult) GetFailureReport() map[string]string {
 	if m != nil {
-		return m.FailureConditions
+		return m.FailureReport
 	}
 	return nil
 }
 
-func (m *ExperimentResult) GetTimeStarted() *time.Time {
+func (m *ExperimentResult) GetTimeStarted() time.Time {
 	if m != nil {
 		return m.TimeStarted
 	}
-	return nil
+	return time.Time{}
 }
 
-func (m *ExperimentResult) GetTimeElapsed() *time.Duration {
+func (m *ExperimentResult) GetTimeFinished() time.Time {
 	if m != nil {
-		return m.TimeElapsed
+		return m.TimeFinished
 	}
-	return nil
+	return time.Time{}
 }
 
 type ExperimentSpec struct {
@@ -211,12 +211,10 @@ type ExperimentSpec struct {
 	// the duration for which to run the experiment
 	// if missing or set to 0 the experiment will run indefinitely
 	// only Experiments with a timeout can succeed
-	Duration *time.Duration `protobuf:"bytes,6,opt,name=duration,proto3,stdduration" json:"duration,omitempty"`
-	// The mesh to which the experiment will be applied
-	TargetMesh           *core.ResourceRef `protobuf:"bytes,7,opt,name=target_mesh,json=targetMesh,proto3" json:"target_mesh,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+	Duration             *time.Duration `protobuf:"bytes,6,opt,name=duration,proto3,stdduration" json:"duration,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
 }
 
 func (m *ExperimentSpec) Reset()         { *m = ExperimentSpec{} }
@@ -260,13 +258,6 @@ func (m *ExperimentSpec) GetFailureConditions() []*FailureCondition {
 func (m *ExperimentSpec) GetDuration() *time.Duration {
 	if m != nil {
 		return m.Duration
-	}
-	return nil
-}
-
-func (m *ExperimentSpec) GetTargetMesh() *core.ResourceRef {
-	if m != nil {
-		return m.TargetMesh
 	}
 	return nil
 }
@@ -332,7 +323,8 @@ func (m *ExperimentSpec_InjectedFault) GetFault() *v1.FaultInjection {
 // a condition based on an observed prometheus metric
 type FailureCondition struct {
 	// Types that are valid to be assigned to FailureTrigger:
-	//	*FailureCondition_PrometheusTrigger_
+	//	*FailureCondition_WebhookUrl
+	//	*FailureCondition_PrometheusTrigger
 	FailureTrigger       isFailureCondition_FailureTrigger `protobuf_oneof:"failure_trigger"`
 	XXX_NoUnkeyedLiteral struct{}                          `json:"-"`
 	XXX_unrecognized     []byte                            `json:"-"`
@@ -368,11 +360,15 @@ type isFailureCondition_FailureTrigger interface {
 	Equal(interface{}) bool
 }
 
-type FailureCondition_PrometheusTrigger_ struct {
-	PrometheusTrigger *FailureCondition_PrometheusTrigger `protobuf:"bytes,2,opt,name=prometheus_trigger,json=prometheusTrigger,proto3,oneof"`
+type FailureCondition_WebhookUrl struct {
+	WebhookUrl string `protobuf:"bytes,1,opt,name=webhook_url,json=webhookUrl,proto3,oneof"`
+}
+type FailureCondition_PrometheusTrigger struct {
+	PrometheusTrigger *PrometheusTrigger `protobuf:"bytes,2,opt,name=prometheus_trigger,json=prometheusTrigger,proto3,oneof"`
 }
 
-func (*FailureCondition_PrometheusTrigger_) isFailureCondition_FailureTrigger() {}
+func (*FailureCondition_WebhookUrl) isFailureCondition_FailureTrigger()        {}
+func (*FailureCondition_PrometheusTrigger) isFailureCondition_FailureTrigger() {}
 
 func (m *FailureCondition) GetFailureTrigger() isFailureCondition_FailureTrigger {
 	if m != nil {
@@ -381,8 +377,15 @@ func (m *FailureCondition) GetFailureTrigger() isFailureCondition_FailureTrigger
 	return nil
 }
 
-func (m *FailureCondition) GetPrometheusTrigger() *FailureCondition_PrometheusTrigger {
-	if x, ok := m.GetFailureTrigger().(*FailureCondition_PrometheusTrigger_); ok {
+func (m *FailureCondition) GetWebhookUrl() string {
+	if x, ok := m.GetFailureTrigger().(*FailureCondition_WebhookUrl); ok {
+		return x.WebhookUrl
+	}
+	return ""
+}
+
+func (m *FailureCondition) GetPrometheusTrigger() *PrometheusTrigger {
+	if x, ok := m.GetFailureTrigger().(*FailureCondition_PrometheusTrigger); ok {
 		return x.PrometheusTrigger
 	}
 	return nil
@@ -391,7 +394,8 @@ func (m *FailureCondition) GetPrometheusTrigger() *FailureCondition_PrometheusTr
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*FailureCondition) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _FailureCondition_OneofMarshaler, _FailureCondition_OneofUnmarshaler, _FailureCondition_OneofSizer, []interface{}{
-		(*FailureCondition_PrometheusTrigger_)(nil),
+		(*FailureCondition_WebhookUrl)(nil),
+		(*FailureCondition_PrometheusTrigger)(nil),
 	}
 }
 
@@ -399,7 +403,10 @@ func _FailureCondition_OneofMarshaler(msg proto.Message, b *proto.Buffer) error 
 	m := msg.(*FailureCondition)
 	// failure_trigger
 	switch x := m.FailureTrigger.(type) {
-	case *FailureCondition_PrometheusTrigger_:
+	case *FailureCondition_WebhookUrl:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeStringBytes(x.WebhookUrl)
+	case *FailureCondition_PrometheusTrigger:
 		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.PrometheusTrigger); err != nil {
 			return err
@@ -414,13 +421,20 @@ func _FailureCondition_OneofMarshaler(msg proto.Message, b *proto.Buffer) error 
 func _FailureCondition_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*FailureCondition)
 	switch tag {
+	case 1: // failure_trigger.webhook_url
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.FailureTrigger = &FailureCondition_WebhookUrl{x}
+		return true, err
 	case 2: // failure_trigger.prometheus_trigger
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(FailureCondition_PrometheusTrigger)
+		msg := new(PrometheusTrigger)
 		err := b.DecodeMessage(msg)
-		m.FailureTrigger = &FailureCondition_PrometheusTrigger_{msg}
+		m.FailureTrigger = &FailureCondition_PrometheusTrigger{msg}
 		return true, err
 	default:
 		return false, nil
@@ -431,7 +445,11 @@ func _FailureCondition_OneofSizer(msg proto.Message) (n int) {
 	m := msg.(*FailureCondition)
 	// failure_trigger
 	switch x := m.FailureTrigger.(type) {
-	case *FailureCondition_PrometheusTrigger_:
+	case *FailureCondition_WebhookUrl:
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(len(x.WebhookUrl)))
+		n += len(x.WebhookUrl)
+	case *FailureCondition_PrometheusTrigger:
 		s := proto.Size(x.PrometheusTrigger)
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
@@ -443,10 +461,11 @@ func _FailureCondition_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
-type FailureCondition_PrometheusTrigger struct {
+type PrometheusTrigger struct {
 	// Types that are valid to be assigned to QueryType:
-	//	*FailureCondition_PrometheusTrigger_CustomQuery
-	QueryType isFailureCondition_PrometheusTrigger_QueryType `protobuf_oneof:"query_type"`
+	//	*PrometheusTrigger_CustomQuery
+	//	*PrometheusTrigger_MeshQuery_
+	QueryType isPrometheusTrigger_QueryType `protobuf_oneof:"query_type"`
 	// consider the failure condition met if the metric falls below this threshold
 	ThresholdValue float64 `protobuf:"fixed64,3,opt,name=threshold_value,json=thresholdValue,proto3" json:"threshold_value,omitempty"`
 	// the comparison operator to use when comparing the threshold and observed metric values
@@ -459,64 +478,74 @@ type FailureCondition_PrometheusTrigger struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *FailureCondition_PrometheusTrigger) Reset()         { *m = FailureCondition_PrometheusTrigger{} }
-func (m *FailureCondition_PrometheusTrigger) String() string { return proto.CompactTextString(m) }
-func (*FailureCondition_PrometheusTrigger) ProtoMessage()    {}
-func (*FailureCondition_PrometheusTrigger) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9da8418b9c75752, []int{3, 0}
+func (m *PrometheusTrigger) Reset()         { *m = PrometheusTrigger{} }
+func (m *PrometheusTrigger) String() string { return proto.CompactTextString(m) }
+func (*PrometheusTrigger) ProtoMessage()    {}
+func (*PrometheusTrigger) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b9da8418b9c75752, []int{4}
 }
-func (m *FailureCondition_PrometheusTrigger) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_FailureCondition_PrometheusTrigger.Unmarshal(m, b)
+func (m *PrometheusTrigger) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PrometheusTrigger.Unmarshal(m, b)
 }
-func (m *FailureCondition_PrometheusTrigger) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_FailureCondition_PrometheusTrigger.Marshal(b, m, deterministic)
+func (m *PrometheusTrigger) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PrometheusTrigger.Marshal(b, m, deterministic)
 }
-func (m *FailureCondition_PrometheusTrigger) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FailureCondition_PrometheusTrigger.Merge(m, src)
+func (m *PrometheusTrigger) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PrometheusTrigger.Merge(m, src)
 }
-func (m *FailureCondition_PrometheusTrigger) XXX_Size() int {
-	return xxx_messageInfo_FailureCondition_PrometheusTrigger.Size(m)
+func (m *PrometheusTrigger) XXX_Size() int {
+	return xxx_messageInfo_PrometheusTrigger.Size(m)
 }
-func (m *FailureCondition_PrometheusTrigger) XXX_DiscardUnknown() {
-	xxx_messageInfo_FailureCondition_PrometheusTrigger.DiscardUnknown(m)
+func (m *PrometheusTrigger) XXX_DiscardUnknown() {
+	xxx_messageInfo_PrometheusTrigger.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_FailureCondition_PrometheusTrigger proto.InternalMessageInfo
+var xxx_messageInfo_PrometheusTrigger proto.InternalMessageInfo
 
-type isFailureCondition_PrometheusTrigger_QueryType interface {
-	isFailureCondition_PrometheusTrigger_QueryType()
+type isPrometheusTrigger_QueryType interface {
+	isPrometheusTrigger_QueryType()
 	Equal(interface{}) bool
 }
 
-type FailureCondition_PrometheusTrigger_CustomQuery struct {
+type PrometheusTrigger_CustomQuery struct {
 	CustomQuery string `protobuf:"bytes,1,opt,name=custom_query,json=customQuery,proto3,oneof"`
 }
-
-func (*FailureCondition_PrometheusTrigger_CustomQuery) isFailureCondition_PrometheusTrigger_QueryType() {
+type PrometheusTrigger_MeshQuery_ struct {
+	MeshQuery *PrometheusTrigger_MeshQuery `protobuf:"bytes,2,opt,name=mesh_query,json=meshQuery,proto3,oneof"`
 }
 
-func (m *FailureCondition_PrometheusTrigger) GetQueryType() isFailureCondition_PrometheusTrigger_QueryType {
+func (*PrometheusTrigger_CustomQuery) isPrometheusTrigger_QueryType() {}
+func (*PrometheusTrigger_MeshQuery_) isPrometheusTrigger_QueryType()  {}
+
+func (m *PrometheusTrigger) GetQueryType() isPrometheusTrigger_QueryType {
 	if m != nil {
 		return m.QueryType
 	}
 	return nil
 }
 
-func (m *FailureCondition_PrometheusTrigger) GetCustomQuery() string {
-	if x, ok := m.GetQueryType().(*FailureCondition_PrometheusTrigger_CustomQuery); ok {
+func (m *PrometheusTrigger) GetCustomQuery() string {
+	if x, ok := m.GetQueryType().(*PrometheusTrigger_CustomQuery); ok {
 		return x.CustomQuery
 	}
 	return ""
 }
 
-func (m *FailureCondition_PrometheusTrigger) GetThresholdValue() float64 {
+func (m *PrometheusTrigger) GetMeshQuery() *PrometheusTrigger_MeshQuery {
+	if x, ok := m.GetQueryType().(*PrometheusTrigger_MeshQuery_); ok {
+		return x.MeshQuery
+	}
+	return nil
+}
+
+func (m *PrometheusTrigger) GetThresholdValue() float64 {
 	if m != nil {
 		return m.ThresholdValue
 	}
 	return 0
 }
 
-func (m *FailureCondition_PrometheusTrigger) GetComparisonOperator() string {
+func (m *PrometheusTrigger) GetComparisonOperator() string {
 	if m != nil {
 		return m.ComparisonOperator
 	}
@@ -524,49 +553,68 @@ func (m *FailureCondition_PrometheusTrigger) GetComparisonOperator() string {
 }
 
 // XXX_OneofFuncs is for the internal use of the proto package.
-func (*FailureCondition_PrometheusTrigger) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _FailureCondition_PrometheusTrigger_OneofMarshaler, _FailureCondition_PrometheusTrigger_OneofUnmarshaler, _FailureCondition_PrometheusTrigger_OneofSizer, []interface{}{
-		(*FailureCondition_PrometheusTrigger_CustomQuery)(nil),
+func (*PrometheusTrigger) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _PrometheusTrigger_OneofMarshaler, _PrometheusTrigger_OneofUnmarshaler, _PrometheusTrigger_OneofSizer, []interface{}{
+		(*PrometheusTrigger_CustomQuery)(nil),
+		(*PrometheusTrigger_MeshQuery_)(nil),
 	}
 }
 
-func _FailureCondition_PrometheusTrigger_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*FailureCondition_PrometheusTrigger)
+func _PrometheusTrigger_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*PrometheusTrigger)
 	// query_type
 	switch x := m.QueryType.(type) {
-	case *FailureCondition_PrometheusTrigger_CustomQuery:
+	case *PrometheusTrigger_CustomQuery:
 		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
 		_ = b.EncodeStringBytes(x.CustomQuery)
+	case *PrometheusTrigger_MeshQuery_:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.MeshQuery); err != nil {
+			return err
+		}
 	case nil:
 	default:
-		return fmt.Errorf("FailureCondition_PrometheusTrigger.QueryType has unexpected type %T", x)
+		return fmt.Errorf("PrometheusTrigger.QueryType has unexpected type %T", x)
 	}
 	return nil
 }
 
-func _FailureCondition_PrometheusTrigger_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*FailureCondition_PrometheusTrigger)
+func _PrometheusTrigger_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*PrometheusTrigger)
 	switch tag {
 	case 1: // query_type.custom_query
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeStringBytes()
-		m.QueryType = &FailureCondition_PrometheusTrigger_CustomQuery{x}
+		m.QueryType = &PrometheusTrigger_CustomQuery{x}
+		return true, err
+	case 2: // query_type.mesh_query
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(PrometheusTrigger_MeshQuery)
+		err := b.DecodeMessage(msg)
+		m.QueryType = &PrometheusTrigger_MeshQuery_{msg}
 		return true, err
 	default:
 		return false, nil
 	}
 }
 
-func _FailureCondition_PrometheusTrigger_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*FailureCondition_PrometheusTrigger)
+func _PrometheusTrigger_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*PrometheusTrigger)
 	// query_type
 	switch x := m.QueryType.(type) {
-	case *FailureCondition_PrometheusTrigger_CustomQuery:
+	case *PrometheusTrigger_CustomQuery:
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(len(x.CustomQuery)))
 		n += len(x.CustomQuery)
+	case *PrometheusTrigger_MeshQuery_:
+		s := proto.Size(x.MeshQuery)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -574,7 +622,7 @@ func _FailureCondition_PrometheusTrigger_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
-type FailureCondition_PrometheusTrigger_MeshQuery struct {
+type PrometheusTrigger_MeshQuery struct {
 	// the name of the metric to monitor
 	// possible values:
 	// envoy_cluster_upstream_rq
@@ -588,42 +636,38 @@ type FailureCondition_PrometheusTrigger_MeshQuery struct {
 	XXX_sizecache        int32             `json:"-"`
 }
 
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) Reset() {
-	*m = FailureCondition_PrometheusTrigger_MeshQuery{}
+func (m *PrometheusTrigger_MeshQuery) Reset()         { *m = PrometheusTrigger_MeshQuery{} }
+func (m *PrometheusTrigger_MeshQuery) String() string { return proto.CompactTextString(m) }
+func (*PrometheusTrigger_MeshQuery) ProtoMessage()    {}
+func (*PrometheusTrigger_MeshQuery) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b9da8418b9c75752, []int{4, 0}
 }
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) String() string {
-	return proto.CompactTextString(m)
+func (m *PrometheusTrigger_MeshQuery) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PrometheusTrigger_MeshQuery.Unmarshal(m, b)
 }
-func (*FailureCondition_PrometheusTrigger_MeshQuery) ProtoMessage() {}
-func (*FailureCondition_PrometheusTrigger_MeshQuery) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9da8418b9c75752, []int{3, 0, 0}
+func (m *PrometheusTrigger_MeshQuery) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PrometheusTrigger_MeshQuery.Marshal(b, m, deterministic)
 }
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.Unmarshal(m, b)
+func (m *PrometheusTrigger_MeshQuery) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PrometheusTrigger_MeshQuery.Merge(m, src)
 }
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.Marshal(b, m, deterministic)
+func (m *PrometheusTrigger_MeshQuery) XXX_Size() int {
+	return xxx_messageInfo_PrometheusTrigger_MeshQuery.Size(m)
 }
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.Merge(m, src)
-}
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_Size() int {
-	return xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.Size(m)
-}
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_DiscardUnknown() {
-	xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.DiscardUnknown(m)
+func (m *PrometheusTrigger_MeshQuery) XXX_DiscardUnknown() {
+	xxx_messageInfo_PrometheusTrigger_MeshQuery.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery proto.InternalMessageInfo
+var xxx_messageInfo_PrometheusTrigger_MeshQuery proto.InternalMessageInfo
 
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) GetMetric() string {
+func (m *PrometheusTrigger_MeshQuery) GetMetric() string {
 	if m != nil {
 		return m.Metric
 	}
 	return ""
 }
 
-func (m *FailureCondition_PrometheusTrigger_MeshQuery) GetService() *core.ResourceRef {
+func (m *PrometheusTrigger_MeshQuery) GetService() *core.ResourceRef {
 	if m != nil {
 		return m.Service
 	}
@@ -634,11 +678,12 @@ func init() {
 	proto.RegisterEnum("glooshot.solo.io.ExperimentResult_State", ExperimentResult_State_name, ExperimentResult_State_value)
 	proto.RegisterType((*Experiment)(nil), "glooshot.solo.io.Experiment")
 	proto.RegisterType((*ExperimentResult)(nil), "glooshot.solo.io.ExperimentResult")
+	proto.RegisterMapType((map[string]string)(nil), "glooshot.solo.io.ExperimentResult.FailureReportEntry")
 	proto.RegisterType((*ExperimentSpec)(nil), "glooshot.solo.io.ExperimentSpec")
 	proto.RegisterType((*ExperimentSpec_InjectedFault)(nil), "glooshot.solo.io.ExperimentSpec.InjectedFault")
 	proto.RegisterType((*FailureCondition)(nil), "glooshot.solo.io.FailureCondition")
-	proto.RegisterType((*FailureCondition_PrometheusTrigger)(nil), "glooshot.solo.io.FailureCondition.PrometheusTrigger")
-	proto.RegisterType((*FailureCondition_PrometheusTrigger_MeshQuery)(nil), "glooshot.solo.io.FailureCondition.PrometheusTrigger.MeshQuery")
+	proto.RegisterType((*PrometheusTrigger)(nil), "glooshot.solo.io.PrometheusTrigger")
+	proto.RegisterType((*PrometheusTrigger_MeshQuery)(nil), "glooshot.solo.io.PrometheusTrigger.MeshQuery")
 }
 
 func init() {
@@ -646,60 +691,65 @@ func init() {
 }
 
 var fileDescriptor_b9da8418b9c75752 = []byte{
-	// 847 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x95, 0xcf, 0x6f, 0xdc, 0x44,
-	0x14, 0xc7, 0xe3, 0x5d, 0xef, 0xa6, 0x79, 0x9b, 0x1f, 0x9b, 0x69, 0x54, 0x99, 0x3d, 0x34, 0x61,
-	0x91, 0xa0, 0x87, 0x62, 0x2b, 0x69, 0x25, 0x10, 0x20, 0x54, 0xb9, 0x34, 0x2a, 0x12, 0x15, 0xad,
-	0xb7, 0x42, 0x88, 0x8b, 0xe5, 0xd8, 0x6f, 0xbd, 0x43, 0x6d, 0x8f, 0x99, 0x1f, 0x51, 0x7b, 0xed,
-	0x05, 0x71, 0x41, 0x1c, 0xf9, 0x13, 0xf8, 0x53, 0xf8, 0x1b, 0x38, 0x80, 0xc4, 0x99, 0x4b, 0xaf,
-	0x9c, 0x90, 0x67, 0xc6, 0x4e, 0xb3, 0x6d, 0xb3, 0x41, 0x3d, 0xed, 0xce, 0xbc, 0xf7, 0x79, 0xf3,
-	0xde, 0xf7, 0xbd, 0x19, 0xc3, 0x61, 0x4e, 0xe5, 0x42, 0x9d, 0xf8, 0x29, 0x2b, 0x03, 0xc1, 0x0a,
-	0xf6, 0x21, 0x65, 0x41, 0x5e, 0x30, 0x26, 0x16, 0x4c, 0x06, 0x49, 0x4d, 0x83, 0xd3, 0xc3, 0x6e,
-	0xed, 0xd7, 0x9c, 0x49, 0x46, 0xc6, 0xdd, 0xba, 0x01, 0x7c, 0xca, 0x26, 0x7b, 0x39, 0xcb, 0x99,
-	0x36, 0x06, 0xcd, 0x3f, 0xe3, 0x37, 0xb9, 0x9e, 0x33, 0x96, 0x17, 0x18, 0xe8, 0xd5, 0x89, 0x9a,
-	0x07, 0x99, 0xe2, 0x89, 0xa4, 0xac, 0xb2, 0xf6, 0xfd, 0x65, 0xbb, 0xa4, 0x25, 0x0a, 0x99, 0x94,
-	0xb5, 0x75, 0x08, 0x5e, 0x93, 0x9b, 0xfe, 0x7d, 0x42, 0xbb, 0xdc, 0x84, 0x4c, 0xa4, 0x12, 0x16,
-	0x38, 0xbc, 0x04, 0x50, 0xa2, 0x4c, 0xb2, 0x44, 0x26, 0x16, 0xb9, 0x79, 0x09, 0x84, 0xe3, 0xfc,
-	0x7f, 0x1c, 0xd0, 0xae, 0x2f, 0x42, 0x54, 0x8d, 0xbc, 0x51, 0xb1, 0x3b, 0x81, 0x29, 0x49, 0xab,
-	0xdc, 0x20, 0xd3, 0x9f, 0x7b, 0x00, 0xf7, 0x9e, 0xd6, 0xc8, 0x69, 0x89, 0x95, 0x24, 0x1f, 0xc3,
-	0x95, 0x36, 0x69, 0xcf, 0x39, 0x70, 0x6e, 0x8c, 0x8e, 0xae, 0xf9, 0x29, 0xe3, 0xd8, 0xca, 0xef,
-	0x3f, 0xb0, 0xd6, 0xd0, 0xfd, 0xfd, 0xcf, 0xfd, 0xb5, 0xa8, 0xf3, 0x26, 0x47, 0x30, 0x34, 0xfa,
-	0x78, 0x7d, 0xcd, 0xed, 0x9d, 0xe7, 0x66, 0xda, 0x66, 0x29, 0xeb, 0x49, 0x6e, 0x83, 0x2b, 0x6a,
-	0x4c, 0xbd, 0x9e, 0x26, 0x0e, 0xfc, 0xe5, 0x66, 0xfb, 0x67, 0x99, 0xcd, 0x6a, 0x4c, 0x23, 0xed,
-	0x4d, 0xee, 0xc0, 0x90, 0xa3, 0x50, 0x85, 0xf4, 0x5c, 0xcd, 0x4d, 0x2f, 0xe2, 0x22, 0xed, 0xd9,
-	0x9e, 0x6b, 0xb8, 0x4f, 0x26, 0xcf, 0x5f, 0xb8, 0x03, 0xe8, 0xe3, 0xd3, 0xfa, 0xf9, 0x0b, 0x77,
-	0x8b, 0x8c, 0xb0, 0x73, 0x17, 0xd3, 0x7f, 0x7a, 0x30, 0x5e, 0xc6, 0xc9, 0xe7, 0x30, 0x68, 0x52,
-	0x46, 0xad, 0xc9, 0xf6, 0xd1, 0x8d, 0xd5, 0x27, 0xea, 0x82, 0x31, 0x32, 0x18, 0x79, 0x04, 0x64,
-	0x9e, 0xd0, 0x42, 0x71, 0x8c, 0x53, 0x56, 0x65, 0xb4, 0x99, 0x4c, 0xe1, 0xf5, 0x0e, 0xfa, 0xaf,
-	0x4f, 0xff, 0xd8, 0xf8, 0xde, 0x6d, 0x5d, 0xa3, 0xdd, 0xf9, 0xd2, 0x8e, 0x20, 0x77, 0x61, 0xb3,
-	0x99, 0xe1, 0x58, 0xc8, 0x84, 0x4b, 0xcc, 0xac, 0xea, 0x13, 0xdf, 0x0c, 0xba, 0xdf, 0x0e, 0xba,
-	0xff, 0xb8, 0x1d, 0xf4, 0xd0, 0xfd, 0xe5, 0xaf, 0x7d, 0x27, 0x1a, 0x35, 0xd4, 0xcc, 0x40, 0x24,
-	0xb4, 0x41, 0xb0, 0x48, 0x6a, 0x81, 0x99, 0x15, 0xf4, 0x9d, 0x57, 0x82, 0x7c, 0x61, 0x6f, 0x53,
-	0xe8, 0xfe, 0xda, 0xc5, 0xb8, 0x67, 0x98, 0xe9, 0x67, 0x30, 0xd0, 0xb5, 0x92, 0x11, 0xac, 0x3f,
-	0xc4, 0x2a, 0xa3, 0x55, 0x3e, 0x5e, 0x6b, 0x16, 0xf6, 0x90, 0xb1, 0x43, 0x00, 0x86, 0x4d, 0x49,
-	0x98, 0x8d, 0x7b, 0x64, 0x0b, 0x36, 0x66, 0x2a, 0x4d, 0x11, 0x33, 0xcc, 0xc6, 0xfd, 0xe9, 0x8f,
-	0x2e, 0x6c, 0x9f, 0xef, 0x32, 0x39, 0x86, 0xe1, 0x3c, 0x51, 0x85, 0x14, 0x9e, 0xab, 0x05, 0xf2,
-	0x57, 0xcd, 0x85, 0xff, 0x65, 0xf5, 0x3d, 0xa6, 0x12, 0xb3, 0xe3, 0x06, 0x8b, 0x2c, 0xfd, 0x06,
-	0xd1, 0x07, 0x6f, 0x23, 0xfa, 0xa7, 0x70, 0xa5, 0x7d, 0x58, 0xbc, 0xe1, 0xe5, 0xb4, 0xea, 0x00,
-	0x72, 0x07, 0x46, 0x32, 0xe1, 0x39, 0xca, 0xb8, 0x44, 0xb1, 0xf0, 0xd6, 0x2d, 0x7f, 0xee, 0x9a,
-	0x44, 0x28, 0x98, 0xe2, 0x29, 0x46, 0x38, 0xd7, 0x33, 0xeb, 0x44, 0x60, 0x98, 0x07, 0x28, 0x16,
-	0x93, 0x3f, 0x1c, 0xd8, 0x3a, 0x57, 0x2b, 0x09, 0x61, 0x87, 0x71, 0x9a, 0xd3, 0x2a, 0x16, 0xc8,
-	0x4f, 0x69, 0x8a, 0xc2, 0x73, 0x74, 0x81, 0x6f, 0x8e, 0x1b, 0x6d, 0x1b, 0x62, 0x66, 0x01, 0xf2,
-	0x15, 0xec, 0x65, 0x28, 0x24, 0xad, 0x74, 0x9a, 0x67, 0x81, 0x7a, 0xab, 0x02, 0x5d, 0x7d, 0x09,
-	0xeb, 0xa2, 0x7d, 0x04, 0x03, 0xad, 0xbf, 0x1d, 0xc8, 0x77, 0xfd, 0xee, 0x01, 0x7a, 0x49, 0x69,
-	0x55, 0x48, 0x53, 0x47, 0xa3, 0xb3, 0xf1, 0x9f, 0xfe, 0xd4, 0x87, 0xf1, 0x72, 0x0f, 0x08, 0x02,
-	0xa9, 0x39, 0x2b, 0x51, 0x2e, 0x50, 0x89, 0x58, 0x72, 0x9a, 0xe7, 0xc8, 0xed, 0x7b, 0x71, 0x7b,
-	0x75, 0x0f, 0xfd, 0x87, 0x1d, 0xfc, 0xd8, 0xb0, 0xf7, 0xd7, 0xa2, 0xdd, 0x7a, 0x79, 0x73, 0xf2,
-	0xaf, 0x03, 0xbb, 0xaf, 0xb8, 0x92, 0xf7, 0x60, 0x33, 0x55, 0x42, 0xb2, 0x32, 0xfe, 0x41, 0x21,
-	0x7f, 0xa6, 0x2f, 0xff, 0xc6, 0xfd, 0xb5, 0x68, 0x64, 0x76, 0x1f, 0x35, 0x9b, 0xe4, 0x03, 0xd8,
-	0x91, 0x0b, 0x8e, 0x62, 0xc1, 0x8a, 0x2c, 0x3e, 0x4d, 0x0a, 0x85, 0xba, 0x72, 0x27, 0xda, 0xee,
-	0xb6, 0xbf, 0x69, 0x76, 0x49, 0x00, 0x57, 0x53, 0x56, 0xd6, 0x09, 0xa7, 0x82, 0x55, 0x31, 0xab,
-	0x91, 0x27, 0x92, 0x71, 0x7d, 0xe5, 0x36, 0x22, 0x72, 0x66, 0xfa, 0xda, 0x5a, 0x26, 0xdf, 0xc2,
-	0x46, 0xd3, 0x75, 0x73, 0xcc, 0x35, 0x18, 0x96, 0x28, 0x39, 0x4d, 0x4d, 0x16, 0x91, 0x5d, 0x91,
-	0x5b, 0xb0, 0x6e, 0x1b, 0x66, 0x55, 0xb9, 0xa0, 0x5f, 0xad, 0x67, 0xb8, 0x09, 0xa0, 0x2b, 0x8a,
-	0xe5, 0xb3, 0x1a, 0xc3, 0x5d, 0xd8, 0x69, 0xef, 0x89, 0x15, 0x38, 0xbc, 0xf9, 0xdb, 0xdf, 0xd7,
-	0x9d, 0xef, 0xde, 0xbf, 0xe8, 0x7b, 0x5d, 0x3f, 0xc9, 0xed, 0x17, 0xe5, 0x64, 0xa8, 0x67, 0xff,
-	0xd6, 0x7f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xc5, 0x55, 0x39, 0xe2, 0xe0, 0x07, 0x00, 0x00,
+	// 927 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x96, 0xdd, 0x6e, 0xdc, 0x44,
+	0x14, 0xc7, 0xd7, 0xfb, 0xd5, 0xec, 0xd9, 0xec, 0x66, 0x33, 0x8d, 0xaa, 0xed, 0x5e, 0x34, 0xe9,
+	0x56, 0x82, 0x5c, 0xb4, 0xb6, 0x92, 0x82, 0xa8, 0x0a, 0x42, 0xd5, 0x42, 0x43, 0x90, 0x28, 0xb4,
+	0xb3, 0x01, 0x21, 0x84, 0x64, 0x39, 0xf6, 0x59, 0x7b, 0x88, 0xed, 0x31, 0x33, 0xe3, 0xd0, 0xdc,
+	0xf6, 0x01, 0x10, 0x97, 0x5c, 0x71, 0xcd, 0x7b, 0x20, 0x24, 0xc4, 0x23, 0x70, 0x01, 0x12, 0x6f,
+	0xd0, 0x37, 0x40, 0x1e, 0x8f, 0x9d, 0x64, 0x53, 0x25, 0xe1, 0x2a, 0x3e, 0x1f, 0xbf, 0x73, 0x8e,
+	0xff, 0x73, 0xc6, 0x59, 0xd8, 0x09, 0x99, 0x8a, 0xf2, 0x43, 0xdb, 0xe7, 0x89, 0x23, 0x79, 0xcc,
+	0x1f, 0x30, 0xee, 0x84, 0x31, 0xe7, 0x32, 0xe2, 0xca, 0xf1, 0x32, 0xe6, 0x1c, 0xef, 0xd4, 0xb6,
+	0x9d, 0x09, 0xae, 0x38, 0x19, 0xd5, 0x76, 0x01, 0xd8, 0x8c, 0x4f, 0x36, 0x42, 0x1e, 0x72, 0x1d,
+	0x74, 0x8a, 0xa7, 0x32, 0x6f, 0x72, 0x27, 0xe4, 0x3c, 0x8c, 0xd1, 0xd1, 0xd6, 0x61, 0xbe, 0x70,
+	0x82, 0x5c, 0x78, 0x8a, 0xf1, 0xd4, 0xc4, 0x37, 0x97, 0xe3, 0x8a, 0x25, 0x28, 0x95, 0x97, 0x64,
+	0x26, 0xc1, 0x79, 0xc3, 0x6c, 0xfa, 0xef, 0x11, 0xab, 0x67, 0x93, 0xca, 0x53, 0xb9, 0x34, 0xc0,
+	0xce, 0x35, 0x80, 0x04, 0x95, 0x17, 0x78, 0xca, 0x33, 0xc8, 0xfd, 0x6b, 0x20, 0x02, 0x17, 0xff,
+	0xa3, 0x41, 0x65, 0x5f, 0x86, 0xe4, 0x19, 0x8a, 0x42, 0xc5, 0xba, 0x03, 0xcf, 0x15, 0x4b, 0xc3,
+	0x12, 0x99, 0xfe, 0xd8, 0x04, 0x78, 0xfa, 0x32, 0x43, 0xc1, 0x12, 0x4c, 0x15, 0x79, 0x04, 0x2b,
+	0xd5, 0xd0, 0x63, 0x6b, 0xcb, 0xda, 0xee, 0xef, 0xde, 0xb2, 0x7d, 0x2e, 0xb0, 0x92, 0xdf, 0x7e,
+	0x66, 0xa2, 0xb3, 0xf6, 0x1f, 0x7f, 0x6f, 0x36, 0x68, 0x9d, 0x4d, 0x76, 0xa1, 0x5b, 0xea, 0x33,
+	0x6e, 0x69, 0x6e, 0xe3, 0x3c, 0x37, 0xd7, 0x31, 0x43, 0x99, 0x4c, 0xf2, 0x0e, 0xb4, 0x65, 0x86,
+	0xfe, 0xb8, 0xa9, 0x89, 0x2d, 0x7b, 0xf9, 0xb0, 0xed, 0xd3, 0xc9, 0xe6, 0x19, 0xfa, 0x54, 0x67,
+	0x93, 0x27, 0xd0, 0x15, 0x28, 0xf3, 0x58, 0x8d, 0xdb, 0x9a, 0x9b, 0x5e, 0xc6, 0x51, 0x9d, 0x59,
+	0xf5, 0x2d, 0xb9, 0xc7, 0x93, 0x57, 0xaf, 0xdb, 0x1d, 0x68, 0xe1, 0xcb, 0xec, 0xd5, 0xeb, 0xf6,
+	0x80, 0xf4, 0xb1, 0x4e, 0x97, 0xd3, 0xdf, 0x5a, 0x30, 0x5a, 0xc6, 0xc9, 0x87, 0xd0, 0x29, 0x46,
+	0x46, 0xad, 0xc9, 0x70, 0x77, 0xfb, 0xea, 0x8e, 0xfa, 0x85, 0x91, 0x96, 0x18, 0xf9, 0x16, 0x86,
+	0x0b, 0x8f, 0xc5, 0xb9, 0x40, 0x57, 0x60, 0xc6, 0x85, 0x1a, 0x37, 0xb7, 0x5a, 0xdb, 0xfd, 0xdd,
+	0x77, 0xaf, 0x51, 0x68, 0xaf, 0x04, 0xa9, 0xe6, 0x9e, 0xa6, 0x4a, 0x9c, 0xd0, 0xc1, 0xe2, 0xac,
+	0x8f, 0x7c, 0x02, 0xab, 0xc5, 0x3a, 0xbb, 0x52, 0x79, 0x42, 0x61, 0x60, 0x0e, 0x60, 0x62, 0x97,
+	0x3b, 0x6f, 0x57, 0x3b, 0x6f, 0x1f, 0x54, 0x3b, 0x3f, 0x5b, 0x29, 0xe4, 0xf8, 0xe9, 0x9f, 0x4d,
+	0x8b, 0xf6, 0x0b, 0x72, 0x5e, 0x82, 0x64, 0x1f, 0x06, 0xba, 0xd0, 0x82, 0xa5, 0x4c, 0x46, 0x18,
+	0x18, 0x81, 0x6f, 0x5f, 0xa8, 0xf4, 0xb1, 0xb9, 0x5d, 0x67, 0x0a, 0xe9, 0x11, 0xf6, 0x0c, 0x38,
+	0x79, 0x02, 0xe4, 0xe2, 0xdc, 0x64, 0x04, 0xad, 0x23, 0x3c, 0xd1, 0x22, 0xf6, 0x68, 0xf1, 0x48,
+	0x36, 0xa0, 0x73, 0xec, 0xc5, 0x39, 0xea, 0x15, 0xe8, 0xd1, 0xd2, 0x78, 0xdc, 0x7c, 0x64, 0x4d,
+	0x3f, 0x80, 0x8e, 0x96, 0x90, 0xf4, 0xe1, 0xc6, 0x73, 0x4c, 0x03, 0x96, 0x86, 0xa3, 0x46, 0x61,
+	0x98, 0x61, 0x47, 0x16, 0x01, 0xe8, 0x16, 0x4d, 0x30, 0x18, 0x35, 0xc9, 0x00, 0x7a, 0xf3, 0xdc,
+	0xf7, 0x11, 0x03, 0x0c, 0x46, 0xad, 0xe9, 0xef, 0x2d, 0x18, 0x9e, 0x5f, 0x1e, 0xb2, 0x07, 0xdd,
+	0x85, 0x97, 0xc7, 0x4a, 0x8e, 0xdb, 0x5a, 0x7b, 0xfb, 0xaa, 0x75, 0xb3, 0x3f, 0x4d, 0xbf, 0x43,
+	0x5f, 0x61, 0xb0, 0x57, 0x60, 0xd4, 0xd0, 0xe4, 0x05, 0x90, 0xea, 0x2c, 0x7d, 0x9e, 0x06, 0xac,
+	0xd0, 0x41, 0x8e, 0x3b, 0xba, 0xe6, 0x1b, 0x56, 0xd1, 0xc8, 0xf0, 0x51, 0x95, 0x4a, 0xd7, 0x17,
+	0x4b, 0x1e, 0x49, 0xde, 0x87, 0x95, 0xea, 0x7b, 0x35, 0xee, 0x5e, 0x25, 0x79, 0xfb, 0xe7, 0x42,
+	0xee, 0x1a, 0x98, 0xfc, 0x65, 0xc1, 0xe0, 0xdc, 0xa4, 0x64, 0x06, 0x6b, 0x5c, 0xb0, 0x90, 0xa5,
+	0xae, 0x44, 0x71, 0xcc, 0x7c, 0x94, 0x63, 0x4b, 0x8f, 0x77, 0xfb, 0xfc, 0x9d, 0xa4, 0x28, 0x79,
+	0x2e, 0x7c, 0xa4, 0xb8, 0xa0, 0xc3, 0x92, 0x98, 0x1b, 0x80, 0x7c, 0x06, 0x1b, 0x01, 0x4a, 0xc5,
+	0x52, 0xdd, 0xe4, 0xb4, 0x50, 0xf3, 0xaa, 0x42, 0x37, 0xcf, 0x60, 0x75, 0xb5, 0xf7, 0xa0, 0xa3,
+	0xd5, 0x33, 0xab, 0x79, 0xd7, 0xae, 0xbf, 0x4a, 0x67, 0x74, 0xca, 0x63, 0x55, 0xbe, 0x47, 0xa1,
+	0x52, 0x99, 0x3f, 0xfd, 0xc5, 0x82, 0xd1, 0xb2, 0x82, 0xe4, 0x2e, 0xf4, 0x7f, 0xc0, 0xc3, 0x88,
+	0xf3, 0x23, 0x37, 0x17, 0x71, 0xb9, 0x4e, 0xfb, 0x0d, 0x0a, 0xc6, 0xf9, 0xa5, 0x88, 0xc9, 0x01,
+	0x90, 0x4c, 0xf0, 0x04, 0x55, 0x84, 0xb9, 0x74, 0x95, 0x60, 0x61, 0x88, 0xc2, 0x7c, 0x67, 0xee,
+	0x5d, 0x3c, 0xa4, 0xe7, 0x75, 0xee, 0x41, 0x99, 0xba, 0xdf, 0xa0, 0xeb, 0xd9, 0xb2, 0x73, 0xb6,
+	0x0e, 0x6b, 0xd5, 0xd1, 0x9b, 0x92, 0xd3, 0x3f, 0x9b, 0xb0, 0x7e, 0x81, 0x26, 0xf7, 0x60, 0xd5,
+	0xcf, 0xa5, 0xe2, 0x89, 0xfb, 0x7d, 0x8e, 0xe2, 0xa4, 0x1e, 0xb1, 0x5f, 0x7a, 0x5f, 0x14, 0x4e,
+	0xf2, 0x39, 0x40, 0x82, 0x32, 0x32, 0x29, 0xe5, 0x6c, 0x0f, 0xae, 0x31, 0x9b, 0xfd, 0x0c, 0x65,
+	0xa4, 0x4b, 0xec, 0x37, 0x68, 0x2f, 0xa9, 0x0c, 0xf2, 0x36, 0xac, 0xa9, 0x48, 0xa0, 0x8c, 0x78,
+	0x1c, 0xb8, 0xe5, 0xad, 0x2a, 0xe4, 0xb6, 0xe8, 0xb0, 0x76, 0x7f, 0x55, 0x78, 0x89, 0x03, 0x37,
+	0x7d, 0x9e, 0x64, 0x9e, 0x60, 0x92, 0xa7, 0x2e, 0xcf, 0x50, 0x78, 0x8a, 0x0b, 0x7d, 0xd9, 0x7b,
+	0x94, 0x9c, 0x86, 0xbe, 0x30, 0x91, 0xc9, 0xd7, 0xd0, 0xab, 0x7b, 0x92, 0x5b, 0xd0, 0x4d, 0x50,
+	0x09, 0xe6, 0x9b, 0x7b, 0x6c, 0x2c, 0xf2, 0x10, 0x6e, 0x98, 0x2d, 0x31, 0xef, 0x72, 0xc9, 0x92,
+	0x54, 0x99, 0xb3, 0x55, 0x00, 0xfd, 0xfa, 0xae, 0x3a, 0xc9, 0x70, 0x76, 0xff, 0xd7, 0x7f, 0xef,
+	0x58, 0xdf, 0xbc, 0x75, 0xd9, 0xcf, 0x84, 0xec, 0x28, 0x34, 0xff, 0xc8, 0x0e, 0xbb, 0xfa, 0x6e,
+	0x3c, 0xfc, 0x2f, 0x00, 0x00, 0xff, 0xff, 0xe3, 0x26, 0x72, 0x0a, 0x57, 0x08, 0x00, 0x00,
 }
 
 func (this *Experiment) Equal(that interface{}) bool {
@@ -760,28 +810,18 @@ func (this *ExperimentResult) Equal(that interface{}) bool {
 	if this.State != that1.State {
 		return false
 	}
-	if len(this.FailureConditions) != len(that1.FailureConditions) {
+	if len(this.FailureReport) != len(that1.FailureReport) {
 		return false
 	}
-	for i := range this.FailureConditions {
-		if !this.FailureConditions[i].Equal(that1.FailureConditions[i]) {
+	for i := range this.FailureReport {
+		if this.FailureReport[i] != that1.FailureReport[i] {
 			return false
 		}
 	}
-	if that1.TimeStarted == nil {
-		if this.TimeStarted != nil {
-			return false
-		}
-	} else if !this.TimeStarted.Equal(*that1.TimeStarted) {
+	if !this.TimeStarted.Equal(that1.TimeStarted) {
 		return false
 	}
-	if this.TimeElapsed != nil && that1.TimeElapsed != nil {
-		if *this.TimeElapsed != *that1.TimeElapsed {
-			return false
-		}
-	} else if this.TimeElapsed != nil {
-		return false
-	} else if that1.TimeElapsed != nil {
+	if !this.TimeFinished.Equal(that1.TimeFinished) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -831,9 +871,6 @@ func (this *ExperimentSpec) Equal(that interface{}) bool {
 	} else if this.Duration != nil {
 		return false
 	} else if that1.Duration != nil {
-		return false
-	}
-	if !this.TargetMesh.Equal(that1.TargetMesh) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -917,14 +954,38 @@ func (this *FailureCondition) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *FailureCondition_PrometheusTrigger_) Equal(that interface{}) bool {
+func (this *FailureCondition_WebhookUrl) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*FailureCondition_PrometheusTrigger_)
+	that1, ok := that.(*FailureCondition_WebhookUrl)
 	if !ok {
-		that2, ok := that.(FailureCondition_PrometheusTrigger_)
+		that2, ok := that.(FailureCondition_WebhookUrl)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.WebhookUrl != that1.WebhookUrl {
+		return false
+	}
+	return true
+}
+func (this *FailureCondition_PrometheusTrigger) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*FailureCondition_PrometheusTrigger)
+	if !ok {
+		that2, ok := that.(FailureCondition_PrometheusTrigger)
 		if ok {
 			that1 = &that2
 		} else {
@@ -941,14 +1002,14 @@ func (this *FailureCondition_PrometheusTrigger_) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *FailureCondition_PrometheusTrigger) Equal(that interface{}) bool {
+func (this *PrometheusTrigger) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*FailureCondition_PrometheusTrigger)
+	that1, ok := that.(*PrometheusTrigger)
 	if !ok {
-		that2, ok := that.(FailureCondition_PrometheusTrigger)
+		that2, ok := that.(PrometheusTrigger)
 		if ok {
 			that1 = &that2
 		} else {
@@ -980,14 +1041,14 @@ func (this *FailureCondition_PrometheusTrigger) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *FailureCondition_PrometheusTrigger_CustomQuery) Equal(that interface{}) bool {
+func (this *PrometheusTrigger_CustomQuery) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*FailureCondition_PrometheusTrigger_CustomQuery)
+	that1, ok := that.(*PrometheusTrigger_CustomQuery)
 	if !ok {
-		that2, ok := that.(FailureCondition_PrometheusTrigger_CustomQuery)
+		that2, ok := that.(PrometheusTrigger_CustomQuery)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1004,14 +1065,38 @@ func (this *FailureCondition_PrometheusTrigger_CustomQuery) Equal(that interface
 	}
 	return true
 }
-func (this *FailureCondition_PrometheusTrigger_MeshQuery) Equal(that interface{}) bool {
+func (this *PrometheusTrigger_MeshQuery_) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*FailureCondition_PrometheusTrigger_MeshQuery)
+	that1, ok := that.(*PrometheusTrigger_MeshQuery_)
 	if !ok {
-		that2, ok := that.(FailureCondition_PrometheusTrigger_MeshQuery)
+		that2, ok := that.(PrometheusTrigger_MeshQuery_)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.MeshQuery.Equal(that1.MeshQuery) {
+		return false
+	}
+	return true
+}
+func (this *PrometheusTrigger_MeshQuery) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PrometheusTrigger_MeshQuery)
+	if !ok {
+		that2, ok := that.(PrometheusTrigger_MeshQuery)
 		if ok {
 			that1 = &that2
 		} else {

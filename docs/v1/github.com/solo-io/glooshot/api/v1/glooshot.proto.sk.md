@@ -60,18 +60,18 @@ Describes an Experiment that GlooShot should run
 
 ```yaml
 "state": .glooshot.solo.io.ExperimentResult.State
-"failureConditions": []glooshot.solo.io.FailureCondition
+"failureReport": map<string, string>
 "timeStarted": .google.protobuf.Timestamp
-"timeElapsed": .google.protobuf.Duration
+"timeFinished": .google.protobuf.Duration
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `state` | [.glooshot.solo.io.ExperimentResult.State](../glooshot.proto.sk#state) | the current state of the experiment as reported by glooshot |  |
-| `failureConditions` | [[]glooshot.solo.io.FailureCondition](../glooshot.proto.sk#failurecondition) | the failure conditions that were met, if the experiment failed |  |
+| `failureReport` | `map<string, string>` | arbitrary data summarizing a failure in case one occurred |  |
 | `timeStarted` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | time the experiment was started |  |
-| `timeElapsed` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the time that elapsed before the experiment completed |  |
+| `timeFinished` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the time the experiment completed |  |
 
 
 
@@ -100,7 +100,6 @@ Describes an Experiment that GlooShot should run
 "faults": []glooshot.solo.io.ExperimentSpec.InjectedFault
 "failureConditions": []glooshot.solo.io.FailureCondition
 "duration": .google.protobuf.Duration
-"targetMesh": .core.solo.io.ResourceRef
 
 ```
 
@@ -109,7 +108,6 @@ Describes an Experiment that GlooShot should run
 | `faults` | [[]glooshot.solo.io.ExperimentSpec.InjectedFault](../glooshot.proto.sk#injectedfault) | the faults this experiment will inject if empty, Glooshit will run a "control" experiment with no faults injected |  |
 | `failureConditions` | [[]glooshot.solo.io.FailureCondition](../glooshot.proto.sk#failurecondition) | conditions on which to stop the experiment and mark it as failed at least one must be specified |  |
 | `duration` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the duration for which to run the experiment if missing or set to 0 the experiment will run indefinitely only Experiments with a timeout can succeed |  |
-| `targetMesh` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | The mesh to which the experiment will be applied |  |
 
 
 
@@ -143,13 +141,15 @@ decribes a single fault to  inject
 a condition based on an observed prometheus metric
 
 ```yaml
-"prometheusTrigger": .glooshot.solo.io.FailureCondition.PrometheusTrigger
+"webhookUrl": string
+"prometheusTrigger": .glooshot.solo.io.PrometheusTrigger
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
-| `prometheusTrigger` | [.glooshot.solo.io.FailureCondition.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
+| `webhookUrl` | `string` | if HTTP GET returns non-200 status code, the condition was met |  |
+| `prometheusTrigger` | [.glooshot.solo.io.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
 
 
 
@@ -161,6 +161,7 @@ a condition based on an observed prometheus metric
 
 ```yaml
 "customQuery": string
+"meshQuery": .glooshot.solo.io.PrometheusTrigger.MeshQuery
 "thresholdValue": float
 "comparisonOperator": string
 
@@ -169,6 +170,7 @@ a condition based on an observed prometheus metric
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `customQuery` | `string` | a user-specified query as an inline string |  |
+| `meshQuery` | [.glooshot.solo.io.PrometheusTrigger.MeshQuery](../glooshot.proto.sk#meshquery) | query a well known mesh statistic TODO: not implemented |  |
 | `thresholdValue` | `float` | consider the failure condition met if the metric falls below this threshold |  |
 | `comparisonOperator` | `string` | the comparison operator to use when comparing the threshold and observed metric values if the comparison evaluates to true, the failure condition will be considered met possible values are '==', '>', '<', '>=', and '<=' defaults to '<' |  |
 

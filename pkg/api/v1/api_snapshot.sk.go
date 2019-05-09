@@ -10,7 +10,7 @@ import (
 )
 
 type ApiSnapshot struct {
-	Experiments ExperimentList
+	Experiments ExperimentsByNamespace
 }
 
 func (s ApiSnapshot) Clone() ApiSnapshot {
@@ -26,7 +26,7 @@ func (s ApiSnapshot) Hash() uint64 {
 }
 
 func (s ApiSnapshot) hashExperiments() uint64 {
-	return hashutils.HashAll(s.Experiments.AsInterfaces()...)
+	return hashutils.HashAll(s.Experiments.List().AsInterfaces()...)
 }
 
 func (s ApiSnapshot) HashFields() []zap.Field {
@@ -55,6 +55,6 @@ func (ss ApiSnapshotStringer) String() string {
 func (s ApiSnapshot) Stringer() ApiSnapshotStringer {
 	return ApiSnapshotStringer{
 		Version:     s.Hash(),
-		Experiments: s.Experiments.NamespacesDotNames(),
+		Experiments: s.Experiments.List().NamespacesDotNames(),
 	}
 }

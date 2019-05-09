@@ -9,11 +9,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/errors"
 )
 
-type ExperimentWatcher interface {
-	// watch namespace-scoped Experiments
-	Watch(namespace string, opts clients.WatchOpts) (<-chan ExperimentList, <-chan error, error)
-}
-
 type ExperimentClient interface {
 	BaseClient() clients.ResourceClient
 	Register() error
@@ -21,7 +16,7 @@ type ExperimentClient interface {
 	Write(resource *Experiment, opts clients.WriteOpts) (*Experiment, error)
 	Delete(namespace, name string, opts clients.DeleteOpts) error
 	List(namespace string, opts clients.ListOpts) (ExperimentList, error)
-	ExperimentWatcher
+	Watch(namespace string, opts clients.WatchOpts) (<-chan ExperimentList, <-chan error, error)
 }
 
 type experimentClient struct {
