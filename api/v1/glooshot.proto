@@ -132,33 +132,3 @@ message FailureCondition {
         }
     }
 }
-
-/*
-install&setup
-
-deploy demo app
--
-
-run
--
-
-load tool
-
-
-
-api
-- plan - how often to execute the experiment
-
-
-
-
-- pubsub for prometheus queries
-- interface for the supergloo apis glooshot needs and nothing more
-
-
-
-
-
-
-
-*/
