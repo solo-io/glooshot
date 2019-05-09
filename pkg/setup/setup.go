@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/solo-io/glooshot/pkg/gsutil"
+	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 
 	"go.uber.org/zap"
 

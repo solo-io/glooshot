@@ -2,13 +2,14 @@ package promquery_test
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
-	. "github.com/solo-io/glooshot/pkg/promquery"
 	"sync"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
+	. "github.com/solo-io/glooshot/pkg/promquery"
 )
 
 var _ = Describe("Client", func() {
@@ -55,7 +56,7 @@ var _ = Describe("Client", func() {
 })
 
 type mockPromClient struct {
-	counts map[string]model.SampleValue;
+	counts map[string]model.SampleValue
 	access sync.Mutex
 }
 

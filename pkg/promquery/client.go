@@ -2,11 +2,12 @@ package promquery
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/solo-io/go-utils/errors"
-	"sync"
-	"time"
 )
 
 // stream of values for a polled query

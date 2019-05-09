@@ -18,7 +18,7 @@ import (
 	"github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils"
 	"github.com/solo-io/gloo/projects/gloo/cli/pkg/surveyutils"
 	"github.com/solo-io/glooshot/pkg/cli/printer"
-	"github.com/solo-io/glooshot/pkg/gsutil"
+	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 
 	"github.com/spf13/cobra"

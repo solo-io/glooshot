@@ -58,10 +58,10 @@ message ExperimentResult {
     repeated FailureCondition failure_conditions = 2;
 
     // time the experiment was started
-    google.protobuf.Timestamp time_started = 3 [(gogoproto.stdtime) = true];
+    google.protobuf.Timestamp time_started = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
 
     // the time that elapsed before the experiment completed
-    google.protobuf.Duration time_elapsed = 4 [(gogoproto.stdduration) = true];
+    google.protobuf.Duration time_elapsed = 4 [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
 }
 
 message ExperimentSpec {
