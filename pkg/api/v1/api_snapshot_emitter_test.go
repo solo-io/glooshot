@@ -88,12 +88,12 @@ var _ = Describe("V1Emitter", func() {
 				select {
 				case snap = <-snapshots:
 					for _, expected := range expectExperiments {
-						if _, err := snap.Experiments.List().Find(expected.GetMetadata().Ref().Strings()); err != nil {
+						if _, err := snap.Experiments.Find(expected.GetMetadata().Ref().Strings()); err != nil {
 							continue drain
 						}
 					}
 					for _, unexpected := range unexpectExperiments {
-						if _, err := snap.Experiments.List().Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
+						if _, err := snap.Experiments.Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
 							continue drain
 						}
 					}
@@ -103,10 +103,7 @@ var _ = Describe("V1Emitter", func() {
 				case <-time.After(time.Second * 10):
 					nsList1, _ := experimentClient.List(namespace1, clients.ListOpts{})
 					nsList2, _ := experimentClient.List(namespace2, clients.ListOpts{})
-					combined := ExperimentsByNamespace{
-						namespace1: nsList1,
-						namespace2: nsList2,
-					}
+					combined := append(nsList1, nsList2...)
 					Fail("expected final snapshot before 10 seconds. expected " + log.Sprintf("%v", combined))
 				}
 			}
@@ -161,12 +158,12 @@ var _ = Describe("V1Emitter", func() {
 				select {
 				case snap = <-snapshots:
 					for _, expected := range expectExperiments {
-						if _, err := snap.Experiments.List().Find(expected.GetMetadata().Ref().Strings()); err != nil {
+						if _, err := snap.Experiments.Find(expected.GetMetadata().Ref().Strings()); err != nil {
 							continue drain
 						}
 					}
 					for _, unexpected := range unexpectExperiments {
-						if _, err := snap.Experiments.List().Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
+						if _, err := snap.Experiments.Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
 							continue drain
 						}
 					}
@@ -176,10 +173,7 @@ var _ = Describe("V1Emitter", func() {
 				case <-time.After(time.Second * 10):
 					nsList1, _ := experimentClient.List(namespace1, clients.ListOpts{})
 					nsList2, _ := experimentClient.List(namespace2, clients.ListOpts{})
-					combined := ExperimentsByNamespace{
-						namespace1: nsList1,
-						namespace2: nsList2,
-					}
+					combined := append(nsList1, nsList2...)
 					Fail("expected final snapshot before 10 seconds. expected " + log.Sprintf("%v", combined))
 				}
 			}
