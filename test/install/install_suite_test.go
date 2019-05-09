@@ -5,13 +5,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/solo-io/solo-kit/test/helpers"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"testing"
 
+	"github.com/solo-io/solo-kit/test/helpers"
+
 	"github.com/solo-io/go-utils/contextutils"
+	"github.com/solo-io/solo-kit/test/helpers"
 
 	"github.com/avast/retry-go"
 	"github.com/solo-io/go-utils/testutils"
