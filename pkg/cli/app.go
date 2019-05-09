@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	premerge_contextutils "github.com/solo-io/glooshot/pkg/cli/premerge-contextutils"
-
 	"github.com/solo-io/glooshot/pkg/controller"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
@@ -127,12 +125,12 @@ func App(ctx context.Context, version string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if o.Top.Temp {
 				// Trigger some warnings, this will be removed
-				premerge_contextutils.CliLogInfow(ctx, "this info log should go to file and console")
-				premerge_contextutils.CliLogWarnw(ctx, "this warn log should go to file and console")
-				premerge_contextutils.CliLogErrorw(ctx, "this error log should go to file and console")
-				premerge_contextutils.CliLogInfow(ctx, "this infow log should go to file and console", "extrakey1", "val1")
-				premerge_contextutils.CliLogWarnw(ctx, "this warnw log should go to file and console", "extrakey2", "val2")
-				premerge_contextutils.CliLogErrorw(ctx, "this errorw log should go to file and console", "extrakey3", "val3")
+				contextutils.CliLogInfow(ctx, "this info log should go to file and console")
+				contextutils.CliLogWarnw(ctx, "this warn log should go to file and console")
+				contextutils.CliLogErrorw(ctx, "this error log should go to file and console")
+				contextutils.CliLogInfow(ctx, "this infow log should go to file and console", "extrakey1", "val1")
+				contextutils.CliLogWarnw(ctx, "this warnw log should go to file and console", "extrakey2", "val2")
+				contextutils.CliLogErrorw(ctx, "this errorw log should go to file and console", "extrakey3", "val3")
 				fmt.Println("cobra says 'hisssss' - but he should leave the console logs to the CliLog* utils.")
 				return fmt.Errorf("cobra says 'hisssss' again - it's ok because this is a passed error")
 			}

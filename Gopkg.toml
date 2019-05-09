@@ -12,11 +12,11 @@
 
 [[constraint]]
   name = "github.com/solo-io/solo-kit"
-  version = "0.5.3"
+  version = "0.8.0"
 
 [[constraint]]
   name = "github.com/solo-io/go-utils"
-  version = "0.7.3"
+  version = "0.8.4"
 
 [[override]]
   name = "k8s.io/kubernetes"
@@ -48,4 +48,9 @@
 
 [[constraint]]
   name = "github.com/solo-io/gloo"
-  version = "0.13.14"
+  version = "0.13.20"
+
+[[override]]
+  name = "github.com/lyft/protoc-gen-validate"
+  version = "0.0.6"
+  source = "github.com/envoyproxy/protoc-gen-validate"

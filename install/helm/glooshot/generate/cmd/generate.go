@@ -8,9 +8,10 @@ import (
 
 	"github.com/solo-io/glooshot/install/helm/glooshot/generate"
 
+	"log"
+
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	"github.com/solo-io/solo-kit/pkg/utils/log"
 )
 
 var (

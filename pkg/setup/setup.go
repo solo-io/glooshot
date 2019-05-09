@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/solo-io/solo-kit/pkg/utils/stats"
+	"github.com/solo-io/go-utils/stats"
 
 	"github.com/solo-io/glooshot/pkg/gsutil"
 
