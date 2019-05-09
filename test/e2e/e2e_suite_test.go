@@ -3,9 +3,8 @@ package e2e_test
 import (
 	"testing"
 
-	"github.com/solo-io/solo-kit/test/helpers"
-
 	. "github.com/onsi/ginkgo"
+	"github.com/solo-io/solo-kit/test/helpers"
 )
 
 func TestE2e(t *testing.T) {

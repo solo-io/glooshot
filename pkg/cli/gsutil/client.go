@@ -2,6 +2,7 @@ package gsutil
 
 import (
 	"context"
+	"log"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
@@ -12,6 +13,13 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
 )
 
+func MustExperimentClient() v1.ExperimentClient {
+	client, err := GetExperimentClient(context.TODO(), true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return client
+}
 func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.ExperimentClient, error) {
 	cfg, err := kubeutils.GetConfig("", "")
 	if err != nil {

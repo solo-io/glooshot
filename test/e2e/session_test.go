@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/solo-io/glooshot/pkg/gsutil"
+	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
