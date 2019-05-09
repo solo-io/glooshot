@@ -70,7 +70,7 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 				}
 
 				if failure == nil {
-					logger.Infof("polling cancelled")
+					logger.Debug("polling cancelled")
 					return
 				}
 

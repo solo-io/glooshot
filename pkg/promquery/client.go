@@ -46,6 +46,7 @@ func (r *pubSub) subscribe() Results {
 	defer r.subscriberLock.Unlock()
 	c := make(chan float64, 10)
 	r.subscriberCache = append(r.subscriberCache, c)
+	r.closeChannels[c] = c
 	return c
 }
 
