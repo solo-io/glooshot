@@ -22,6 +22,10 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 )
 
+type Opts struct {
+	SummaryBindAddr string
+}
+
 func Run(ctx context.Context) error {
 	start := time.Now()
 	checkpoint.CallCheck(version.AppName, version.Version, start)

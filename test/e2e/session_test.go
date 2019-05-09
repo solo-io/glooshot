@@ -11,7 +11,7 @@ import (
 	"github.com/solo-io/go-utils/testutils/kube"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/solo-io/glooshot/pkg/gsutil"
+	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 	"github.com/solo-io/glooshot/test/data"
 
 	. "github.com/onsi/ginkgo"

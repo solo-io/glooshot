@@ -12,15 +12,12 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	START_STATS_SERVER = "START_STATS_SERVER"
+)
+
 type StatsHandler struct {
 	ctx context.Context
-}
-
-func NewStatsHandler(ctx context.Context) StatsHandler {
-	loggingContext := []interface{}{"type", "stats"}
-	return StatsHandler{
-		ctx: contextutils.WithLoggerValues(ctx, loggingContext...),
-	}
 }
 
 func (d StatsHandler) reportError(err error, w http.ResponseWriter) {
@@ -60,10 +57,6 @@ func getExperimentNamespaces(ctx context.Context) []string {
 	contextutils.LoggerFrom(ctx).Errorw("TODO: implement getExperimentNamespaces")
 	return []string{"default"}
 }
-
-const (
-	START_STATS_SERVER = "START_STATS_SERVER"
-)
 
 type summaryHandler struct {
 	ctx context.Context
@@ -118,8 +111,4 @@ func (d summaryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		d.reportError(err, http.StatusInternalServerError, w)
 		return
 	}
-}
-
-type Opts struct {
-	SummaryBindAddr string
 }
