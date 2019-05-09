@@ -99,7 +99,7 @@ message FailureCondition {
         //string webhook_url = 1;
 
         // trigger a failure on observed prometheus metric
-        PrometheusTrigger prometeheus_trigger = 2;
+        PrometheusTrigger prometheus_trigger = 2;
     }
 
     message PrometheusTrigger {

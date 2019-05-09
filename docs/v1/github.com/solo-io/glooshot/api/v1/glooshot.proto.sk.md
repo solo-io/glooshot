@@ -143,13 +143,13 @@ decribes a single fault to  inject
 a condition based on an observed prometheus metric
 
 ```yaml
-"prometeheusTrigger": .glooshot.solo.io.FailureCondition.PrometheusTrigger
+"prometheusTrigger": .glooshot.solo.io.FailureCondition.PrometheusTrigger
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
-| `prometeheusTrigger` | [.glooshot.solo.io.FailureCondition.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
+| `prometheusTrigger` | [.glooshot.solo.io.FailureCondition.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
 
 
 

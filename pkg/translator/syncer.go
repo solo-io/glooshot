@@ -1,8 +1,12 @@
-package setup
+package translator
 
 import (
 	"context"
 	"fmt"
+
+	"github.com/gogo/protobuf/proto"
+
+	"github.com/pkg/errors"
 
 	sgv1 "github.com/solo-io/supergloo/pkg/api/v1"
 
@@ -21,9 +25,11 @@ type glooshotSyncer struct {
 func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	// Will need to update this with the solo-kit update
 	expsByNamespace := snap.Experiments
-	desired := sgv1.RoutingRuleList{}
 	for ns, exps := range expsByNamespace {
-		desired = append(desired, translateExperimentsToRoutingRules(exps)...)
+		desired, err := translateExperimentsToRoutingRules(exps)
+		if err != nil {
+			return err
+		}
 		if err := g.rrReconciler.Reconcile(ns, desired, nil, clients.ListOpts{}); err != nil {
 			return err
 		}
@@ -40,23 +46,47 @@ func NewSyncer(expClient v1.ExperimentClient, rrClient sgv1.RoutingRuleClient) g
 	}
 }
 
-func translateExperimentsToRoutingRules(exps v1.ExperimentList) sgv1.RoutingRuleList {
+func translateExperimentsToRoutingRules(exps v1.ExperimentList) (sgv1.RoutingRuleList, error) {
 	rrs := sgv1.RoutingRuleList{}
 	for _, exp := range exps {
 		for i := range exp.Spec.Faults {
-			rr := translateToRoutingRule(exp, i)
+			rr, err := translateToRoutingRule(exp, i)
+			if err != nil {
+				return nil, err
+			}
 			rrs = append(rrs, rr)
 		}
 	}
-	return rrs
+	return rrs, nil
 }
 
-func translateToRoutingRule(exp *v1.Experiment, index int) *sgv1.RoutingRule {
+func translateToRoutingRule(exp *v1.Experiment, index int) (*sgv1.RoutingRule, error) {
 	expName := exp.Metadata.Name
 	namespace := exp.Metadata.Namespace
 	rrName := fmt.Sprintf("%v-%v", expName, index)
 	labels := labelsForRoutingRule(expName)
 	f := exp.Spec.Faults[index]
+	spec, err := translateFaultToSpec(f.Fault)
+	wrap := func(e error) error {
+		return errors.Wrapf(e, "for experiment: %v.%v, fault index: %v", namespace, expName, index)
+	}
+	if err != nil {
+		return nil, wrap(err)
+	}
+	ss := &sgv1.PodSelector{}
+	if f.OriginServices != nil {
+		ss, err = selectorFromResourceRef(f.OriginServices)
+		if err != nil {
+			return nil, wrap(err)
+		}
+	}
+	ds := &sgv1.PodSelector{}
+	if f.DestinationServices != nil {
+		ds, err = selectorFromResourceRef(f.DestinationServices)
+		if err != nil {
+			return nil, wrap(err)
+		}
+	}
 	return &sgv1.RoutingRule{
 		Metadata: core.Metadata{
 			Name: rrName,
@@ -64,16 +94,22 @@ func translateToRoutingRule(exp *v1.Experiment, index int) *sgv1.RoutingRule {
 			Namespace: namespace,
 			Labels:    labels,
 		},
-		TargetMesh:          exp.Result.TargetMesh,
-		SourceSelector:      selectorFromResourceRef(f.OriginServices),
-		DestinationSelector: selectorFromResourceRef(f.DestinationServices),
-		Spec:                translateFaultToSpec(f.Fault),
-	}
+		TargetMesh:          exp.Spec.TargetMesh,
+		SourceSelector:      ss,
+		DestinationSelector: ds,
+		Spec:                spec,
+	}, nil
 }
 
-func selectorFromResourceRef(refs []*core.ResourceRef) *sgv1.PodSelector {
+func selectorFromResourceRef(refs []*core.ResourceRef) (*sgv1.PodSelector, error) {
+	if len(refs) == 0 {
+		return nil, nil
+	}
 	upstreams := []core.ResourceRef{}
 	for _, point := range refs {
+		if point == nil {
+			return nil, fmt.Errorf("nil resource ref cannot be translated to a pod selector")
+		}
 		upstreams = append(upstreams, *point)
 	}
 	return &sgv1.PodSelector{
@@ -82,15 +118,18 @@ func selectorFromResourceRef(refs []*core.ResourceRef) *sgv1.PodSelector {
 				Upstreams: upstreams,
 			},
 		},
-	}
+	}, nil
 }
 
-func translateFaultToSpec(fault *sgv1.FaultInjection) *sgv1.RoutingRuleSpec {
+func translateFaultToSpec(fault *sgv1.FaultInjection) (*sgv1.RoutingRuleSpec, error) {
+	if fault == nil || proto.Equal(fault, &sgv1.FaultInjection{}) {
+		return nil, fmt.Errorf("empty fault injection detected")
+	}
 	return &sgv1.RoutingRuleSpec{
 		RuleType: &sgv1.RoutingRuleSpec_FaultInjection{
 			FaultInjection: fault,
 		},
-	}
+	}, nil
 }
 
 func labelsForRoutingRule(expName string) map[string]string {
