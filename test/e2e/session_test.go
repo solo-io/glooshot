@@ -3,11 +3,16 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
 
+	"github.com/solo-io/go-utils/testutils/kube"
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/solo-io/glooshot/pkg/gsutil"
+	"github.com/solo-io/glooshot/test/data"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,48 +20,73 @@ import (
 	"github.com/solo-io/glooshot/pkg/setup"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = XDescribe("Glooshot", func() {
+var _ = Describe("Glooshot", func() {
 
 	var (
 		ctx       context.Context
 		client    v1.ExperimentClient
-		namespace = "default"
-		name      = "testexperiment"
-		url       = "http://localhost:8085"
+		clientset kubernetes.Interface
+		namespace string
+		name1     = "testexperiment1"
+		name2     = "testexperiment2"
+		name3     = "testexperiment3"
+		//url       = "http:http//localhost:8085"
+		err error
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		var err error
+		namespace = randomNamespace("glooshot-test")
 		client, err = gsutil.GetExperimentClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
-		go setup.Run(ctx)
+		go func() {
+			err := setup.Run(ctx)
+			Expect(err).NotTo(HaveOccurred())
+		}()
+		clientset = kube.MustKubeClient()
+		_, err := clientset.Core().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		// run delete in case the test exited early
-		client.Delete(namespace, name, clients.DeleteOpts{})
+		var zero int64
+		zero = 0
+		clientset.Core().Namespaces().Delete(namespace, &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 	})
 
 	It("should watch for experiment crds", func() {
-		exp := getNewExperiment(namespace, name)
-		_, err := client.Write(exp, clients.WriteOpts{})
+		exp1 := getNewExperiment(namespace, name1)
+		_, err = client.Write(exp1, clients.WriteOpts{})
 		Expect(err).NotTo(HaveOccurred())
 
-		time.Sleep(time.Second)
-		body, err := curl(url)
-		Expect(err).NotTo(HaveOccurred())
-		str := `Glooshot stats
-Count: 1
-Experiment Summary
-default, testexperiment: Accepted
-`
-		ExpectWithOffset(1, body).To(Equal(str))
+		Eventually(func() int {
+			exps, err := client.List(namespace, clients.ListOpts{})
+			Expect(err).NotTo(HaveOccurred())
+			return len(exps)
+		}).Should(BeNumerically("==", 1))
 
-		err = client.Delete(namespace, name, clients.DeleteOpts{})
+		exp2 := data.GetBasicExperimentAbort(namespace, name2)
+		_, err = client.Write(exp2, clients.WriteOpts{})
 		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			exps, err := client.List(namespace, clients.ListOpts{})
+			Expect(err).NotTo(HaveOccurred())
+			return len(exps)
+		}).Should(BeNumerically("==", 2))
+
+		exp3 := data.GetBasicExperimentDelay(namespace, name3)
+		_, err = client.Write(exp3, clients.WriteOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			exps, err := client.List(namespace, clients.ListOpts{})
+			Expect(err).NotTo(HaveOccurred())
+			return len(exps)
+		}).Should(BeNumerically("==", 3))
+
 	})
 })
 
@@ -86,4 +116,9 @@ func curl(url string) (string, error) {
 	defer resp.Body.Close()
 
 	return p.String(), nil
+}
+
+// from openshift
+func randomNamespace(prefix string) string {
+	return prefix + string([]byte(fmt.Sprintf("%d", time.Now().UnixNano()))[3:12])
 }

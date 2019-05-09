@@ -27,7 +27,12 @@ func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.Experime
 		SkipCrdCreation: skipCrdCreation,
 	}
 	client, err := v1.NewExperimentClient(rcFactory)
-	client.Register()
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Register(); err != nil {
+		return nil, err
+	}
 	return client, nil
 }
 func GetRoutingRuleClient(ctx context.Context, skipCrdCreation bool) (sgv1.RoutingRuleClient, error) {
@@ -43,7 +48,12 @@ func GetRoutingRuleClient(ctx context.Context, skipCrdCreation bool) (sgv1.Routi
 		SkipCrdCreation: skipCrdCreation,
 	}
 	client, err := sgv1.NewRoutingRuleClient(rcFactory)
-	client.Register()
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Register(); err != nil {
+		return nil, err
+	}
 	return client, nil
 }
 

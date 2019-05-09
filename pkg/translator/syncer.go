@@ -23,16 +23,12 @@ type glooshotSyncer struct {
 }
 
 func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
-	// Will need to update this with the solo-kit update
-	expsByNamespace := snap.Experiments
-	for ns, exps := range expsByNamespace {
-		desired, err := translateExperimentsToRoutingRules(exps)
-		if err != nil {
-			return err
-		}
-		if err := g.rrReconciler.Reconcile(ns, desired, nil, clients.ListOpts{}); err != nil {
-			return err
-		}
+	desired, err := translateExperimentsToRoutingRules(snap.Experiments)
+	if err != nil {
+		return err
+	}
+	if err := g.rrReconciler.Reconcile("", desired, nil, clients.ListOpts{}); err != nil {
+		return err
 	}
 	return nil
 }
@@ -49,6 +45,9 @@ func NewSyncer(expClient v1.ExperimentClient, rrClient sgv1.RoutingRuleClient) g
 func translateExperimentsToRoutingRules(exps v1.ExperimentList) (sgv1.RoutingRuleList, error) {
 	rrs := sgv1.RoutingRuleList{}
 	for _, exp := range exps {
+		if exp.Spec == nil || len(exp.Spec.Faults) == 0 {
+			continue
+		}
 		for i := range exp.Spec.Faults {
 			rr, err := translateToRoutingRule(exp, i)
 			if err != nil {
