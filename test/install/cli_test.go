@@ -10,7 +10,7 @@ import (
 	"github.com/solo-io/gloo/projects/gloo/cli/pkg/helpers"
 )
 
-var _ = Describe("Glooshot CLI", func() {
+var _ = XDescribe("Glooshot CLI", func() {
 
 	var noResourcesTable = `+------------+-----------+--------+
 | EXPERIMENT | NAMESPACE | STATUS |

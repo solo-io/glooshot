@@ -16,9 +16,14 @@ func main() {
 	glooVersion, err := version.GetVersion(version.GlooPkg, tomlTree)
 	fatalCheck(err, "getting gloo version")
 
+	superglooVersion, err := version.GetVersion(version.SuperglooPkg, tomlTree)
+	fatalCheck(err, "getting supergloo version")
+
 	fatalCheck(version.PinGitVersion("../solo-kit", soloKitVersion), "consider git fetching in solo-kit repo")
 
 	fatalCheck(version.PinGitVersion("../gloo", glooVersion), "consider git fetching in gloo repo")
+
+	fatalCheck(version.PinGitVersion("../supergloo", superglooVersion), "consider git fetching in supergloo repo")
 }
 
 func fatalCheck(err error, msg string) {

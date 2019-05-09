@@ -72,8 +72,9 @@ func ExperimentClientTest(namespace string, client ExperimentClient, name1, name
 	Expect(r1.GetMetadata().Namespace).To(Equal(namespace))
 	Expect(r1.GetMetadata().ResourceVersion).NotTo(Equal(input.GetMetadata().ResourceVersion))
 	Expect(r1.GetMetadata().Ref()).To(Equal(input.GetMetadata().Ref()))
-	Expect(r1.Spec).To(Equal(input.Spec))
 	Expect(r1.Status).To(Equal(input.Status))
+	Expect(r1.Spec).To(Equal(input.Spec))
+	Expect(r1.Result).To(Equal(input.Result))
 
 	_, err = client.Write(input, clients.WriteOpts{
 		OverwriteExisting: true,

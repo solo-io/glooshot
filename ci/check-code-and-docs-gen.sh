@@ -14,6 +14,7 @@ git commit -m "set up dummy repo for diffing" -q --allow-empty
 
 git clone https://github.com/solo-io/solo-kit /workspace/gopath/src/github.com/solo-io/solo-kit
 git clone https://github.com/solo-io/gloo /workspace/gopath/src/github.com/solo-io/gloo
+git clone https://github.com/solo-io/supergloo /workspace/gopath/src/github.com/solo-io/supergloo
 
 make update-deps
 make pin-repos

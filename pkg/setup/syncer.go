@@ -23,7 +23,7 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	createdCount := 0
 	deletedCount := 0
 	existingKeys := make(map[string]bool)
-	for _, exp := range snap.Experiments.List() {
+	for _, exp := range snap.Experiments {
 		key := resources.Key(exp)
 		val, ok := g.last[key]
 		if ok {
