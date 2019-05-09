@@ -2,13 +2,12 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/solo-io/glooshot/install/helm/glooshot/generate"
-
-	"log"
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"

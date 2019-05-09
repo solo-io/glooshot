@@ -11,7 +11,7 @@ import (
 
 	"github.com/solo-io/go-utils/stats"
 
-	"github.com/solo-io/glooshot/pkg/gsutil"
+	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 
 	"go.uber.org/zap"
 
@@ -25,15 +25,21 @@ import (
 func Run(ctx context.Context) error {
 	start := time.Now()
 	checkpoint.CallCheck(version.AppName, version.Version, start)
+
+	var opts Opts
+	flag.StringVar(&opts.SummaryBindAddr, "summary-bind-addr", ":8085", "bind address for serving "+
+		"experiment summaries (debug info)")
 	flag.Parse()
 
 	if os.Getenv(START_STATS_SERVER) != "" {
 		stats.StartStatsServer()
 	}
 
-	sh := NewStatsHandler(ctx)
-	http.Handle("/", sh)
-	go http.ListenAndServe("localhost:8085", nil)
+	go func() {
+		mux := http.NewServeMux()
+		mux.Handle("/", newSummaryHandler(ctx))
+		contextutils.LoggerFrom(ctx).Fatal(http.ListenAndServe(opts.SummaryBindAddr, mux))
+	}()
 
 	expClient, err := gsutil.GetExperimentClient(ctx, true)
 	if err != nil {

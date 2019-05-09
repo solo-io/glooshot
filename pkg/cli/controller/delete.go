@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 
-	"github.com/solo-io/glooshot/pkg/gsutil"
+	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

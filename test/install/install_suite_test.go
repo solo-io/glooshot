@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/solo-io/go-utils/contextutils"
+	"github.com/solo-io/solo-kit/test/helpers"
 
 	"github.com/avast/retry-go"
 	"github.com/solo-io/go-utils/testutils"
@@ -20,15 +21,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/go-utils/testutils/exec"
 
-	"github.com/solo-io/solo-kit/test/helpers"
-
 	. "github.com/onsi/ginkgo"
 )
 
 var locker *clusterlock.TestClusterLocker
 
 func TestInstall(t *testing.T) {
-
 	envToggleKey := "RUN_GLOOSHOT_INSTALL_TESTS"
 	envToggleValue := "1"
 	if os.Getenv(envToggleKey) != envToggleValue {
