@@ -48,8 +48,8 @@ var _ = Describe("CheckExperiment", func() {
 			experiment.Spec = &v1.ExperimentSpec{
 				FailureConditions: []*v1.FailureCondition{
 					{
-						FailureTrigger: &v1.FailureCondition_PrometeheusTrigger{
-							PrometeheusTrigger: &v1.PrometheusTrigger{
+						FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
+							PrometheusTrigger: &v1.PrometheusTrigger{
 								QueryType: &v1.PrometheusTrigger_CustomQuery{
 									CustomQuery: q1,
 								},
@@ -58,8 +58,8 @@ var _ = Describe("CheckExperiment", func() {
 						},
 					},
 					{
-						FailureTrigger: &v1.FailureCondition_PrometeheusTrigger{
-							PrometeheusTrigger: &v1.PrometheusTrigger{
+						FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
+							PrometheusTrigger: &v1.PrometheusTrigger{
 								QueryType: &v1.PrometheusTrigger_CustomQuery{
 									CustomQuery: q2,
 								},
@@ -86,8 +86,8 @@ var _ = Describe("CheckExperiment", func() {
 				if err != nil {
 					return nil, err
 				}
-				exp.Result.TimeStarted = time.Time{}
-				exp.Result.TimeFinished = time.Time{}
+				exp.Result.TimeStarted = nil
+				exp.Result.TimeFinished = nil
 				return &exp.Result, nil
 			}, time.Second*3).Should(Equal(&v1.ExperimentResult{
 				State: v1.ExperimentResult_Failed,
@@ -111,8 +111,8 @@ var _ = Describe("CheckExperiment", func() {
 			experiment.Spec = &v1.ExperimentSpec{
 				FailureConditions: []*v1.FailureCondition{
 					{
-						FailureTrigger: &v1.FailureCondition_PrometeheusTrigger{
-							PrometeheusTrigger: &v1.PrometheusTrigger{
+						FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
+							PrometheusTrigger: &v1.PrometheusTrigger{
 								QueryType: &v1.PrometheusTrigger_CustomQuery{
 									CustomQuery: q1,
 								},
@@ -121,8 +121,8 @@ var _ = Describe("CheckExperiment", func() {
 						},
 					},
 					{
-						FailureTrigger: &v1.FailureCondition_PrometeheusTrigger{
-							PrometeheusTrigger: &v1.PrometheusTrigger{
+						FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
+							PrometheusTrigger: &v1.PrometheusTrigger{
 								QueryType: &v1.PrometheusTrigger_CustomQuery{
 									CustomQuery: q2,
 								},
@@ -150,8 +150,8 @@ var _ = Describe("CheckExperiment", func() {
 				if err != nil {
 					return nil, err
 				}
-				exp.Result.TimeStarted = time.Time{}
-				exp.Result.TimeFinished = time.Time{}
+				exp.Result.TimeStarted = nil
+				exp.Result.TimeFinished = nil
 				return &exp.Result, nil
 			}, time.Second*3).Should(Equal(&v1.ExperimentResult{
 				State: v1.ExperimentResult_Succeeded,

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gogo/protobuf/types"
+
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/promquery"
 	"github.com/solo-io/go-utils/contextutils"
@@ -44,8 +46,8 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 	defer cancel()
 	for _, fc := range experiment.Spec.FailureConditions {
 		switch trigger := fc.FailureTrigger.(type) {
-		case *v1.FailureCondition_PrometeheusTrigger:
-			promTrigger := trigger.PrometeheusTrigger
+		case *v1.FailureCondition_PrometheusTrigger:
+			promTrigger := trigger.PrometheusTrigger
 			ctx := ctx
 			comparisonOperator := promTrigger.ComparisonOperator
 			if comparisonOperator == "" {
@@ -143,13 +145,12 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 	if report == nil {
 		// success
 		experiment.Result.State = v1.ExperimentResult_Succeeded
-		experiment.Result.State = v1.ExperimentResult_Failed
 	} else {
 		// failure
 		experiment.Result.State = v1.ExperimentResult_Failed
 		experiment.Result.FailureReport = report
 	}
-	experiment.Result.TimeFinished = time.Now()
+	experiment.Result.TimeFinished = p(time.Now())
 
 	_, err = c.experiments.Write(experiment, clients.WriteOpts{
 		Ctx:               ctx,
@@ -157,4 +158,13 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 	})
 
 	return err
+}
+
+func p(t time.Time) *types.Timestamp {
+	ts, _ := types.TimestampProto(t)
+	return ts
+}
+
+func p2(t time.Time) *time.Time {
+	return &t
 }

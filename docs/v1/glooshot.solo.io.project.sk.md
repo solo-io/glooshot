@@ -15,7 +15,6 @@ API Version: `glooshot.solo.io.v1`
 
 
 ### API Resources:
-- [DestinationRule](../github.com/solo-io/supergloo/api/external/istio/networking/v1alpha3/destination_rule.proto.sk#destinationrule)
 - [Experiment](../github.com/solo-io/glooshot/api/v1/glooshot.proto.sk#experiment)
 - [Install](../github.com/solo-io/supergloo/api/v1/install.proto.sk#install)
 - [Mesh](../github.com/solo-io/supergloo/api/v1/mesh.proto.sk#mesh)
