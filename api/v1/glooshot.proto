@@ -6,61 +6,159 @@ import "gogoproto/gogo.proto";
 option (gogoproto.equal_all) = true;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "github.com/solo-io/solo-kit/api/v1/status.proto";
 import "github.com/solo-io/solo-kit/api/v1/metadata.proto";
+import "github.com/solo-io/solo-kit/api/v1/ref.proto";
 import "github.com/solo-io/solo-kit/api/v1/solo-kit.proto";
-import "github.com/solo-io/gloo/projects/gloo/api/v1/proxy.proto";
-import "github.com/solo-io/gloo/projects/gloo/api/v1/plugins/faultinjection/fault.proto";
+import "github.com/solo-io/supergloo/api/v1/routing.proto";
 
+/*
+Describes an Experiment that GlooShot should run
+*/
 message Experiment {
-
     option (core.solo.io.resource).short_name = "exp";
     option (core.solo.io.resource).plural_name = "experiments";
 
-    // Metadata contains the object metadata for this resource
+    // the object metadata for this resource
     core.solo.io.Metadata metadata = 1 [(gogoproto.nullable) = false];
 
+    // indicates whether or not the spec is valid
+    // set by glooshot, intended to be read by clients
+    core.solo.io.Status status = 3 [(gogoproto.nullable) = false];
+
+    // configuration for the Experiment
     ExperimentSpec spec = 2;
 
-    // Status indicates the validation status of the resource. Status is read-only by clients, and set by gloo during validation
-    core.solo.io.Status status = 3 [(gogoproto.nullable) = false, (gogoproto.moretags) = "testdiff:\"ignore\""];
+    // the result of the experiment
+    ExperimentResult result = 4 [(gogoproto.nullable) = false];
+}
+
+message ExperimentResult {
+    enum State {
+        // Experiment has not started
+        Pending = 0;
+
+        // Experiment started but threshold not met
+        Started = 1;
+
+        // Experiment failed, threshold was exceeded
+        Failed = 2;
+
+        // Experiment succeeded, duration elapsed
+        // If duration is not specified, the Experiment will never
+        // be marked Succeeded
+        Succeeded = 3;
+    }
+
+    // the current state of the experiment as reported by glooshot
+    State state = 1;
+
+    // the failure conditions that were met, if the experiment failed
+    repeated FailureCondition failure_conditions = 2;
+
+    // time the experiment was started
+    google.protobuf.Timestamp time_started = 3 [(gogoproto.stdtime) = true];
+
+    // the time that elapsed before the experiment completed
+    google.protobuf.Duration time_elapsed = 4 [(gogoproto.stdduration) = true];
 }
 
 message ExperimentSpec {
+    // decribes a single fault to  inject
     message InjectedFault {
-        // TODO(yuval-k) should this be an upstream ref?
-        gloo.solo.io.Destination service = 1;
-        fault.plugins.gloo.solo.io.RouteFaults fault = 2;
+        // if specified, the fault will only apply to requests sent from these services
+        repeated core.solo.io.ResourceRef origin_services = 1;
+        // if specified, the fault will only apply to requests sent to these services
+        repeated core.solo.io.ResourceRef destination_services = 2;
+        // the type of fault to inject
+        supergloo.solo.io.FaultInjection fault = 3;
     }
 
-    repeated InjectedFault faults = 1;
+    // the faults this experiment will inject
+    // if empty, Glooshit will run a "control" experiment with no faults injected
+    repeated InjectedFault faults = 4;
 
-    StopCondition stop_condition = 2;
-    
+    // conditions on which to stop the experiment and mark it as failed
+    // at least one must be specified
+    repeated FailureCondition failure_conditions = 5;
 
-    // TODO: this should probably go in the status. consult with ilackarms
-    enum State {
-        Init = 0;
-        Running = 1;
-        Done = 2;
+    // the duration for which to run the experiment
+    // if missing or set to 0 the experiment will run indefinitely
+    // only Experiments with a timeout can succeed
+    google.protobuf.Duration duration = 6 [(gogoproto.stdduration) = true];
+}
+
+// a condition based on an observed prometheus metric
+message FailureCondition {
+    oneof failure_trigger {
+        // if HTTP GET returns non-200 status code, the condition was met
+        //string webhook_url = 1;
+
+        // trigger a failure on observed prometheus metric
+        PrometheusTrigger prometeheus_trigger = 2;
     }
-    // State is the enum indicating the state of the resource
-    State state = 4;
+
+    message PrometheusTrigger {
+        oneof query_type {
+            // a user-specified query as an inline string
+            string custom_query = 1;
+
+            // query a well known mesh statistic
+            // TODO: not implemented
+            //MeshQuery mesh_query = 2;
+        }
+
+        // consider the failure condition met if the metric falls below this threshold
+        double threshold_value = 3;
+
+        // the comparison operator to use when comparing the threshold and observed metric values
+        // if the comparison evaluates to true, the failure condition will be considered met
+        // possible values are '==', '>', '<', '>=', and '<='
+        // defaults to '<'
+        string comparison_operator = 4;
+
+
+        message MeshQuery {
+            // the name of the metric to monitor
+            // possible values:
+            // envoy_cluster_upstream_rq
+            // istio_requests_total
+            // istio_request_duration_seconds_bucket
+            string metric = 1;
+
+            // the service for which the query should be made
+            core.solo.io.ResourceRef service = 2;
+        }
+    }
 }
 
-message StopCondition {
-    google.protobuf.Duration duration = 1 [(gogoproto.stdduration) = true];
-    repeated MetricThreshold metric = 2;
-}
+/*
+install&setup
 
-message MetricThreshold {
-    string metric_name = 1;
-    double value = 2;
-}
+deploy demo app
+-
 
-message ChaosSettings {
-    /*
-    - specify prometheus?
-    - 
-    */
-}
+run
+-
+
+load tool
+
+
+
+api
+- plan - how often to execute the experiment
+
+
+
+
+- pubsub for prometheus queries
+- interface for the supergloo apis glooshot needs and nothing more
+
+
+
+
+
+
+
+*/

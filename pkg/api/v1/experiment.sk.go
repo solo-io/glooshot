@@ -37,6 +37,7 @@ func (r *Experiment) Hash() uint64 {
 	return hashutils.HashAll(
 		metaCopy,
 		r.Spec,
+		r.Result,
 	)
 }
 

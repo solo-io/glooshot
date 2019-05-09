@@ -12,9 +12,9 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	_ "github.com/gogo/protobuf/types"
-	v1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
-	faultinjection "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/plugins/faultinjection"
+	_ "github.com/golang/protobuf/ptypes/timestamp"
 	core "github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+	v1 "github.com/solo-io/supergloo/pkg/api/v1"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -29,44 +29,58 @@ var _ = time.Kitchen
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-// TODO: this should probably go in the status. consult with ilackarms
-type ExperimentSpec_State int32
+type ExperimentResult_State int32
 
 const (
-	ExperimentSpec_Init    ExperimentSpec_State = 0
-	ExperimentSpec_Running ExperimentSpec_State = 1
-	ExperimentSpec_Done    ExperimentSpec_State = 2
+	// Experiment has not started
+	ExperimentResult_Pending ExperimentResult_State = 0
+	// Experiment started but threshold not met
+	ExperimentResult_Started ExperimentResult_State = 1
+	// Experiment failed, threshold was exceeded
+	ExperimentResult_Failed ExperimentResult_State = 2
+	// Experiment succeeded, duration elapsed
+	// If duration is not specified, the Experiment will never
+	// be marked Succeeded
+	ExperimentResult_Succeeded ExperimentResult_State = 3
 )
 
-var ExperimentSpec_State_name = map[int32]string{
-	0: "Init",
-	1: "Running",
-	2: "Done",
+var ExperimentResult_State_name = map[int32]string{
+	0: "Pending",
+	1: "Started",
+	2: "Failed",
+	3: "Succeeded",
 }
 
-var ExperimentSpec_State_value = map[string]int32{
-	"Init":    0,
-	"Running": 1,
-	"Done":    2,
+var ExperimentResult_State_value = map[string]int32{
+	"Pending":   0,
+	"Started":   1,
+	"Failed":    2,
+	"Succeeded": 3,
 }
 
-func (x ExperimentSpec_State) String() string {
-	return proto.EnumName(ExperimentSpec_State_name, int32(x))
+func (x ExperimentResult_State) String() string {
+	return proto.EnumName(ExperimentResult_State_name, int32(x))
 }
 
-func (ExperimentSpec_State) EnumDescriptor() ([]byte, []int) {
+func (ExperimentResult_State) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_b9da8418b9c75752, []int{1, 0}
 }
 
+//
+//Describes an Experiment that GlooShot should run
 type Experiment struct {
-	// Metadata contains the object metadata for this resource
-	Metadata core.Metadata   `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata"`
-	Spec     *ExperimentSpec `protobuf:"bytes,2,opt,name=spec,proto3" json:"spec,omitempty"`
-	// Status indicates the validation status of the resource. Status is read-only by clients, and set by gloo during validation
-	Status               core.Status `protobuf:"bytes,3,opt,name=status,proto3" json:"status" testdiff:"ignore"`
-	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
-	XXX_unrecognized     []byte      `json:"-"`
-	XXX_sizecache        int32       `json:"-"`
+	// the object metadata for this resource
+	Metadata core.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata"`
+	// indicates whether or not the spec is valid
+	// set by glooshot, intended to be read by clients
+	Status core.Status `protobuf:"bytes,3,opt,name=status,proto3" json:"status"`
+	// configuration for the Experiment
+	Spec *ExperimentSpec `protobuf:"bytes,2,opt,name=spec,proto3" json:"spec,omitempty"`
+	// the result of the experiment
+	Result               ExperimentResult `protobuf:"bytes,4,opt,name=result,proto3" json:"result"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
 }
 
 func (m *Experiment) Reset()         { *m = Experiment{} }
@@ -100,13 +114,6 @@ func (m *Experiment) GetMetadata() core.Metadata {
 	return core.Metadata{}
 }
 
-func (m *Experiment) GetSpec() *ExperimentSpec {
-	if m != nil {
-		return m.Spec
-	}
-	return nil
-}
-
 func (m *Experiment) GetStatus() core.Status {
 	if m != nil {
 		return m.Status
@@ -114,21 +121,107 @@ func (m *Experiment) GetStatus() core.Status {
 	return core.Status{}
 }
 
+func (m *Experiment) GetSpec() *ExperimentSpec {
+	if m != nil {
+		return m.Spec
+	}
+	return nil
+}
+
+func (m *Experiment) GetResult() ExperimentResult {
+	if m != nil {
+		return m.Result
+	}
+	return ExperimentResult{}
+}
+
+type ExperimentResult struct {
+	// the current state of the experiment as reported by glooshot
+	State ExperimentResult_State `protobuf:"varint,1,opt,name=state,proto3,enum=glooshot.solo.io.ExperimentResult_State" json:"state,omitempty"`
+	// the failure conditions that were met, if the experiment failed
+	FailureConditions []*FailureCondition `protobuf:"bytes,2,rep,name=failure_conditions,json=failureConditions,proto3" json:"failure_conditions,omitempty"`
+	// time the experiment was started
+	TimeStarted *time.Time `protobuf:"bytes,3,opt,name=time_started,json=timeStarted,proto3,stdtime" json:"time_started,omitempty"`
+	// the time that elapsed before the experiment completed
+	TimeElapsed          *time.Duration `protobuf:"bytes,4,opt,name=time_elapsed,json=timeElapsed,proto3,stdduration" json:"time_elapsed,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
+}
+
+func (m *ExperimentResult) Reset()         { *m = ExperimentResult{} }
+func (m *ExperimentResult) String() string { return proto.CompactTextString(m) }
+func (*ExperimentResult) ProtoMessage()    {}
+func (*ExperimentResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b9da8418b9c75752, []int{1}
+}
+func (m *ExperimentResult) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ExperimentResult.Unmarshal(m, b)
+}
+func (m *ExperimentResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ExperimentResult.Marshal(b, m, deterministic)
+}
+func (m *ExperimentResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ExperimentResult.Merge(m, src)
+}
+func (m *ExperimentResult) XXX_Size() int {
+	return xxx_messageInfo_ExperimentResult.Size(m)
+}
+func (m *ExperimentResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_ExperimentResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ExperimentResult proto.InternalMessageInfo
+
+func (m *ExperimentResult) GetState() ExperimentResult_State {
+	if m != nil {
+		return m.State
+	}
+	return ExperimentResult_Pending
+}
+
+func (m *ExperimentResult) GetFailureConditions() []*FailureCondition {
+	if m != nil {
+		return m.FailureConditions
+	}
+	return nil
+}
+
+func (m *ExperimentResult) GetTimeStarted() *time.Time {
+	if m != nil {
+		return m.TimeStarted
+	}
+	return nil
+}
+
+func (m *ExperimentResult) GetTimeElapsed() *time.Duration {
+	if m != nil {
+		return m.TimeElapsed
+	}
+	return nil
+}
+
 type ExperimentSpec struct {
-	Faults        []*ExperimentSpec_InjectedFault `protobuf:"bytes,1,rep,name=faults,proto3" json:"faults,omitempty"`
-	StopCondition *StopCondition                  `protobuf:"bytes,2,opt,name=stop_condition,json=stopCondition,proto3" json:"stop_condition,omitempty"`
-	// State is the enum indicating the state of the resource
-	State                ExperimentSpec_State `protobuf:"varint,4,opt,name=state,proto3,enum=glooshot.solo.io.ExperimentSpec_State" json:"state,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
+	// the faults this experiment will inject
+	// if empty, Glooshit will run a "control" experiment with no faults injected
+	Faults []*ExperimentSpec_InjectedFault `protobuf:"bytes,4,rep,name=faults,proto3" json:"faults,omitempty"`
+	// conditions on which to stop the experiment and mark it as failed
+	// at least one must be specified
+	FailureConditions []*FailureCondition `protobuf:"bytes,5,rep,name=failure_conditions,json=failureConditions,proto3" json:"failure_conditions,omitempty"`
+	// the duration for which to run the experiment
+	// if missing or set to 0 the experiment will run indefinitely
+	// only Experiments with a timeout can succeed
+	Duration             *time.Duration `protobuf:"bytes,6,opt,name=duration,proto3,stdduration" json:"duration,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
 }
 
 func (m *ExperimentSpec) Reset()         { *m = ExperimentSpec{} }
 func (m *ExperimentSpec) String() string { return proto.CompactTextString(m) }
 func (*ExperimentSpec) ProtoMessage()    {}
 func (*ExperimentSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9da8418b9c75752, []int{1}
+	return fileDescriptor_b9da8418b9c75752, []int{2}
 }
 func (m *ExperimentSpec) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ExperimentSpec.Unmarshal(m, b)
@@ -155,34 +248,38 @@ func (m *ExperimentSpec) GetFaults() []*ExperimentSpec_InjectedFault {
 	return nil
 }
 
-func (m *ExperimentSpec) GetStopCondition() *StopCondition {
+func (m *ExperimentSpec) GetFailureConditions() []*FailureCondition {
 	if m != nil {
-		return m.StopCondition
+		return m.FailureConditions
 	}
 	return nil
 }
 
-func (m *ExperimentSpec) GetState() ExperimentSpec_State {
+func (m *ExperimentSpec) GetDuration() *time.Duration {
 	if m != nil {
-		return m.State
+		return m.Duration
 	}
-	return ExperimentSpec_Init
+	return nil
 }
 
+// decribes a single fault to  inject
 type ExperimentSpec_InjectedFault struct {
-	// TODO(yuval-k) should this be an upstream ref?
-	Service              *v1.Destination             `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
-	Fault                *faultinjection.RouteFaults `protobuf:"bytes,2,opt,name=fault,proto3" json:"fault,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
-	XXX_unrecognized     []byte                      `json:"-"`
-	XXX_sizecache        int32                       `json:"-"`
+	// if specified, the fault will only apply to requests sent from these services
+	OriginServices []*core.ResourceRef `protobuf:"bytes,1,rep,name=origin_services,json=originServices,proto3" json:"origin_services,omitempty"`
+	// if specified, the fault will only apply to requests sent to these services
+	DestinationServices []*core.ResourceRef `protobuf:"bytes,2,rep,name=destination_services,json=destinationServices,proto3" json:"destination_services,omitempty"`
+	// the type of fault to inject
+	Fault                *v1.FaultInjection `protobuf:"bytes,3,opt,name=fault,proto3" json:"fault,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
 }
 
 func (m *ExperimentSpec_InjectedFault) Reset()         { *m = ExperimentSpec_InjectedFault{} }
 func (m *ExperimentSpec_InjectedFault) String() string { return proto.CompactTextString(m) }
 func (*ExperimentSpec_InjectedFault) ProtoMessage()    {}
 func (*ExperimentSpec_InjectedFault) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9da8418b9c75752, []int{1, 0}
+	return fileDescriptor_b9da8418b9c75752, []int{2, 0}
 }
 func (m *ExperimentSpec_InjectedFault) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ExperimentSpec_InjectedFault.Unmarshal(m, b)
@@ -202,150 +299,337 @@ func (m *ExperimentSpec_InjectedFault) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ExperimentSpec_InjectedFault proto.InternalMessageInfo
 
-func (m *ExperimentSpec_InjectedFault) GetService() *v1.Destination {
+func (m *ExperimentSpec_InjectedFault) GetOriginServices() []*core.ResourceRef {
 	if m != nil {
-		return m.Service
+		return m.OriginServices
 	}
 	return nil
 }
 
-func (m *ExperimentSpec_InjectedFault) GetFault() *faultinjection.RouteFaults {
+func (m *ExperimentSpec_InjectedFault) GetDestinationServices() []*core.ResourceRef {
+	if m != nil {
+		return m.DestinationServices
+	}
+	return nil
+}
+
+func (m *ExperimentSpec_InjectedFault) GetFault() *v1.FaultInjection {
 	if m != nil {
 		return m.Fault
 	}
 	return nil
 }
 
-type StopCondition struct {
-	Duration             *time.Duration     `protobuf:"bytes,1,opt,name=duration,proto3,stdduration" json:"duration,omitempty"`
-	Metric               []*MetricThreshold `protobuf:"bytes,2,rep,name=metric,proto3" json:"metric,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
-	XXX_unrecognized     []byte             `json:"-"`
-	XXX_sizecache        int32              `json:"-"`
+// a condition based on an observed prometheus metric
+type FailureCondition struct {
+	// Types that are valid to be assigned to FailureTrigger:
+	//	*FailureCondition_PrometeheusTrigger
+	FailureTrigger       isFailureCondition_FailureTrigger `protobuf_oneof:"failure_trigger"`
+	XXX_NoUnkeyedLiteral struct{}                          `json:"-"`
+	XXX_unrecognized     []byte                            `json:"-"`
+	XXX_sizecache        int32                             `json:"-"`
 }
 
-func (m *StopCondition) Reset()         { *m = StopCondition{} }
-func (m *StopCondition) String() string { return proto.CompactTextString(m) }
-func (*StopCondition) ProtoMessage()    {}
-func (*StopCondition) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9da8418b9c75752, []int{2}
+func (m *FailureCondition) Reset()         { *m = FailureCondition{} }
+func (m *FailureCondition) String() string { return proto.CompactTextString(m) }
+func (*FailureCondition) ProtoMessage()    {}
+func (*FailureCondition) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b9da8418b9c75752, []int{3}
 }
-func (m *StopCondition) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StopCondition.Unmarshal(m, b)
+func (m *FailureCondition) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FailureCondition.Unmarshal(m, b)
 }
-func (m *StopCondition) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StopCondition.Marshal(b, m, deterministic)
+func (m *FailureCondition) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FailureCondition.Marshal(b, m, deterministic)
 }
-func (m *StopCondition) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StopCondition.Merge(m, src)
+func (m *FailureCondition) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FailureCondition.Merge(m, src)
 }
-func (m *StopCondition) XXX_Size() int {
-	return xxx_messageInfo_StopCondition.Size(m)
+func (m *FailureCondition) XXX_Size() int {
+	return xxx_messageInfo_FailureCondition.Size(m)
 }
-func (m *StopCondition) XXX_DiscardUnknown() {
-	xxx_messageInfo_StopCondition.DiscardUnknown(m)
+func (m *FailureCondition) XXX_DiscardUnknown() {
+	xxx_messageInfo_FailureCondition.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StopCondition proto.InternalMessageInfo
+var xxx_messageInfo_FailureCondition proto.InternalMessageInfo
 
-func (m *StopCondition) GetDuration() *time.Duration {
+type isFailureCondition_FailureTrigger interface {
+	isFailureCondition_FailureTrigger()
+	Equal(interface{}) bool
+}
+
+type FailureCondition_PrometeheusTrigger struct {
+	PrometeheusTrigger *FailureCondition_PrometheusTrigger `protobuf:"bytes,2,opt,name=prometeheus_trigger,json=prometeheusTrigger,proto3,oneof"`
+}
+
+func (*FailureCondition_PrometeheusTrigger) isFailureCondition_FailureTrigger() {}
+
+func (m *FailureCondition) GetFailureTrigger() isFailureCondition_FailureTrigger {
 	if m != nil {
-		return m.Duration
+		return m.FailureTrigger
 	}
 	return nil
 }
 
-func (m *StopCondition) GetMetric() []*MetricThreshold {
-	if m != nil {
-		return m.Metric
+func (m *FailureCondition) GetPrometeheusTrigger() *FailureCondition_PrometheusTrigger {
+	if x, ok := m.GetFailureTrigger().(*FailureCondition_PrometeheusTrigger); ok {
+		return x.PrometeheusTrigger
 	}
 	return nil
 }
 
-type MetricThreshold struct {
-	MetricName           string   `protobuf:"bytes,1,opt,name=metric_name,json=metricName,proto3" json:"metric_name,omitempty"`
-	Value                float64  `protobuf:"fixed64,2,opt,name=value,proto3" json:"value,omitempty"`
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*FailureCondition) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _FailureCondition_OneofMarshaler, _FailureCondition_OneofUnmarshaler, _FailureCondition_OneofSizer, []interface{}{
+		(*FailureCondition_PrometeheusTrigger)(nil),
+	}
+}
+
+func _FailureCondition_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*FailureCondition)
+	// failure_trigger
+	switch x := m.FailureTrigger.(type) {
+	case *FailureCondition_PrometeheusTrigger:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.PrometeheusTrigger); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("FailureCondition.FailureTrigger has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _FailureCondition_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*FailureCondition)
+	switch tag {
+	case 2: // failure_trigger.prometeheus_trigger
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(FailureCondition_PrometheusTrigger)
+		err := b.DecodeMessage(msg)
+		m.FailureTrigger = &FailureCondition_PrometeheusTrigger{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _FailureCondition_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*FailureCondition)
+	// failure_trigger
+	switch x := m.FailureTrigger.(type) {
+	case *FailureCondition_PrometeheusTrigger:
+		s := proto.Size(x.PrometeheusTrigger)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type FailureCondition_PrometheusTrigger struct {
+	// Types that are valid to be assigned to QueryType:
+	//	*FailureCondition_PrometheusTrigger_CustomQuery
+	QueryType isFailureCondition_PrometheusTrigger_QueryType `protobuf_oneof:"query_type"`
+	// consider the failure condition met if the metric falls below this threshold
+	ThresholdValue float64 `protobuf:"fixed64,3,opt,name=threshold_value,json=thresholdValue,proto3" json:"threshold_value,omitempty"`
+	// the comparison operator to use when comparing the threshold and observed metric values
+	// if the comparison evaluates to true, the failure condition will be considered met
+	// possible values are '==', '>', '<', '>=', and '<='
+	// defaults to '<'
+	ComparisonOperator   string   `protobuf:"bytes,4,opt,name=comparison_operator,json=comparisonOperator,proto3" json:"comparison_operator,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *MetricThreshold) Reset()         { *m = MetricThreshold{} }
-func (m *MetricThreshold) String() string { return proto.CompactTextString(m) }
-func (*MetricThreshold) ProtoMessage()    {}
-func (*MetricThreshold) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9da8418b9c75752, []int{3}
+func (m *FailureCondition_PrometheusTrigger) Reset()         { *m = FailureCondition_PrometheusTrigger{} }
+func (m *FailureCondition_PrometheusTrigger) String() string { return proto.CompactTextString(m) }
+func (*FailureCondition_PrometheusTrigger) ProtoMessage()    {}
+func (*FailureCondition_PrometheusTrigger) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b9da8418b9c75752, []int{3, 0}
 }
-func (m *MetricThreshold) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MetricThreshold.Unmarshal(m, b)
+func (m *FailureCondition_PrometheusTrigger) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FailureCondition_PrometheusTrigger.Unmarshal(m, b)
 }
-func (m *MetricThreshold) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MetricThreshold.Marshal(b, m, deterministic)
+func (m *FailureCondition_PrometheusTrigger) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FailureCondition_PrometheusTrigger.Marshal(b, m, deterministic)
 }
-func (m *MetricThreshold) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MetricThreshold.Merge(m, src)
+func (m *FailureCondition_PrometheusTrigger) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FailureCondition_PrometheusTrigger.Merge(m, src)
 }
-func (m *MetricThreshold) XXX_Size() int {
-	return xxx_messageInfo_MetricThreshold.Size(m)
+func (m *FailureCondition_PrometheusTrigger) XXX_Size() int {
+	return xxx_messageInfo_FailureCondition_PrometheusTrigger.Size(m)
 }
-func (m *MetricThreshold) XXX_DiscardUnknown() {
-	xxx_messageInfo_MetricThreshold.DiscardUnknown(m)
+func (m *FailureCondition_PrometheusTrigger) XXX_DiscardUnknown() {
+	xxx_messageInfo_FailureCondition_PrometheusTrigger.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MetricThreshold proto.InternalMessageInfo
+var xxx_messageInfo_FailureCondition_PrometheusTrigger proto.InternalMessageInfo
 
-func (m *MetricThreshold) GetMetricName() string {
+type isFailureCondition_PrometheusTrigger_QueryType interface {
+	isFailureCondition_PrometheusTrigger_QueryType()
+	Equal(interface{}) bool
+}
+
+type FailureCondition_PrometheusTrigger_CustomQuery struct {
+	CustomQuery string `protobuf:"bytes,1,opt,name=custom_query,json=customQuery,proto3,oneof"`
+}
+
+func (*FailureCondition_PrometheusTrigger_CustomQuery) isFailureCondition_PrometheusTrigger_QueryType() {
+}
+
+func (m *FailureCondition_PrometheusTrigger) GetQueryType() isFailureCondition_PrometheusTrigger_QueryType {
 	if m != nil {
-		return m.MetricName
+		return m.QueryType
+	}
+	return nil
+}
+
+func (m *FailureCondition_PrometheusTrigger) GetCustomQuery() string {
+	if x, ok := m.GetQueryType().(*FailureCondition_PrometheusTrigger_CustomQuery); ok {
+		return x.CustomQuery
 	}
 	return ""
 }
 
-func (m *MetricThreshold) GetValue() float64 {
+func (m *FailureCondition_PrometheusTrigger) GetThresholdValue() float64 {
 	if m != nil {
-		return m.Value
+		return m.ThresholdValue
 	}
 	return 0
 }
 
-type ChaosSettings struct {
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+func (m *FailureCondition_PrometheusTrigger) GetComparisonOperator() string {
+	if m != nil {
+		return m.ComparisonOperator
+	}
+	return ""
 }
 
-func (m *ChaosSettings) Reset()         { *m = ChaosSettings{} }
-func (m *ChaosSettings) String() string { return proto.CompactTextString(m) }
-func (*ChaosSettings) ProtoMessage()    {}
-func (*ChaosSettings) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b9da8418b9c75752, []int{4}
-}
-func (m *ChaosSettings) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ChaosSettings.Unmarshal(m, b)
-}
-func (m *ChaosSettings) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ChaosSettings.Marshal(b, m, deterministic)
-}
-func (m *ChaosSettings) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ChaosSettings.Merge(m, src)
-}
-func (m *ChaosSettings) XXX_Size() int {
-	return xxx_messageInfo_ChaosSettings.Size(m)
-}
-func (m *ChaosSettings) XXX_DiscardUnknown() {
-	xxx_messageInfo_ChaosSettings.DiscardUnknown(m)
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*FailureCondition_PrometheusTrigger) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _FailureCondition_PrometheusTrigger_OneofMarshaler, _FailureCondition_PrometheusTrigger_OneofUnmarshaler, _FailureCondition_PrometheusTrigger_OneofSizer, []interface{}{
+		(*FailureCondition_PrometheusTrigger_CustomQuery)(nil),
+	}
 }
 
-var xxx_messageInfo_ChaosSettings proto.InternalMessageInfo
+func _FailureCondition_PrometheusTrigger_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*FailureCondition_PrometheusTrigger)
+	// query_type
+	switch x := m.QueryType.(type) {
+	case *FailureCondition_PrometheusTrigger_CustomQuery:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeStringBytes(x.CustomQuery)
+	case nil:
+	default:
+		return fmt.Errorf("FailureCondition_PrometheusTrigger.QueryType has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _FailureCondition_PrometheusTrigger_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*FailureCondition_PrometheusTrigger)
+	switch tag {
+	case 1: // query_type.custom_query
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.QueryType = &FailureCondition_PrometheusTrigger_CustomQuery{x}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _FailureCondition_PrometheusTrigger_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*FailureCondition_PrometheusTrigger)
+	// query_type
+	switch x := m.QueryType.(type) {
+	case *FailureCondition_PrometheusTrigger_CustomQuery:
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(len(x.CustomQuery)))
+		n += len(x.CustomQuery)
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type FailureCondition_PrometheusTrigger_MeshQuery struct {
+	// the name of the metric to monitor
+	// possible values:
+	// envoy_cluster_upstream_rq
+	// istio_requests_total
+	// istio_request_duration_seconds_bucket
+	Metric string `protobuf:"bytes,1,opt,name=metric,proto3" json:"metric,omitempty"`
+	// the service for which the query should be made
+	Service              *core.ResourceRef `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) Reset() {
+	*m = FailureCondition_PrometheusTrigger_MeshQuery{}
+}
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) String() string {
+	return proto.CompactTextString(m)
+}
+func (*FailureCondition_PrometheusTrigger_MeshQuery) ProtoMessage() {}
+func (*FailureCondition_PrometheusTrigger_MeshQuery) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b9da8418b9c75752, []int{3, 0, 0}
+}
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.Unmarshal(m, b)
+}
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.Marshal(b, m, deterministic)
+}
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.Merge(m, src)
+}
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_Size() int {
+	return xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.Size(m)
+}
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) XXX_DiscardUnknown() {
+	xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FailureCondition_PrometheusTrigger_MeshQuery proto.InternalMessageInfo
+
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) GetMetric() string {
+	if m != nil {
+		return m.Metric
+	}
+	return ""
+}
+
+func (m *FailureCondition_PrometheusTrigger_MeshQuery) GetService() *core.ResourceRef {
+	if m != nil {
+		return m.Service
+	}
+	return nil
+}
 
 func init() {
-	proto.RegisterEnum("glooshot.solo.io.ExperimentSpec_State", ExperimentSpec_State_name, ExperimentSpec_State_value)
+	proto.RegisterEnum("glooshot.solo.io.ExperimentResult_State", ExperimentResult_State_name, ExperimentResult_State_value)
 	proto.RegisterType((*Experiment)(nil), "glooshot.solo.io.Experiment")
+	proto.RegisterType((*ExperimentResult)(nil), "glooshot.solo.io.ExperimentResult")
 	proto.RegisterType((*ExperimentSpec)(nil), "glooshot.solo.io.ExperimentSpec")
 	proto.RegisterType((*ExperimentSpec_InjectedFault)(nil), "glooshot.solo.io.ExperimentSpec.InjectedFault")
-	proto.RegisterType((*StopCondition)(nil), "glooshot.solo.io.StopCondition")
-	proto.RegisterType((*MetricThreshold)(nil), "glooshot.solo.io.MetricThreshold")
-	proto.RegisterType((*ChaosSettings)(nil), "glooshot.solo.io.ChaosSettings")
+	proto.RegisterType((*FailureCondition)(nil), "glooshot.solo.io.FailureCondition")
+	proto.RegisterType((*FailureCondition_PrometheusTrigger)(nil), "glooshot.solo.io.FailureCondition.PrometheusTrigger")
+	proto.RegisterType((*FailureCondition_PrometheusTrigger_MeshQuery)(nil), "glooshot.solo.io.FailureCondition.PrometheusTrigger.MeshQuery")
 }
 
 func init() {
@@ -353,47 +637,59 @@ func init() {
 }
 
 var fileDescriptor_b9da8418b9c75752 = []byte{
-	// 633 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x94, 0xcf, 0x52, 0x13, 0x4f,
-	0x10, 0xc7, 0x59, 0xb2, 0x09, 0xfc, 0x26, 0x15, 0xc8, 0x6f, 0x8a, 0xb2, 0x42, 0x0e, 0x24, 0xee,
-	0x01, 0x73, 0xd0, 0xdd, 0x02, 0x3c, 0x20, 0xea, 0x25, 0x20, 0xca, 0x01, 0xad, 0x9a, 0x78, 0xf2,
-	0x42, 0x2d, 0x9b, 0xce, 0x66, 0x64, 0x33, 0xbd, 0xb5, 0x33, 0x4b, 0xc5, 0x2b, 0x1e, 0xbc, 0x79,
-	0xf6, 0x11, 0x7c, 0x14, 0x9f, 0x02, 0x4b, 0xdf, 0x00, 0x9f, 0xc0, 0xda, 0xd9, 0xd9, 0xc5, 0x80,
-	0x8a, 0x9c, 0x92, 0x9e, 0xee, 0x4f, 0xff, 0xf9, 0xce, 0xf4, 0x92, 0x8d, 0x90, 0xab, 0x71, 0x7a,
-	0xec, 0x06, 0x38, 0xf1, 0x24, 0x46, 0xf8, 0x80, 0xa3, 0x17, 0x46, 0x88, 0x72, 0x8c, 0xca, 0xf3,
-	0x63, 0xee, 0x9d, 0x6e, 0x94, 0xb6, 0x1b, 0x27, 0xa8, 0x90, 0x36, 0x4b, 0x3b, 0x03, 0x5c, 0x8e,
-	0xed, 0x95, 0x10, 0x43, 0xd4, 0x4e, 0x2f, 0xfb, 0x97, 0xc7, 0xb5, 0xd7, 0x42, 0xc4, 0x30, 0x02,
-	0x4f, 0x5b, 0xc7, 0xe9, 0xc8, 0x1b, 0xa6, 0x89, 0xaf, 0x38, 0x0a, 0xe3, 0xf7, 0x7e, 0x53, 0x5a,
-	0xff, 0x9e, 0xf0, 0xb2, 0xb4, 0x54, 0xbe, 0x4a, 0xa5, 0x01, 0x36, 0xfe, 0x01, 0x98, 0x80, 0xf2,
-	0x87, 0xbe, 0xf2, 0x6f, 0x81, 0x14, 0xb6, 0x41, 0xb6, 0xff, 0xa0, 0x48, 0x36, 0xc7, 0x5b, 0x08,
-	0x94, 0xcc, 0x2d, 0x03, 0xc7, 0x09, 0x4e, 0xdf, 0x19, 0xf2, 0xd5, 0xed, 0xc8, 0x28, 0x0d, 0xb9,
-	0x90, 0xde, 0xc8, 0x4f, 0x23, 0xc5, 0x45, 0x16, 0xc0, 0x51, 0xe4, 0x66, 0x9e, 0xd0, 0xf9, 0x66,
-	0x11, 0xf2, 0x6c, 0x1a, 0x43, 0xc2, 0x27, 0x20, 0x14, 0xdd, 0x26, 0x8b, 0xc5, 0x78, 0x2d, 0xab,
-	0x6b, 0xf5, 0xea, 0x9b, 0x77, 0xdc, 0x00, 0x13, 0x28, 0xee, 0xc1, 0x3d, 0x34, 0xde, 0xbe, 0xfd,
-	0xe5, 0xbc, 0x33, 0xc7, 0xca, 0x68, 0xfa, 0x90, 0xd8, 0x32, 0x86, 0xa0, 0x35, 0xaf, 0xa9, 0xae,
-	0x7b, 0xf5, 0x06, 0xdd, 0xcb, 0x2a, 0x83, 0x18, 0x02, 0xa6, 0xa3, 0xe9, 0x73, 0x52, 0xcb, 0xf5,
-	0x6f, 0x55, 0x34, 0xb7, 0x32, 0x5b, 0x6d, 0xa0, 0x7d, 0xfd, 0xd5, 0xac, 0xd6, 0x8f, 0xf3, 0xce,
-	0xff, 0x0a, 0xa4, 0x1a, 0xf2, 0xd1, 0x68, 0xc7, 0xe1, 0xa1, 0xc0, 0x04, 0x1c, 0x66, 0xf0, 0x9d,
-	0xf6, 0xd9, 0x85, 0x5d, 0x25, 0x15, 0x98, 0xc6, 0x67, 0x17, 0x76, 0x83, 0xd6, 0xa1, 0xac, 0x26,
-	0x9d, 0x8f, 0x15, 0xb2, 0x34, 0x5b, 0x9d, 0xee, 0x93, 0x9a, 0x56, 0x41, 0xb6, 0xac, 0x6e, 0xa5,
-	0x57, 0xdf, 0x74, 0x6f, 0xea, 0xd7, 0x3d, 0xd0, 0xf2, 0xc1, 0x70, 0x3f, 0xc3, 0x98, 0xa1, 0xe9,
-	0x3e, 0x59, 0x92, 0x0a, 0xe3, 0xa3, 0x00, 0xc5, 0x90, 0x67, 0xe2, 0x9a, 0xf9, 0x3b, 0xd7, 0xf3,
-	0x0d, 0x14, 0xc6, 0xbb, 0x45, 0x18, 0x6b, 0xc8, 0x5f, 0x4d, 0xfa, 0x84, 0x54, 0xb3, 0x41, 0xa0,
-	0x65, 0x77, 0xad, 0xde, 0xd2, 0xe6, 0xfa, 0x8d, 0xed, 0x64, 0xca, 0x00, 0xcb, 0xa1, 0xf6, 0x7b,
-	0x8b, 0x34, 0x66, 0xfa, 0xa3, 0x5b, 0x64, 0x41, 0x42, 0x72, 0xca, 0x03, 0x30, 0xd7, 0xb8, 0xaa,
-	0x33, 0x96, 0xd9, 0xf6, 0x40, 0x2a, 0x2e, 0xf4, 0xaa, 0xb0, 0x22, 0x92, 0x3e, 0x25, 0x55, 0x3d,
-	0x96, 0x99, 0xe1, 0x9e, 0x6b, 0x1e, 0x4a, 0xfe, 0x8a, 0x66, 0x13, 0x30, 0x4c, 0x15, 0xe8, 0x5a,
-	0x92, 0xe5, 0x94, 0xd3, 0x23, 0x55, 0xdd, 0x15, 0x5d, 0x24, 0xf6, 0x81, 0xe0, 0xaa, 0x39, 0x47,
-	0xeb, 0x64, 0x81, 0xa5, 0x42, 0x70, 0x11, 0x36, 0xad, 0xec, 0x78, 0x0f, 0x05, 0x34, 0xe7, 0x9d,
-	0x0f, 0x16, 0x69, 0xcc, 0xc8, 0x41, 0x1f, 0x93, 0xc5, 0x62, 0x75, 0x2f, 0x1b, 0xd6, 0xbb, 0xed,
-	0x16, 0xbb, 0xed, 0xee, 0x99, 0x80, 0xbe, 0xfd, 0xe9, 0x6b, 0xc7, 0x62, 0x25, 0x40, 0x1f, 0x91,
-	0xda, 0x04, 0x54, 0xc2, 0xb3, 0xc7, 0x97, 0x5d, 0xe6, 0xdd, 0xeb, 0xea, 0x1d, 0x6a, 0xff, 0xeb,
-	0x71, 0x02, 0x72, 0x8c, 0xd1, 0x90, 0x19, 0xc0, 0x79, 0x41, 0x96, 0xaf, 0xb8, 0x68, 0x87, 0xd4,
-	0x73, 0xe7, 0x91, 0xf0, 0x27, 0xb9, 0x7c, 0xff, 0x31, 0x92, 0x1f, 0xbd, 0xf4, 0x27, 0x40, 0x57,
-	0x48, 0xf5, 0xd4, 0x8f, 0x52, 0xd0, 0x32, 0x59, 0x2c, 0x37, 0x9c, 0x65, 0xd2, 0xd8, 0x1d, 0xfb,
-	0x28, 0x07, 0xa0, 0x14, 0x17, 0xa1, 0xec, 0xdf, 0xff, 0xfc, 0x7d, 0xcd, 0x7a, 0xb3, 0xfe, 0xb7,
-	0x8f, 0x5f, 0x7c, 0x12, 0x9a, 0x55, 0x3d, 0xae, 0xe9, 0x31, 0xb7, 0x7e, 0x06, 0x00, 0x00, 0xff,
-	0xff, 0x2f, 0x12, 0x2f, 0x90, 0x2d, 0x05, 0x00, 0x00,
+	// 827 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x95, 0xcf, 0x6f, 0xdc, 0x44,
+	0x14, 0xc7, 0xe3, 0x5d, 0xef, 0xb6, 0x79, 0x9b, 0x1f, 0x9b, 0x49, 0x54, 0xb9, 0x7b, 0x68, 0xc2,
+	0x22, 0x41, 0x0f, 0xc5, 0x56, 0xd2, 0x4a, 0x20, 0x40, 0x08, 0xb9, 0x34, 0x2a, 0x12, 0x15, 0xad,
+	0xb7, 0x42, 0x88, 0x8b, 0xe5, 0xd8, 0x6f, 0xbd, 0x43, 0x6d, 0x8f, 0x99, 0x1f, 0x51, 0x7b, 0xed,
+	0x15, 0x09, 0x71, 0xe4, 0x4f, 0xe0, 0x1f, 0x41, 0xe2, 0x6f, 0xe0, 0x00, 0x12, 0x67, 0x2e, 0xbd,
+	0x72, 0x42, 0x9e, 0x19, 0x3b, 0xc9, 0xb6, 0x64, 0x83, 0x38, 0x25, 0x33, 0xef, 0xfb, 0x79, 0xef,
+	0xcd, 0x77, 0xde, 0xac, 0xe1, 0x30, 0xa7, 0x72, 0xa1, 0x4e, 0xfc, 0x94, 0x95, 0x81, 0x60, 0x05,
+	0x7b, 0x8f, 0xb2, 0x20, 0x2f, 0x18, 0x13, 0x0b, 0x26, 0x83, 0xa4, 0xa6, 0xc1, 0xe9, 0x61, 0xb7,
+	0xf6, 0x6b, 0xce, 0x24, 0x23, 0xe3, 0x6e, 0xdd, 0x00, 0x3e, 0x65, 0x93, 0xbd, 0x9c, 0xe5, 0x4c,
+	0x07, 0x83, 0xe6, 0x3f, 0xa3, 0x9b, 0xdc, 0xca, 0x19, 0xcb, 0x0b, 0x0c, 0xf4, 0xea, 0x44, 0xcd,
+	0x83, 0x4c, 0xf1, 0x44, 0x52, 0x56, 0xd9, 0xf8, 0xfe, 0x72, 0x5c, 0xd2, 0x12, 0x85, 0x4c, 0xca,
+	0xda, 0x0a, 0x82, 0x37, 0xf4, 0xa6, 0xff, 0x3e, 0xa3, 0x5d, 0x6f, 0x42, 0x26, 0x52, 0x09, 0x0b,
+	0x1c, 0x5e, 0x01, 0x28, 0x51, 0x26, 0x59, 0x22, 0x13, 0x8b, 0xdc, 0xb9, 0x02, 0xc2, 0x71, 0xfe,
+	0x1f, 0x0a, 0xb4, 0xeb, 0xcb, 0x10, 0x55, 0x23, 0x6f, 0x5c, 0xec, 0x2a, 0x30, 0x25, 0x69, 0x95,
+	0x1b, 0x64, 0xfa, 0x43, 0x0f, 0xe0, 0xc1, 0xf3, 0x1a, 0x39, 0x2d, 0xb1, 0x92, 0xe4, 0x03, 0xb8,
+	0xde, 0x36, 0xed, 0x39, 0x07, 0xce, 0xed, 0xd1, 0xd1, 0x0d, 0x3f, 0x65, 0x1c, 0x5b, 0xfb, 0xfd,
+	0x47, 0x36, 0x1a, 0xba, 0xbf, 0xfe, 0xbe, 0xbf, 0x16, 0x75, 0x6a, 0x72, 0x04, 0x43, 0xe3, 0x8f,
+	0xd7, 0xd7, 0xdc, 0xde, 0x45, 0x6e, 0xa6, 0x63, 0x96, 0xb2, 0x4a, 0x72, 0x0f, 0x5c, 0x51, 0x63,
+	0xea, 0xf5, 0x34, 0x71, 0xe0, 0x2f, 0x5f, 0xb6, 0x7f, 0xd6, 0xd9, 0xac, 0xc6, 0x34, 0xd2, 0x6a,
+	0xf2, 0x29, 0x0c, 0x39, 0x0a, 0x55, 0x48, 0xcf, 0xd5, 0xdc, 0xf4, 0x32, 0x2e, 0xd2, 0xca, 0xb6,
+	0xae, 0xe1, 0x3e, 0x9c, 0xbc, 0x7c, 0xe5, 0x0e, 0xa0, 0x8f, 0xcf, 0xeb, 0x97, 0xaf, 0xdc, 0x4d,
+	0x32, 0xc2, 0x4e, 0x2e, 0xa6, 0x7f, 0xf5, 0x60, 0xbc, 0x8c, 0x93, 0x4f, 0x60, 0xd0, 0xb4, 0x8c,
+	0xda, 0x93, 0xad, 0xa3, 0xdb, 0xab, 0x2b, 0xea, 0x03, 0x63, 0x64, 0x30, 0xf2, 0x04, 0xc8, 0x3c,
+	0xa1, 0x85, 0xe2, 0x18, 0xa7, 0xac, 0xca, 0x68, 0x33, 0x99, 0xc2, 0xeb, 0x1d, 0xf4, 0xdf, 0xdc,
+	0xfe, 0xb1, 0xd1, 0xde, 0x6f, 0xa5, 0xd1, 0xce, 0x7c, 0x69, 0x47, 0x90, 0xfb, 0xb0, 0xd1, 0xcc,
+	0x70, 0x2c, 0x64, 0xc2, 0x25, 0x66, 0xd6, 0xf5, 0x89, 0x6f, 0x06, 0xdd, 0x6f, 0x07, 0xdd, 0x7f,
+	0xda, 0x0e, 0x7a, 0xe8, 0xfe, 0xf8, 0xc7, 0xbe, 0x13, 0x8d, 0x1a, 0x6a, 0x66, 0x20, 0x12, 0xda,
+	0x24, 0x58, 0x24, 0xb5, 0xc0, 0xcc, 0x1a, 0x7a, 0xf3, 0xb5, 0x24, 0x9f, 0xd9, 0xd7, 0x14, 0xba,
+	0x3f, 0x75, 0x39, 0x1e, 0x18, 0x66, 0xfa, 0x31, 0x0c, 0xf4, 0x59, 0xc9, 0x08, 0xae, 0x3d, 0xc6,
+	0x2a, 0xa3, 0x55, 0x3e, 0x5e, 0x6b, 0x16, 0xb6, 0xc8, 0xd8, 0x21, 0x00, 0xc3, 0xe6, 0x48, 0x98,
+	0x8d, 0x7b, 0x64, 0x13, 0xd6, 0x67, 0x2a, 0x4d, 0x11, 0x33, 0xcc, 0xc6, 0xfd, 0xe9, 0x2f, 0x7d,
+	0xd8, 0xba, 0x78, 0xcb, 0xe4, 0x18, 0x86, 0xf3, 0x44, 0x15, 0x52, 0x78, 0xae, 0x36, 0xc8, 0x5f,
+	0x35, 0x17, 0xfe, 0xe7, 0xd5, 0xb7, 0x98, 0x4a, 0xcc, 0x8e, 0x1b, 0x2c, 0xb2, 0xf4, 0xbf, 0x98,
+	0x3e, 0xf8, 0x3f, 0xa6, 0x7f, 0x04, 0xd7, 0xdb, 0x1f, 0x16, 0x6f, 0x78, 0x35, 0xaf, 0x3a, 0x60,
+	0xf2, 0x9b, 0x03, 0x9b, 0x17, 0x3a, 0x25, 0x21, 0x6c, 0x33, 0x4e, 0x73, 0x5a, 0xc5, 0x02, 0xf9,
+	0x29, 0x4d, 0x51, 0x78, 0x8e, 0x6e, 0xef, 0xe6, 0xc5, 0xc7, 0x13, 0xa1, 0x60, 0x8a, 0xa7, 0x18,
+	0xe1, 0x3c, 0xda, 0x32, 0xc4, 0xcc, 0x02, 0xe4, 0x0b, 0xd8, 0xcb, 0x50, 0x48, 0x5a, 0xe9, 0x22,
+	0x67, 0x89, 0x7a, 0xab, 0x12, 0xed, 0x9e, 0xc3, 0xba, 0x6c, 0xef, 0xc3, 0x40, 0xbb, 0x67, 0xc7,
+	0xe9, 0x2d, 0xbf, 0xfb, 0xf9, 0x38, 0xe7, 0x93, 0x2a, 0xa4, 0x39, 0x47, 0xe3, 0x92, 0xd1, 0x4f,
+	0xbf, 0xef, 0xc3, 0x78, 0xd9, 0x41, 0x92, 0xc3, 0x6e, 0xcd, 0x59, 0x89, 0x12, 0x17, 0xa8, 0x44,
+	0x2c, 0x39, 0xcd, 0x73, 0xe4, 0xf6, 0xb9, 0xdf, 0x5b, 0x7d, 0x05, 0xfe, 0x63, 0x4d, 0x37, 0xf0,
+	0x53, 0xc3, 0x3e, 0x5c, 0x8b, 0xc8, 0xb9, 0x94, 0x76, 0x77, 0xf2, 0xb7, 0x03, 0x3b, 0xaf, 0x69,
+	0xc9, 0xdb, 0xb0, 0x91, 0x2a, 0x21, 0x59, 0x19, 0x7f, 0xa7, 0x90, 0xbf, 0xd0, 0x8f, 0x77, 0xfd,
+	0xe1, 0x5a, 0x34, 0x32, 0xbb, 0x4f, 0x9a, 0x4d, 0xf2, 0x2e, 0x6c, 0xcb, 0x05, 0x47, 0xb1, 0x60,
+	0x45, 0x16, 0x9f, 0x26, 0x85, 0x42, 0x7d, 0x76, 0x27, 0xda, 0xea, 0xb6, 0xbf, 0x6a, 0x76, 0x49,
+	0x00, 0xbb, 0x29, 0x2b, 0xeb, 0x84, 0x53, 0xc1, 0xaa, 0x98, 0xd5, 0xc8, 0x13, 0xc9, 0xb8, 0x7e,
+	0x32, 0xeb, 0x11, 0x39, 0x0b, 0x7d, 0x69, 0x23, 0x93, 0xaf, 0x61, 0xfd, 0x11, 0x8a, 0x85, 0x29,
+	0x73, 0x03, 0x86, 0x25, 0x4a, 0x4e, 0x53, 0xd3, 0x45, 0x64, 0x57, 0xe4, 0x2e, 0x5c, 0xb3, 0x57,
+	0x66, 0x6d, 0xb9, 0xe4, 0xc6, 0x5a, 0x65, 0xb8, 0x01, 0xa0, 0x4f, 0x14, 0xcb, 0x17, 0x35, 0x86,
+	0x3b, 0xb0, 0xdd, 0xce, 0xb9, 0x75, 0x38, 0xbc, 0xf3, 0xf3, 0x9f, 0xb7, 0x9c, 0x6f, 0xde, 0xb9,
+	0xec, 0x7b, 0x5b, 0x3f, 0xcb, 0xed, 0x17, 0xe1, 0x64, 0xa8, 0x67, 0xf7, 0xee, 0x3f, 0x01, 0x00,
+	0x00, 0xff, 0xff, 0x73, 0x09, 0x86, 0x05, 0xa0, 0x07, 0x00, 0x00,
 }
 
 func (this *Experiment) Equal(that interface{}) bool {
@@ -418,10 +714,64 @@ func (this *Experiment) Equal(that interface{}) bool {
 	if !this.Metadata.Equal(&that1.Metadata) {
 		return false
 	}
+	if !this.Status.Equal(&that1.Status) {
+		return false
+	}
 	if !this.Spec.Equal(that1.Spec) {
 		return false
 	}
-	if !this.Status.Equal(&that1.Status) {
+	if !this.Result.Equal(&that1.Result) {
+		return false
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return false
+	}
+	return true
+}
+func (this *ExperimentResult) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ExperimentResult)
+	if !ok {
+		that2, ok := that.(ExperimentResult)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.State != that1.State {
+		return false
+	}
+	if len(this.FailureConditions) != len(that1.FailureConditions) {
+		return false
+	}
+	for i := range this.FailureConditions {
+		if !this.FailureConditions[i].Equal(that1.FailureConditions[i]) {
+			return false
+		}
+	}
+	if that1.TimeStarted == nil {
+		if this.TimeStarted != nil {
+			return false
+		}
+	} else if !this.TimeStarted.Equal(*that1.TimeStarted) {
+		return false
+	}
+	if this.TimeElapsed != nil && that1.TimeElapsed != nil {
+		if *this.TimeElapsed != *that1.TimeElapsed {
+			return false
+		}
+	} else if this.TimeElapsed != nil {
+		return false
+	} else if that1.TimeElapsed != nil {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -456,10 +806,21 @@ func (this *ExperimentSpec) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !this.StopCondition.Equal(that1.StopCondition) {
+	if len(this.FailureConditions) != len(that1.FailureConditions) {
 		return false
 	}
-	if this.State != that1.State {
+	for i := range this.FailureConditions {
+		if !this.FailureConditions[i].Equal(that1.FailureConditions[i]) {
+			return false
+		}
+	}
+	if this.Duration != nil && that1.Duration != nil {
+		if *this.Duration != *that1.Duration {
+			return false
+		}
+	} else if this.Duration != nil {
+		return false
+	} else if that1.Duration != nil {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -486,8 +847,21 @@ func (this *ExperimentSpec_InjectedFault) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !this.Service.Equal(that1.Service) {
+	if len(this.OriginServices) != len(that1.OriginServices) {
 		return false
+	}
+	for i := range this.OriginServices {
+		if !this.OriginServices[i].Equal(that1.OriginServices[i]) {
+			return false
+		}
+	}
+	if len(this.DestinationServices) != len(that1.DestinationServices) {
+		return false
+	}
+	for i := range this.DestinationServices {
+		if !this.DestinationServices[i].Equal(that1.DestinationServices[i]) {
+			return false
+		}
 	}
 	if !this.Fault.Equal(that1.Fault) {
 		return false
@@ -497,14 +871,14 @@ func (this *ExperimentSpec_InjectedFault) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *StopCondition) Equal(that interface{}) bool {
+func (this *FailureCondition) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*StopCondition)
+	that1, ok := that.(*FailureCondition)
 	if !ok {
-		that2, ok := that.(StopCondition)
+		that2, ok := that.(FailureCondition)
 		if ok {
 			that1 = &that2
 		} else {
@@ -516,51 +890,13 @@ func (this *StopCondition) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Duration != nil && that1.Duration != nil {
-		if *this.Duration != *that1.Duration {
+	if that1.FailureTrigger == nil {
+		if this.FailureTrigger != nil {
 			return false
 		}
-	} else if this.Duration != nil {
+	} else if this.FailureTrigger == nil {
 		return false
-	} else if that1.Duration != nil {
-		return false
-	}
-	if len(this.Metric) != len(that1.Metric) {
-		return false
-	}
-	for i := range this.Metric {
-		if !this.Metric[i].Equal(that1.Metric[i]) {
-			return false
-		}
-	}
-	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
-		return false
-	}
-	return true
-}
-func (this *MetricThreshold) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*MetricThreshold)
-	if !ok {
-		that2, ok := that.(MetricThreshold)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.MetricName != that1.MetricName {
-		return false
-	}
-	if this.Value != that1.Value {
+	} else if !this.FailureTrigger.Equal(that1.FailureTrigger) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -568,14 +904,14 @@ func (this *MetricThreshold) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *ChaosSettings) Equal(that interface{}) bool {
+func (this *FailureCondition_PrometeheusTrigger) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*ChaosSettings)
+	that1, ok := that.(*FailureCondition_PrometeheusTrigger)
 	if !ok {
-		that2, ok := that.(ChaosSettings)
+		that2, ok := that.(FailureCondition_PrometeheusTrigger)
 		if ok {
 			that1 = &that2
 		} else {
@@ -585,6 +921,99 @@ func (this *ChaosSettings) Equal(that interface{}) bool {
 	if that1 == nil {
 		return this == nil
 	} else if this == nil {
+		return false
+	}
+	if !this.PrometeheusTrigger.Equal(that1.PrometeheusTrigger) {
+		return false
+	}
+	return true
+}
+func (this *FailureCondition_PrometheusTrigger) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*FailureCondition_PrometheusTrigger)
+	if !ok {
+		that2, ok := that.(FailureCondition_PrometheusTrigger)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if that1.QueryType == nil {
+		if this.QueryType != nil {
+			return false
+		}
+	} else if this.QueryType == nil {
+		return false
+	} else if !this.QueryType.Equal(that1.QueryType) {
+		return false
+	}
+	if this.ThresholdValue != that1.ThresholdValue {
+		return false
+	}
+	if this.ComparisonOperator != that1.ComparisonOperator {
+		return false
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return false
+	}
+	return true
+}
+func (this *FailureCondition_PrometheusTrigger_CustomQuery) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*FailureCondition_PrometheusTrigger_CustomQuery)
+	if !ok {
+		that2, ok := that.(FailureCondition_PrometheusTrigger_CustomQuery)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.CustomQuery != that1.CustomQuery {
+		return false
+	}
+	return true
+}
+func (this *FailureCondition_PrometheusTrigger_MeshQuery) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*FailureCondition_PrometheusTrigger_MeshQuery)
+	if !ok {
+		that2, ok := that.(FailureCondition_PrometheusTrigger_MeshQuery)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Metric != that1.Metric {
+		return false
+	}
+	if !this.Service.Equal(that1.Service) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
