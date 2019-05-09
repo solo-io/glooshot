@@ -13,9 +13,17 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 )
 
+type ExperimentChecker interface {
+	MonitorExperiment(ctx context.Context, experiment *v1.Experiment) error
+}
+
 type checker struct {
 	promCache   promquery.QueryPubSub
 	experiments v1.ExperimentClient
+}
+
+func NewChecker(queries promquery.QueryPubSub, experiments v1.ExperimentClient) *checker {
+	return &checker{promCache: queries, experiments: experiments}
 }
 
 var defaultDuration = time.Minute * 10

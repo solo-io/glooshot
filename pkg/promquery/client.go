@@ -5,7 +5,8 @@ import (
 	"sync"
 	"time"
 
-	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/solo-io/go-utils/contextutils"
+
 	"github.com/prometheus/common/model"
 	"github.com/solo-io/go-utils/errors"
 )
@@ -22,6 +23,12 @@ type pubSub struct {
 
 func newPubsub() *pubSub {
 	return &pubSub{closeChannels: make(map[Results]ResultsPush)}
+}
+
+func (r *pubSub) active() bool {
+	r.subscriberLock.RLock()
+	defer r.subscriberLock.RUnlock()
+	return len(r.subscriberCache) > 0
 }
 
 func (r *pubSub) close() {
@@ -71,14 +78,15 @@ func (r *pubSub) publish(ctx context.Context, result float64) {
 }
 
 type QueryPubSub interface {
-	BeginPolling(ctx context.Context, query string) <-chan error
 	Subscribe(query string) Results
 	Unsubscribe(query string, results Results)
 }
 
 // Publish results of Prometheus Queries on an interval, notifying subscribers of each query result
 type queryPubSub struct {
-	client promv1.API
+	rootCtx context.Context
+
+	client QueryClient
 
 	// maintain a pubsub for each query
 	queryPubSubs map[string]*pubSub
@@ -90,7 +98,13 @@ type queryPubSub struct {
 
 var defaultPollingInterval = time.Second * 5
 
-func NewQueryPubSub(promClient promv1.API, customPollingInterval time.Duration) QueryPubSub {
+// the only method we need from the prometheus client
+type QueryClient interface {
+	Query(ctx context.Context, query string, ts time.Time) (model.Value, error)
+}
+
+func NewQueryPubSub(rootCtx context.Context, promClient QueryClient, customPollingInterval time.Duration) QueryPubSub {
+	ctx := contextutils.WithLogger(rootCtx, "prometheus-query-pubsub")
 	interval := defaultPollingInterval
 	if customPollingInterval != 0 {
 		interval = customPollingInterval
@@ -99,6 +113,7 @@ func NewQueryPubSub(promClient promv1.API, customPollingInterval time.Duration) 
 		client:          promClient,
 		pollingInterval: interval,
 		queryPubSubs:    make(map[string]*pubSub),
+		rootCtx:         ctx,
 	}
 }
 
@@ -116,11 +131,9 @@ func (c *queryPubSub) queryScalar(ctx context.Context, query string) (float64, e
 
 // will poll the query for the given interval until the ctx is cancelled
 // subscribers who are watching this query will be notified on every tick
-func (c *queryPubSub) BeginPolling(ctx context.Context, query string) <-chan error {
-	errs := make(chan error)
-
+// watch errors are currently logged rather than returned on a channel
+func (c *queryPubSub) beginPolling(query string) {
 	go func() {
-		defer close(errs)
 		// remove all subscribers for this query when this function exits
 		defer func() {
 			c.access.Lock()
@@ -133,25 +146,25 @@ func (c *queryPubSub) BeginPolling(ctx context.Context, query string) <-chan err
 
 		tick := time.NewTicker(c.pollingInterval)
 		for {
-
 			select {
-			case <-ctx.Done():
+			case <-c.rootCtx.Done():
 				return
 			case <-tick.C:
-				val, err := c.queryScalar(ctx, query)
+				c.access.RLock()
+				_, queryStillAcitve := c.queryPubSubs[query]
+				c.access.RUnlock()
+				if !queryStillAcitve {
+					return
+				}
+				val, err := c.queryScalar(c.rootCtx, query)
 				if err != nil {
-					select {
-					case <-ctx.Done():
-						return
-					case errs <- err:
-					}
+					contextutils.LoggerFrom(c.rootCtx).Errorf("failed performing query on prometheus: %v", err)
 					continue
 				}
-				c.notifySubscribers(ctx, query, val)
+				c.notifySubscribers(c.rootCtx, query, val)
 			}
 		}
 	}()
-	return errs
 }
 
 func (c *queryPubSub) notifySubscribers(ctx context.Context, query string, val float64) {
@@ -171,6 +184,7 @@ func (c *queryPubSub) getPubSub(query string) (*pubSub, bool) {
 func (c *queryPubSub) Subscribe(query string) Results {
 	queryPubSub, ok := c.getPubSub(query)
 	if !ok {
+		c.beginPolling(query)
 		queryPubSub = newPubsub()
 		c.access.Lock()
 		c.queryPubSubs[query] = queryPubSub
@@ -185,4 +199,12 @@ func (c *queryPubSub) Unsubscribe(query string, results Results) {
 		return
 	}
 	queryPubSub.unsubscribe(results)
+
+	// remove the query from the cache completely if all subscribers unsub
+	if !queryPubSub.active() {
+		queryPubSub.close()
+		c.access.Lock()
+		delete(c.queryPubSubs, query)
+		c.access.Unlock()
+	}
 }
