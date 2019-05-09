@@ -58,10 +58,10 @@ message ExperimentResult {
     map<string, string> failure_report = 2;
 
     // time the experiment was started
-    google.protobuf.Timestamp time_started = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    google.protobuf.Timestamp time_started = 3 [(gogoproto.stdtime) = true];
 
     // the time the experiment completed
-    google.protobuf.Duration time_finished = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    google.protobuf.Duration time_finished = 4 [(gogoproto.stdtime) = true];
 }
 
 message ExperimentSpec {

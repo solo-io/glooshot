@@ -143,6 +143,7 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 	if report == nil {
 		// success
 		experiment.Result.State = v1.ExperimentResult_Succeeded
+		experiment.Result.State = v1.ExperimentResult_Failed
 	} else {
 		// failure
 		experiment.Result.State = v1.ExperimentResult_Failed
