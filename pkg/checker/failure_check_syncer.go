@@ -19,6 +19,11 @@ func NewFailureChecker(checker ExperimentChecker) v1.ApiSyncDecider {
 
 func (c *failureChecker) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	ctx = contextutils.WithLogger(ctx, fmt.Sprintf("failure-checker-sync-%v", snap.Hash()))
+	logger := contextutils.LoggerFrom(ctx)
+	logger.Infof("begin sync %v", snap.Hash())
+	defer logger.Infof("end sync %v", snap.Hash())
+	logger.Debugf("full snapshot: %v", snap)
+
 	// we only care about started experiments
 	started := startedExperiments(snap.Experiments)
 	for _, exp := range started {
