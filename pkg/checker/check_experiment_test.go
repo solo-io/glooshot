@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/gogo/protobuf/types"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
@@ -69,6 +71,7 @@ var _ = Describe("CheckExperiment", func() {
 					},
 				},
 			}
+			experiment.Result.TimeStarted, _ = types.TimestampProto(time.Now())
 
 			// load the experiment into storage
 			experiment, err := experiments.Write(experiment, clients.WriteOpts{})
@@ -133,6 +136,7 @@ var _ = Describe("CheckExperiment", func() {
 				},
 				Duration: &duration,
 			}
+			experiment.Result.TimeStarted, _ = types.TimestampProto(time.Now())
 
 			// load the experiment into storage
 			experiment, err := experiments.Write(experiment, clients.WriteOpts{})

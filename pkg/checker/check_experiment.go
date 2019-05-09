@@ -83,9 +83,9 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 		}
 	}
 
-	experimentDuration := defaultDuration
-	if experiment.Spec.Duration != nil {
-		experimentDuration = *experiment.Spec.Duration
+	experimentDuration, err := getRemainingDuration(experiment)
+	if err != nil {
+		return err
 	}
 
 	var report failureReport
@@ -98,6 +98,25 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 		// nil report means experiment passed
 	}
 	return c.reportResult(ctx, experiment.Metadata.Ref(), report)
+}
+
+func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
+	experimentDuration := defaultDuration
+	if experiment.Spec.Duration != nil {
+		experimentDuration = *experiment.Spec.Duration
+	}
+
+	// need to calculate the remaining duration in the event glooshot
+	// was restarted during an experiment
+	if experiment.Result.TimeStarted == nil {
+		return 0, errors.Errorf("internal error: cannot monitor an experiment which has no starting time")
+	}
+	startTime, err := types.TimestampFromProto(experiment.Result.TimeStarted)
+	if err != nil {
+		return 0, err
+	}
+	elapsedTime := time.Now().Sub(startTime)
+	return experimentDuration - elapsedTime, nil
 }
 
 func (c *checker) pollUntilFailure(ctx context.Context, query, comparisonOperator string, threshold float64) (failureReport, error) {

@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/gogo/protobuf/types"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
@@ -64,6 +66,15 @@ var _ = Describe("FailureCheckSyncer", func() {
 			return runtime.NumGoroutine()
 		}, time.Second*15).Should(Equal(startGoroutines))
 	})
+
+	It("should not sync if the old and new snapshots are equal", func() {
+		syncer := NewFailureChecker(checker)
+		snap := &v1.ApiSnapshot{
+			Experiments: v1.ExperimentList{makeExperiment("aaaa"), makeExperiment("bbbb")},
+		}
+		should := syncer.ShouldSync(snap, snap)
+		Expect(should).To(BeFalse())
+	})
 })
 
 func makeExperiment(name string) *v1.Experiment {
@@ -94,5 +105,8 @@ func makeExperiment(name string) *v1.Experiment {
 		},
 		Duration: &duration,
 	}
+	experiment.Result.TimeStarted, _ = types.TimestampProto(time.Now())
+
+	experiment.Result.State = v1.ExperimentResult_Started
 	return experiment
 }
