@@ -29,7 +29,7 @@ func main() {
 	docsOpts := cmd.DocsOptions{
 		Output: options.Hugo,
 	}
-	if err := cmd.Run(".", true, &docsOpts, nil, nil); err != nil {
+	if err := cmd.Run(".", true, &docsOpts, []string{"../supergloo"}, nil); err != nil {
 		contextutils.LoggerFrom(ctx).Fatalw("generate failed", zap.Error(err))
 	}
 }

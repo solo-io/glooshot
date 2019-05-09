@@ -631,7 +631,7 @@
   version = "v0.1"
 
 [[projects]]
-  digest = "1:805afabbe170349bf96427e29e05f8fe33345e7f99f1f40561fe3de1668de72e"
+  digest = "1:f79ff85a70f8cb614e5b3b5bf36d5b3cd1a63b13e2bc57c49d695dba9e86b836"
   name = "github.com/solo-io/gloo"
   packages = [
     "pkg/cliutil",
@@ -658,8 +658,8 @@
     "projects/gloo/pkg/defaults",
   ]
   pruneopts = "UT"
-  revision = "5e7f1ced7e9d89e054d46c7a3a65b8133c584483"
-  version = "v0.13.20"
+  revision = "6a8d3ee81801ac8391a75bd3cd8cc541f48ed222"
+  version = "v0.13.21"
 
 [[projects]]
   digest = "1:699918466a9758902a14923851a7fbd230500f93da6982dae7c79959afb0a664"
@@ -699,7 +699,7 @@
   version = "v0.8.4"
 
 [[projects]]
-  digest = "1:2bf0a7d95a966c6253eb6465da8b60023582fe0262ec94ff50d0c1c0f7bad6b8"
+  digest = "1:0f8eb46549119a4b1d93ee70c32f0c1152207e670e2a7d092734f0614fcdb8d8"
   name = "github.com/solo-io/solo-kit"
   packages = [
     "pkg/api/v1/clients",
@@ -744,8 +744,8 @@
     "test/tests/typed",
   ]
   pruneopts = "UT"
-  revision = "384dbdaa27e3754a07a4cc65f9331e2f5a0d7d20"
-  version = "v0.8.0"
+  revision = "c9b4cc6f229cdf7508b99609b87ca7074251ae8d"
+  version = "v0.9.0"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
