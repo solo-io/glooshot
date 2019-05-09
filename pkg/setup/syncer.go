@@ -2,75 +2,97 @@ package setup
 
 import (
 	"context"
+	"fmt"
 
-	"go.opencensus.io/trace"
+	sgv1 "github.com/solo-io/supergloo/pkg/api/v1"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
-	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/solo-kit/pkg/api/v1/resources"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 )
 
 type glooshotSyncer struct {
-	expClient v1.ExperimentClient
-	last      map[string]string
+	expClient    v1.ExperimentClient
+	rrClient     sgv1.RoutingRuleClient
+	rrReconciler sgv1.RoutingRuleReconciler
+	last         map[string]string
 }
 
 func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
-	unchangedCount := 0
-	updatedCount := 0
-	createdCount := 0
-	deletedCount := 0
-	existingKeys := make(map[string]bool)
-	for _, exp := range snap.Experiments.List() {
-		key := resources.Key(exp)
-		val, ok := g.last[key]
-		if ok {
-			if val == exp.Metadata.ResourceVersion {
-				unchangedCount++
-			} else {
-				updatedCount++
-				contextutils.LoggerFrom(ctx).Infow("Experiment", "updated", key)
-			}
-		} else {
-			createdCount++
-			contextutils.LoggerFrom(ctx).Infow("Experiment", "created", key)
-			go func() {
-				if err := g.mutateNewlyCreatedExperiments(ctx, exp); err != nil {
-					contextutils.LoggerFrom(ctx).Errorf("sync mutation failed on %v: %v", key, err)
-				}
-			}()
-		}
-		existingKeys[key] = true
-		g.last[key] = exp.Metadata.ResourceVersion
-	}
-	for k := range g.last {
-		if _, ok := existingKeys[k]; !ok {
-			delete(g.last, k)
-			deletedCount++
-			contextutils.LoggerFrom(ctx).Infow("Experiment", "deleted", k)
+	// Will need to update this with the solo-kit update
+	expsByNamespace := snap.Experiments
+	desired := sgv1.RoutingRuleList{}
+	for ns, exps := range expsByNamespace {
+		desired = append(desired, translateExperimentsToRoutingRules(exps)...)
+		if err := g.rrReconciler.Reconcile(ns, desired, nil, clients.ListOpts{}); err != nil {
+			return err
 		}
 	}
-	contextutils.LoggerFrom(ctx).Infow("Experiment",
-		"created", createdCount,
-		"updated", updatedCount,
-		"deleted", deletedCount,
-		"unchanged", unchangedCount)
 	return nil
 }
 
-func (g glooshotSyncer) mutateNewlyCreatedExperiments(ctx context.Context, exp *v1.Experiment) error {
-	_, span := trace.StartSpan(ctx, "glooshot.solo.io.mutateNewlyCreatedExperiments")
-	defer span.End()
-	exp.Status.State = core.Status_Accepted
-	_, err := g.expClient.Write(exp, clients.WriteOpts{OverwriteExisting: true})
-	return err
+func NewSyncer(expClient v1.ExperimentClient, rrClient sgv1.RoutingRuleClient) glooshotSyncer {
+	return glooshotSyncer{
+		expClient:    expClient,
+		rrClient:     rrClient,
+		rrReconciler: sgv1.NewRoutingRuleReconciler(rrClient),
+		last:         make(map[string]string),
+	}
 }
 
-func NewSyncer(client v1.ExperimentClient) glooshotSyncer {
-	return glooshotSyncer{
-		expClient: client,
-		last:      make(map[string]string),
+func translateExperimentsToRoutingRules(exps v1.ExperimentList) sgv1.RoutingRuleList {
+	rrs := sgv1.RoutingRuleList{}
+	for _, exp := range exps {
+		for i := range exp.Spec.Faults {
+			rr := translateToRoutingRule(exp, i)
+			rrs = append(rrs, rr)
+		}
 	}
+	return rrs
+}
+
+func translateToRoutingRule(exp *v1.Experiment, index int) *sgv1.RoutingRule {
+	expName := exp.Metadata.Name
+	namespace := exp.Metadata.Namespace
+	rrName := fmt.Sprintf("%v-%v", expName, index)
+	labels := labelsForRoutingRule(expName)
+	f := exp.Spec.Faults[index]
+	return &sgv1.RoutingRule{
+		Metadata: core.Metadata{
+			Name: rrName,
+			// store the faults in the same ns as the experiment
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		TargetMesh:          exp.Result.TargetMesh,
+		SourceSelector:      selectorFromResourceRef(f.OriginServices),
+		DestinationSelector: selectorFromResourceRef(f.DestinationServices),
+		Spec:                translateFaultToSpec(f.Fault),
+	}
+}
+
+func selectorFromResourceRef(refs []*core.ResourceRef) *sgv1.PodSelector {
+	upstreams := []core.ResourceRef{}
+	for _, point := range refs {
+		upstreams = append(upstreams, *point)
+	}
+	return &sgv1.PodSelector{
+		SelectorType: &sgv1.PodSelector_UpstreamSelector_{
+			UpstreamSelector: &sgv1.PodSelector_UpstreamSelector{
+				Upstreams: upstreams,
+			},
+		},
+	}
+}
+
+func translateFaultToSpec(fault *sgv1.FaultInjection) *sgv1.RoutingRuleSpec {
+	return &sgv1.RoutingRuleSpec{
+		RuleType: &sgv1.RoutingRuleSpec_FaultInjection{
+			FaultInjection: fault,
+		},
+	}
+}
+
+func labelsForRoutingRule(expName string) map[string]string {
+	return map[string]string{"experiment": expName}
 }

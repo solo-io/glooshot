@@ -87,12 +87,16 @@ func Run(ctx context.Context) error {
 	http.Handle("/", sh)
 	go http.ListenAndServe("localhost:8085", nil)
 
-	client, err := gsutil.GetExperimentClient(ctx, true)
+	expClient, err := gsutil.GetExperimentClient(ctx, true)
 	if err != nil {
 		return err
 	}
-	syncer := NewSyncer(client)
-	el := v1.NewApiEventLoop(v1.NewApiEmitter(client), syncer)
+	rrClient, err := gsutil.GetRoutingRuleClient(ctx, true)
+	if err != nil {
+		return err
+	}
+	syncer := NewSyncer(expClient, rrClient)
+	el := v1.NewApiEventLoop(v1.NewApiEmitter(expClient), syncer)
 	errs, err := el.Run([]string{}, clients.WatchOpts{
 		Ctx:         ctx,
 		RefreshRate: time.Second,
