@@ -54,10 +54,6 @@
   name = "github.com/solo-io/supergloo"
   version = "0.3.18"
 
-[[constraint]]
-  name = "github.com/solo-io/supergloo"
-  version = "0.3.17"
-
 [[override]]
   name = "github.com/lyft/protoc-gen-validate"
   version = "0.0.6"
