@@ -61,7 +61,7 @@ message ExperimentResult {
     google.protobuf.Timestamp time_started = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
 
     // the time the experiment completed
-    google.protobuf.Duration time_finished = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    google.protobuf.Timestamp time_finished = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
 }
 
 message ExperimentSpec {
