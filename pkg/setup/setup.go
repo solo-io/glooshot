@@ -31,8 +31,8 @@ func Run(ctx context.Context) error {
 	var opts options.Opts
 	flag.StringVar(&opts.SummaryBindAddr, "summary-bind-addr", ":8085", "bind address for serving "+
 		"experiment summaries (debug info)")
-	flag.StringVar(&opts.MeshResourceNamespace, "mesh-namespace", "supergloo-system", "namespace "+
-		"where Glooshot should look for mesh.supergloo.solo.io CRDs, unless otherwise specified")
+	flag.StringVar(&opts.MeshResourceNamespace, "mesh-namespace", "", "optional, namespace "+
+		"where Glooshot should look for mesh.supergloo.solo.io CRDs, unless otherwise specified, defaults to all namespaces")
 	flag.Parse()
 
 	if os.Getenv(START_STATS_SERVER) != "" {
