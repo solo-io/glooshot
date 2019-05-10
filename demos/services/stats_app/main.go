@@ -37,7 +37,10 @@ func getOptsFromEnv() (Opts, error) {
 
 func main() {
 	ctx := context.Background()
-	opts := getOptsFromEnv()
+	opts, err := getOptsFromEnv()
+	if err != nil {
+		contextutils.LoggerFrom(ctx).Fatalw("unable to get options from env", zap.Error(err))
+	}
 
 	stats.StartStatsServer()
 
