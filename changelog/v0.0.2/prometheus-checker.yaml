@@ -1,0 +1,3 @@
+changelog:
+- type: NON_USER_FACING
+  description: implement a pub-sub for watching prometheus metrics, implement syncer on top of it
