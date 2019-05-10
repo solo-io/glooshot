@@ -27,7 +27,7 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	if err != nil {
 		return err
 	}
-	if err := g.rrReconciler.Reconcile("", desired, nil, clients.ListOpts{}); err != nil {
+	if err := g.rrReconciler.Reconcile("", desired, nil, clients.ListOpts{Ctx: ctx}); err != nil {
 		return err
 	}
 	return nil

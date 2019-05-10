@@ -76,7 +76,7 @@ message ExperimentSpec {
     }
 
     // the faults this experiment will inject
-    // if empty, Glooshit will run a "control" experiment with no faults injected
+    // if empty, Glooshot will run a "control" experiment with no faults injected
     repeated InjectedFault faults = 4;
 
     // conditions on which to stop the experiment and mark it as failed
@@ -88,8 +88,9 @@ message ExperimentSpec {
     // only Experiments with a timeout can succeed
     google.protobuf.Duration duration = 6 [(gogoproto.stdduration) = true];
 
-    // The mesh to which the experiment will be applied
-    core.solo.io.ResourceRef target_mesh = 7 [(gogoproto.nullable) = true];
+    // The mesh to which the experiment will be applied. Must match a mesh.supergloo.solo.io CRD. If a cluster only has
+    // a single mesh, this value is not needed, Glooshot will default to the only possible option.
+    core.solo.io.ResourceRef target_mesh = 7;
 }
 
 // a condition based on an observed prometheus metric
