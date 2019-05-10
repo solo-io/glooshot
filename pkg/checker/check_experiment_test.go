@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/gogo/protobuf/types"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
@@ -71,7 +69,7 @@ var _ = Describe("CheckExperiment", func() {
 					},
 				},
 			}
-			experiment.Result.TimeStarted, _ = types.TimestampProto(time.Now())
+			experiment.Result.TimeStarted = time.Now()
 
 			// load the experiment into storage
 			experiment, err := experiments.Write(experiment, clients.WriteOpts{})
@@ -89,8 +87,8 @@ var _ = Describe("CheckExperiment", func() {
 				if err != nil {
 					return nil, err
 				}
-				exp.Result.TimeStarted = nil
-				exp.Result.TimeFinished = nil
+				exp.Result.TimeStarted = time.Time{}
+				exp.Result.TimeFinished = time.Time{}
 				return &exp.Result, nil
 			}, time.Second*3).Should(Equal(&v1.ExperimentResult{
 				State: v1.ExperimentResult_Failed,
@@ -136,7 +134,7 @@ var _ = Describe("CheckExperiment", func() {
 				},
 				Duration: &duration,
 			}
-			experiment.Result.TimeStarted, _ = types.TimestampProto(time.Now())
+			experiment.Result.TimeStarted = time.Now()
 
 			// load the experiment into storage
 			experiment, err := experiments.Write(experiment, clients.WriteOpts{})
@@ -154,8 +152,8 @@ var _ = Describe("CheckExperiment", func() {
 				if err != nil {
 					return nil, err
 				}
-				exp.Result.TimeStarted = nil
-				exp.Result.TimeFinished = nil
+				exp.Result.TimeStarted = time.Time{}
+				exp.Result.TimeFinished = time.Time{}
 				return &exp.Result, nil
 			}, time.Second*3).Should(Equal(&v1.ExperimentResult{
 				State: v1.ExperimentResult_Succeeded,

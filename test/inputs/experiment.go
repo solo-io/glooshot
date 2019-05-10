@@ -3,7 +3,6 @@ package inputs
 import (
 	"time"
 
-	"github.com/gogo/protobuf/types"
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 )
 
@@ -35,7 +34,7 @@ func MakeExperiment(name string) *v1.Experiment {
 		},
 		Duration: &duration,
 	}
-	experiment.Result.TimeStarted, _ = types.TimestampProto(time.Now())
+	experiment.Result.TimeStarted = time.Now()
 
 	experiment.Result.State = v1.ExperimentResult_Started
 	return experiment

@@ -108,10 +108,10 @@ func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
 
 	// need to calculate the remaining duration in the event glooshot
 	// was restarted during an experiment
-	if experiment.Result.TimeStarted == nil {
+	if experiment.Result.TimeStarted.Equal(time.Time{}) {
 		return 0, errors.Errorf("internal error: cannot monitor an experiment which has no starting time")
 	}
-	startTime, err := types.TimestampFromProto(experiment.Result.TimeStarted)
+	startTime, err := experiment.Result.TimeStarted, error(nil)
 	if err != nil {
 		return 0, err
 	}
@@ -169,7 +169,7 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 		experiment.Result.State = v1.ExperimentResult_Failed
 		experiment.Result.FailureReport = report
 	}
-	experiment.Result.TimeFinished = p(time.Now())
+	experiment.Result.TimeFinished = time.Now()
 
 	_, err = c.experiments.Write(experiment, clients.WriteOpts{
 		Ctx:               ctx,
