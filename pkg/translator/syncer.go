@@ -31,7 +31,7 @@ type glooshotSyncer struct {
 	opts         options.Opts
 }
 
-func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
+func (g *glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	desired, err := g.translateExperimentsToRoutingRules(snap.Experiments)
 	if err != nil {
 		return err
@@ -44,8 +44,8 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	return nil
 }
 
-func NewSyncer(expClient v1.ExperimentClient, rrClient sgv1.RoutingRuleClient, meshClient sgv1.MeshClient, opts options.Opts) glooshotSyncer {
-	return glooshotSyncer{
+func NewSyncer(expClient v1.ExperimentClient, rrClient sgv1.RoutingRuleClient, meshClient sgv1.MeshClient, opts options.Opts) *glooshotSyncer {
+	return &glooshotSyncer{
 		expClient:    expClient,
 		rrClient:     rrClient,
 		rrReconciler: sgv1.NewRoutingRuleReconciler(rrClient),
@@ -54,7 +54,7 @@ func NewSyncer(expClient v1.ExperimentClient, rrClient sgv1.RoutingRuleClient, m
 	}
 }
 
-func (g glooshotSyncer) translateExperimentsToRoutingRules(exps v1.ExperimentList) (sgv1.RoutingRuleList, error) {
+func (g *glooshotSyncer) translateExperimentsToRoutingRules(exps v1.ExperimentList) (sgv1.RoutingRuleList, error) {
 	rrs := sgv1.RoutingRuleList{}
 	for _, exp := range exps {
 		if exp.Spec == nil || len(exp.Spec.Faults) == 0 {
@@ -71,7 +71,7 @@ func (g glooshotSyncer) translateExperimentsToRoutingRules(exps v1.ExperimentLis
 	return rrs, nil
 }
 
-func (g glooshotSyncer) translateToRoutingRule(exp *v1.Experiment, index int) (*sgv1.RoutingRule, error) {
+func (g *glooshotSyncer) translateToRoutingRule(exp *v1.Experiment, index int) (*sgv1.RoutingRule, error) {
 	expName := exp.Metadata.Name
 	namespace := exp.Metadata.Namespace
 	wrap := func(e error) error {
@@ -116,7 +116,7 @@ func (g glooshotSyncer) translateToRoutingRule(exp *v1.Experiment, index int) (*
 	}, nil
 }
 
-func (g glooshotSyncer) getTargetMesh(entry *core.ResourceRef) (*core.ResourceRef, error) {
+func (g *glooshotSyncer) getTargetMesh(entry *core.ResourceRef) (*core.ResourceRef, error) {
 	// user provided a mesh spec on the Experiment, verify that it exists
 	if entry != nil {
 		if _, err := g.meshClient.Read(entry.Namespace, entry.Name, clients.ReadOpts{}); err != nil {
