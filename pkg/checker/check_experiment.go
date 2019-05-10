@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"go.uber.org/zap"
+
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/promquery"
 	"github.com/solo-io/go-utils/contextutils"
@@ -46,7 +48,6 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 		switch trigger := fc.FailureTrigger.(type) {
 		case *v1.FailureCondition_PrometheusTrigger:
 			promTrigger := trigger.PrometheusTrigger
-			ctx := ctx
 			comparisonOperator := promTrigger.ComparisonOperator
 			if comparisonOperator == "" {
 				comparisonOperator = "<"
@@ -63,7 +64,7 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 			go func() {
 				failure, err := c.pollUntilFailure(ctx, queryString, comparisonOperator, threshold)
 				if err != nil {
-					logger.Errorf("")
+					logger.Errorw("failure while polling prometheus", zap.Error(err), zap.String("query", queryString))
 					return
 				}
 

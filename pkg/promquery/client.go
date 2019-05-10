@@ -152,9 +152,9 @@ func (c *queryPubSub) beginPolling(query string) {
 				return
 			case <-tick.C:
 				c.access.RLock()
-				_, queryStillAcitve := c.queryPubSubs[query]
+				_, queryStillActive := c.queryPubSubs[query]
 				c.access.RUnlock()
-				if !queryStillAcitve {
+				if !queryStillActive {
 					return
 				}
 				val, err := c.queryScalar(c.rootCtx, query)
