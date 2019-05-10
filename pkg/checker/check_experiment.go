@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gogo/protobuf/types"
+
 	"go.uber.org/zap"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
@@ -110,7 +112,11 @@ func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
 	if experiment.Result.TimeStarted == nil {
 		return 0, errors.Errorf("internal error: cannot monitor an experiment which has no starting time")
 	}
-	startTime := *experiment.Result.TimeStarted
+	startTime, err := types.TimestampFromProto(experiment.Result.TimeStarted)
+	if err != nil {
+		return 0, errors.Wrapf(err, "invalid start time")
+	}
+
 	elapsedTime := time.Now().Sub(startTime)
 	return experimentDuration - elapsedTime, nil
 }
@@ -165,7 +171,7 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 		experiment.Result.State = v1.ExperimentResult_Failed
 		experiment.Result.FailureReport = report
 	}
-	experiment.Result.TimeFinished = TimePtr(time.Now())
+	experiment.Result.TimeFinished = TimeProto(time.Now())
 
 	_, err = c.experiments.Write(experiment, clients.WriteOpts{
 		Ctx:               ctx,
@@ -175,6 +181,7 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 	return err
 }
 
-func TimePtr(t time.Time) *time.Time {
-	return &t
+func TimeProto(t time.Time) *types.Timestamp {
+	ts, _ := types.TimestampProto(t)
+	return ts
 }

@@ -69,7 +69,7 @@ var _ = Describe("CheckExperiment", func() {
 					},
 				},
 			}
-			experiment.Result.TimeStarted = TimePtr(time.Now())
+			experiment.Result.TimeStarted = TimeProto(time.Now())
 
 			// load the experiment into storage
 			experiment, err := experiments.Write(experiment, clients.WriteOpts{})
@@ -134,7 +134,7 @@ var _ = Describe("CheckExperiment", func() {
 				},
 				Duration: &duration,
 			}
-			experiment.Result.TimeStarted = TimePtr(time.Now())
+			experiment.Result.TimeStarted = TimeProto(time.Now())
 
 			// load the experiment into storage
 			experiment, err := experiments.Write(experiment, clients.WriteOpts{})

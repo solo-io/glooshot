@@ -699,7 +699,7 @@
   version = "v0.8.4"
 
 [[projects]]
-  digest = "1:a5d3d5bc8fe52fefbeaaa5c945889b8845a8e18922c3b4ae5e2ea5911f8ea51d"
+  digest = "1:6587c0fc75fffeb8d8f942a7534e7d25abc9bfc31ff2b97416303e32a838416f"
   name = "github.com/solo-io/solo-kit"
   packages = [
     "api/external/kubernetes/configmap",
@@ -748,8 +748,8 @@
     "test/tests/typed",
   ]
   pruneopts = "UT"
-  revision = "c9b4cc6f229cdf7508b99609b87ca7074251ae8d"
-  version = "v0.9.0"
+  revision = "977edfbbd92c535bad25a4e11d8d30fb909e6f6c"
+  version = "v0.9.1"
 
 [[projects]]
   digest = "1:e362aad4be8af92d8b5e8dfd7573fd500a36d225ad4bc0c82022871b3edfa165"
@@ -1342,7 +1342,6 @@
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/types",
     "github.com/golang/mock/gomock",
-    "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/hashicorp/go-multierror",
     "github.com/olekukonko/tablewriter",
     "github.com/onsi/ginkgo",
