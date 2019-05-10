@@ -1,0 +1,38 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: stats-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stats-app
+  template:
+    metadata:
+      labels:
+        app: stats-app
+    spec:
+      containers:
+        - name: stats-app
+          image: soloio/stats-app:v0.0.1
+          env:
+            - name: NEIGHBOR_INDEX
+              value: "0"
+            - name: NEIGHBOR_SERVICE_LIST
+              value: a,b
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: stats-app-1
+spec:
+  selector:
+    app: stats-app-1
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080

@@ -1,5 +1,35 @@
 
 
+
+IMAGE_TAG ?= dev
+CONTAINER_REPO_ORG ?= docker.io/soloio
+
+## These are the images created by this makefile
+APP_SPEC := $(CONTAINER_REPO_ORG)/stats-app:$(IMAGE_TAG)
+
+ROOTDIR := $(shell pwd)
+OUTPUT_DIR := $(ROOTDIR)/_output
+
+.PHONY: all
+all: push-app
+
+${OUTPUT_DIR}:
+	mkdir ${OUTPUT_DIR}
+
+.PHONY: compile
+compile: ${OUTPUT_DIR}
+	GOOS=linux GOARCH=amd64 go build -gcflags "-N -l" -o $(OUTPUT_DIR)/stats-app main.go
+
+.PHONY: build-app
+build-app: compile
+	docker build -t $(APP_SPEC) -f Dockerfile .
+
+.PHONY: push-app
+push-app: build-app
+	docker push $(APP_SPEC)
+
+
+
 NLIST := localhost:8091,localhost:8092,localhost:8093
 .PHONY: run-local-0
 run-local-0:
