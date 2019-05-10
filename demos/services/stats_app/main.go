@@ -25,6 +25,10 @@ const (
 	EnvNeighborServiceList = "NEIGHBOR_SERVICE_LIST"
 )
 
+var about = `This app exists to demonstrate the capabilities of Glooshot.
+It expects to have a set of "neighbor" services. All services run the same code with different configs.
+According to its configuration, the `
+
 func getOptsFromEnv() (Opts, error) {
 	neighborList := strings.Split(os.Getenv(EnvNeighborServiceList), ",")
 	if len(neighborList) == 0 {
