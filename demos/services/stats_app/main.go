@@ -17,25 +17,41 @@ import (
 )
 
 type Opts struct {
-	SummaryBindAddr string
+	StreetAddress ind
+	Neighbors []string
 }
 
 const (
-	EnvSummaryBindAddr     = "SUMMARY_BIND_ADDR"
+	EnvStreetAddress = "NEIGHBOR_INDEX"
 	EnvNeighborServiceList = "NEIGHBOR_SERVICE_LIST"
 )
 
-var about = `This app exists to demonstrate the capabilities of Glooshot.
+var about = `BLOCK PARTY
+This app exists to demonstrate the capabilities of Glooshot.
 It expects to have a set of "neighbor" services. All services run the same code with different configs.
-According to its configuration, the `
+According to its configuration, the service can identify itself and its neighbor services.
+Upon initialization, each service gets the following from its environment (through the pod spec):
+- a list of all services in the neighborhood, self included
+- a way to identify itself among the members of the neighborhood
+The service provides various metrics that can be used to verify affect of a Glooshot experiment. These include:
+- number of messages received from each neighbor
+- number of seconds that the service has been running
+During runtime, certain properties can be configured.
+- to be determined/added as necessary
+`
 
 func getOptsFromEnv() (Opts, error) {
 	neighborList := strings.Split(os.Getenv(EnvNeighborServiceList), ",")
 	if len(neighborList) == 0 {
 		return Opts{}, fmt.Errorf("no neighbors found, please pass a comma-separated list of neighbor services through %v env var", EnvNeighborServiceList)
 	}
+	streetAddress := os.Getenv(EnvStreetAddress)
+	if streetAddress == "" {
+		return Opts{}, fmt.Errorf("no street address found, please provide an integer between 0 and %v", )
+	}
 	return Opts{
-		SummaryBindAddr: os.Getenv(EnvSummaryBindAddr),
+		StreetAddress:
+		Neighbors:neighborList,
 	}, nil
 }
 
