@@ -33,6 +33,8 @@ var _ = Describe("Glooshot", func() {
 		name1     = "testexperiment1"
 		name2     = "testexperiment2"
 		name3     = "testexperiment3"
+
+		meshName = "basicmesh"
 	)
 
 	BeforeEach(func() {
@@ -45,13 +47,19 @@ var _ = Describe("Glooshot", func() {
 		Expect(err).NotTo(HaveOccurred())
 		rrClient, err := gsutil.GetRoutingRuleClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
+		meshClient, err := gsutil.GetMeshClient(ctx, false)
+		Expect(err).NotTo(HaveOccurred())
 		cs = clientSet{
 			expClient:  expClient,
 			rrClient:   rrClient,
+			meshClient: meshClient,
 			kubeClient: kubeClient,
 		}
+		createMesh(cs.meshClient, namespace, meshName)
 		go func() {
+			defer GinkgoRecover()
 			err := setup.Run(ctx)
+			By(fmt.Sprintf("goroutine running with error: %v", err))
 			Expect(err).NotTo(HaveOccurred())
 		}()
 	})
@@ -78,6 +86,7 @@ var _ = Describe("Glooshot", func() {
 type clientSet struct {
 	expClient  v1.ExperimentClient
 	rrClient   sgv1.RoutingRuleClient
+	meshClient sgv1.MeshClient
 	kubeClient kubernetes.Interface
 }
 
@@ -109,4 +118,16 @@ func getNewExperiment(namespace, name string) *v1.Experiment {
 // from openshift
 func randomNamespace(prefix string) string {
 	return prefix + string([]byte(fmt.Sprintf("%d", time.Now().UnixNano()))[3:12])
+}
+
+func createMesh(meshClient sgv1.MeshClient, namespace, name string) {
+	mesh := &sgv1.Mesh{
+		Metadata: core.Metadata{
+			Name:      name,
+			Namespace: namespace,
+		},
+		MeshType: nil,
+	}
+	_, err := meshClient.Write(mesh, clients.WriteOpts{})
+	Expect(err).NotTo(HaveOccurred())
 }

@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/solo-io/glooshot/pkg/setup/options"
 
 	"github.com/solo-io/glooshot/pkg/translator"
@@ -14,8 +16,6 @@ import (
 	"github.com/solo-io/go-utils/stats"
 
 	"github.com/solo-io/glooshot/pkg/cli/gsutil"
-
-	"go.uber.org/zap"
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/version"
@@ -42,7 +42,7 @@ func Run(ctx context.Context) error {
 	go func() {
 		mux := http.NewServeMux()
 		mux.Handle("/", newSummaryHandler(ctx))
-		contextutils.LoggerFrom(ctx).Fatal(http.ListenAndServe(opts.SummaryBindAddr, mux))
+		contextutils.LoggerFrom(ctx).Warn(http.ListenAndServe(opts.SummaryBindAddr, mux))
 	}()
 
 	expClient, err := gsutil.GetExperimentClient(ctx, true)
@@ -65,7 +65,7 @@ func Run(ctx context.Context) error {
 	})
 
 	for err := range errs {
-		contextutils.LoggerFrom(ctx).Fatalw("error in setup", zap.Error(err))
+		return errors.Wrapf(err, "error in setup")
 	}
 	return nil
 }
