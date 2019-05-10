@@ -70,6 +70,9 @@ func startedExperiments(list v1.ExperimentList) v1.ExperimentList {
 }
 
 func faultsChanged(exp1, exp2 *v1.Experiment) bool {
+	if exp1.Spec == nil {
+		return exp2.Spec != nil && len(exp2.Spec.FailureConditions) > 0
+	}
 	faults1 := hashutils.HashAll(
 		exp1.Spec.FailureConditions,
 		exp1.Spec.Duration,
