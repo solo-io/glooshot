@@ -62,7 +62,7 @@ Describes an Experiment that GlooShot should run
 "state": .glooshot.solo.io.ExperimentResult.State
 "failureReport": map<string, string>
 "timeStarted": .google.protobuf.Timestamp
-"timeFinished": .google.protobuf.Duration
+"timeFinished": .google.protobuf.Timestamp
 
 ```
 
@@ -71,7 +71,7 @@ Describes an Experiment that GlooShot should run
 | `state` | [.glooshot.solo.io.ExperimentResult.State](../glooshot.proto.sk#state) | the current state of the experiment as reported by glooshot |  |
 | `failureReport` | `map<string, string>` | arbitrary data summarizing a failure in case one occurred |  |
 | `timeStarted` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | time the experiment was started |  |
-| `timeFinished` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the time the experiment completed |  |
+| `timeFinished` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | the time the experiment completed |  |
 
 
 
@@ -100,14 +100,16 @@ Describes an Experiment that GlooShot should run
 "faults": []glooshot.solo.io.ExperimentSpec.InjectedFault
 "failureConditions": []glooshot.solo.io.FailureCondition
 "duration": .google.protobuf.Duration
+"targetMesh": .core.solo.io.ResourceRef
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
-| `faults` | [[]glooshot.solo.io.ExperimentSpec.InjectedFault](../glooshot.proto.sk#injectedfault) | the faults this experiment will inject if empty, Glooshit will run a "control" experiment with no faults injected |  |
+| `faults` | [[]glooshot.solo.io.ExperimentSpec.InjectedFault](../glooshot.proto.sk#injectedfault) | the faults this experiment will inject if empty, Glooshot will run a "control" experiment with no faults injected |  |
 | `failureConditions` | [[]glooshot.solo.io.FailureCondition](../glooshot.proto.sk#failurecondition) | conditions on which to stop the experiment and mark it as failed at least one must be specified |  |
 | `duration` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the duration for which to run the experiment if missing or set to 0 the experiment will run indefinitely only Experiments with a timeout can succeed |  |
+| `targetMesh` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | The mesh to which the experiment will be applied. Must match a mesh.supergloo.solo.io CRD. If a cluster only has a single mesh, this value is not needed, Glooshot will default to the only possible option. |  |
 
 
 
