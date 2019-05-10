@@ -8,20 +8,19 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
-	"github.com/solo-io/glooshot/pkg/setup/options"
-
-	"github.com/solo-io/glooshot/pkg/translator"
-
-	"github.com/solo-io/go-utils/stats"
-
-	"github.com/solo-io/glooshot/pkg/cli/gsutil"
-
+	"github.com/prometheus/client_golang/api"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
+	"github.com/solo-io/glooshot/pkg/checker"
+	"github.com/solo-io/glooshot/pkg/cli/gsutil"
+	"github.com/solo-io/glooshot/pkg/promquery"
+	"github.com/solo-io/glooshot/pkg/setup/options"
+	"github.com/solo-io/glooshot/pkg/translator"
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-checkpoint"
 	"github.com/solo-io/go-utils/contextutils"
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
+	"github.com/solo-io/go-utils/stats"
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients/wrapper"
 )
 
 func Run(ctx context.Context) error {
@@ -33,6 +32,10 @@ func Run(ctx context.Context) error {
 		"experiment summaries (debug info)")
 	flag.StringVar(&opts.MeshResourceNamespace, "mesh-namespace", "", "optional, namespace "+
 		"where Glooshot should look for mesh.supergloo.solo.io CRDs, unless otherwise specified, defaults to all namespaces")
+	flag.StringVar(&opts.PrometheusAddr, "prometheus-addr", "prometheus:9090", "required, address "+
+		"<host:port> to reach the prometheus server")
+	flag.DurationVar(&opts.PrometheusPollingInterval, "polling-interval", time.Second*5, "optional, "+
+		"interval between polls on running prometheus queries for experiments")
 	flag.Parse()
 
 	if os.Getenv(START_STATS_SERVER) != "" {
@@ -57,12 +60,22 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	syncer := translator.NewSyncer(expClient, rrClient, meshClient, opts)
-	el := v1.NewApiEventLoop(v1.NewApiEmitter(expClient), syncer)
-	errs, err := el.Run([]string{}, clients.WatchOpts{
-		Ctx:         ctx,
-		RefreshRate: time.Second,
-	})
+	translationSyncer := translator.NewSyncer(expClient, rrClient, meshClient, opts)
+
+	promClient, err := api.NewClient(api.Config{Address: opts.PrometheusAddr})
+	if err != nil {
+		return errors.Wrapf(err, "connecting to prometheus")
+	}
+
+	promCache := promquery.NewQueryPubSub(ctx, promv1.NewAPI(promClient), opts.PrometheusPollingInterval)
+	failureChecker := checker.NewChecker(promCache, expClient)
+	failureCheckerSyncer := checker.NewFailureChecker(failureChecker)
+
+	emitter := v1.NewApiSimpleEmitter(wrapper.AggregatedWatchFromClients(wrapper.ClientWatchOpts{
+		BaseClient: expClient.BaseClient(),
+	}))
+	el := v1.NewApiSimpleEventLoop(emitter, translationSyncer, failureCheckerSyncer)
+	errs, err := el.Run(ctx)
 
 	for err := range errs {
 		return errors.Wrapf(err, "error in setup")
