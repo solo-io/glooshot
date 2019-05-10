@@ -124,7 +124,7 @@ var _ = Describe("translator", func() {
 				Cluster:         "",
 				ResourceVersion: "",
 				Labels: map[string]string{
-					"experiment": "basic",
+					Routing: "basic",
 				},
 				Annotations: nil,
 			},
