@@ -1,21 +1,26 @@
 apiVersion: glooshot.solo.io/v1
 kind: Experiment
 metadata:
-  name: sample-abort
+  name: testexperiment2
   namespace: default
 spec:
   spec:
+    duration: 3600s
+    failureConditions:
+    - prometheusTrigger:
+      customQuery: cpu percent
+      thresholdValue: 10
     faults:
-    - fault:
+    - destinationServices:
+      - name: name2
+        namespace: default
+      fault:
         abort:
           httpStatus: 404
-          percentage: 100
-      service:
-        upstream:
-          name: todo
-          namespace: default
-    stopCondition:
-      duration: 60s
-      metric:
-      - metricName: dinner
-        value: 1800
+        percentage: 50
+      originServices:
+      - name: name1
+        namespace: default
+    targetMesh:
+      name: basicmesh
+      namespace: default
