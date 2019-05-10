@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/setup/options"
+
 	"github.com/solo-io/glooshot/pkg/translator"
 
 	"github.com/solo-io/go-utils/stats"
@@ -22,17 +24,15 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 )
 
-type Opts struct {
-	SummaryBindAddr string
-}
-
 func Run(ctx context.Context) error {
 	start := time.Now()
 	checkpoint.CallCheck(version.AppName, version.Version, start)
 
-	var opts Opts
+	var opts options.Opts
 	flag.StringVar(&opts.SummaryBindAddr, "summary-bind-addr", ":8085", "bind address for serving "+
 		"experiment summaries (debug info)")
+	flag.StringVar(&opts.MeshResourceNamespace, "mesh-namespace", "supergloo-system", "namespace "+
+		"where Glooshot should look for mesh.supergloo.solo.io CRDs, unless otherwise specified")
 	flag.Parse()
 
 	if os.Getenv(START_STATS_SERVER) != "" {
@@ -53,7 +53,11 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	syncer := translator.NewSyncer(expClient, rrClient)
+	meshClient, err := gsutil.GetMeshClient(ctx, true)
+	if err != nil {
+		return err
+	}
+	syncer := translator.NewSyncer(expClient, rrClient, meshClient, opts)
 	el := v1.NewApiEventLoop(v1.NewApiEmitter(expClient), syncer)
 	errs, err := el.Run([]string{}, clients.WatchOpts{
 		Ctx:         ctx,
