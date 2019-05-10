@@ -87,6 +87,9 @@ message ExperimentSpec {
     // if missing or set to 0 the experiment will run indefinitely
     // only Experiments with a timeout can succeed
     google.protobuf.Duration duration = 6 [(gogoproto.stdduration) = true];
+
+    // The mesh to which the experiment will be applied
+    core.solo.io.ResourceRef target_mesh = 7 [(gogoproto.nullable) = true];
 }
 
 // a condition based on an observed prometheus metric

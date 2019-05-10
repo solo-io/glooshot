@@ -1,0 +1,4 @@
+changelog:
+- type: NEW_FEATURE
+  description: Translates experiments to routing rules.
+  issueLink: https://github.com/solo-io/glooshot/issues/28

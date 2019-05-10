@@ -2,12 +2,14 @@ package setup
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/solo-io/glooshot/pkg/translator"
+
+	"github.com/solo-io/go-utils/stats"
 
 	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 
@@ -17,72 +19,7 @@ import (
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-checkpoint"
 	"github.com/solo-io/go-utils/contextutils"
-	"github.com/solo-io/go-utils/stats"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-)
-
-type summaryHandler struct {
-	ctx context.Context
-}
-
-func newSummaryHandler(ctx context.Context) summaryHandler {
-	loggingContext := []interface{}{"type", "stats"}
-	return summaryHandler{
-		ctx: contextutils.WithLoggerValues(ctx, loggingContext...),
-	}
-}
-
-func (d summaryHandler) reportError(err error, status int, w http.ResponseWriter) {
-	contextutils.LoggerFrom(d.ctx).Errorw("error getting client", zap.Error(err))
-	w.WriteHeader(status)
-	fmt.Fprint(w, err)
-}
-
-type glooshotSummary struct {
-	ExperimentCount int    `json:"experiment_count"`
-	Summary         string `json:"summary"`
-}
-
-func (d summaryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	client, err := gsutil.GetExperimentClient(d.ctx, true)
-	if err != nil {
-		d.reportError(err, http.StatusInternalServerError, w)
-		return
-	}
-	experimentNamespaces := getExperimentNamespaces(d.ctx)
-	expCount := 0
-	summary := "Experiment Summary\n"
-	for _, ns := range experimentNamespaces {
-		exps, err := client.List(ns, clients.ListOpts{Ctx: r.Context()})
-		if err != nil {
-			d.reportError(err, http.StatusInternalServerError, w)
-			return
-		}
-		for _, exp := range exps {
-			summary += fmt.Sprintf("%v, %v: %v\n",
-				exp.Metadata.Namespace,
-				exp.Metadata.Name,
-				exp.Status.State.String())
-			expCount++
-		}
-	}
-	err = json.NewEncoder(w).Encode(glooshotSummary{
-		ExperimentCount: expCount,
-		Summary:         summary,
-	})
-	if err != nil {
-		d.reportError(err, http.StatusInternalServerError, w)
-		return
-	}
-}
-
-func getExperimentNamespaces(ctx context.Context) []string {
-	contextutils.LoggerFrom(ctx).Errorw("TODO: implement getExperimentNamespaces")
-	return []string{"default"}
-}
-
-const (
-	START_STATS_SERVER = "START_STATS_SERVER"
 )
 
 type Opts struct {
@@ -108,12 +45,16 @@ func Run(ctx context.Context) error {
 		contextutils.LoggerFrom(ctx).Fatal(http.ListenAndServe(opts.SummaryBindAddr, mux))
 	}()
 
-	client, err := gsutil.GetExperimentClient(ctx, true)
+	expClient, err := gsutil.GetExperimentClient(ctx, true)
 	if err != nil {
 		return err
 	}
-	syncer := NewSyncer(client)
-	el := v1.NewApiEventLoop(v1.NewApiEmitter(client), syncer)
+	rrClient, err := gsutil.GetRoutingRuleClient(ctx, true)
+	if err != nil {
+		return err
+	}
+	syncer := translator.NewSyncer(expClient, rrClient)
+	el := v1.NewApiEventLoop(v1.NewApiEmitter(expClient), syncer)
 	errs, err := el.Run([]string{}, clients.WatchOpts{
 		Ctx:         ctx,
 		RefreshRate: time.Second,

@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 
+	sgv1 "github.com/solo-io/supergloo/pkg/api/v1"
+
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 
@@ -33,7 +35,33 @@ func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.Experime
 		SkipCrdCreation: skipCrdCreation,
 	}
 	client, err := v1.NewExperimentClient(rcFactory)
-	client.Register()
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Register(); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+func GetRoutingRuleClient(ctx context.Context, skipCrdCreation bool) (sgv1.RoutingRuleClient, error) {
+	cfg, err := kubeutils.GetConfig("", "")
+	if err != nil {
+		return nil, err
+	}
+	cache := kube.NewKubeCache(ctx)
+	rcFactory := &factory.KubeResourceClientFactory{
+		Crd:             sgv1.RoutingRuleCrd,
+		Cfg:             cfg,
+		SharedCache:     cache,
+		SkipCrdCreation: skipCrdCreation,
+	}
+	client, err := sgv1.NewRoutingRuleClient(rcFactory)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Register(); err != nil {
+		return nil, err
+	}
 	return client, nil
 }
 
