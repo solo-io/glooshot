@@ -1,29 +1,35 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/solo-io/go-utils/stats"
 
-	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 	"github.com/solo-io/go-utils/contextutils"
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"go.uber.org/zap"
 )
 
 type Opts struct {
-	StreetAddress ind
-	Neighbors []string
+	StreetAddress int
+	Neighbors     []string
+	BindAddress   string
 }
 
 const (
-	EnvStreetAddress = "NEIGHBOR_INDEX"
+	EnvSelfNeighborIndex   = "NEIGHBOR_INDEX"
 	EnvNeighborServiceList = "NEIGHBOR_SERVICE_LIST"
+	EnvBindAddress         = "BIND_ADDRESS"
+
+	NeighborhoodBindAddress = "localhost:8080"
 )
 
 var about = `BLOCK PARTY
@@ -45,13 +51,22 @@ func getOptsFromEnv() (Opts, error) {
 	if len(neighborList) == 0 {
 		return Opts{}, fmt.Errorf("no neighbors found, please pass a comma-separated list of neighbor services through %v env var", EnvNeighborServiceList)
 	}
-	streetAddress := os.Getenv(EnvStreetAddress)
+	streetAddress := os.Getenv(EnvSelfNeighborIndex)
 	if streetAddress == "" {
-		return Opts{}, fmt.Errorf("no street address found, please provide an integer between 0 and %v", )
+		return Opts{}, fmt.Errorf("no street address found, please provide an integer between 0 and %v", len(neighborList))
+	}
+	streetAddressInt, err := strconv.Atoi(streetAddress)
+	envBindAddress := os.Getenv(EnvBindAddress)
+	if envBindAddress == "" {
+		envBindAddress = NeighborhoodBindAddress
+	}
+	if err != nil {
+		return Opts{}, nil
 	}
 	return Opts{
-		StreetAddress:
-		Neighbors:neighborList,
+		StreetAddress: streetAddressInt,
+		Neighbors:     neighborList,
+		BindAddress:   envBindAddress,
 	}, nil
 }
 
@@ -66,105 +81,78 @@ func main() {
 
 	go func() {
 		mux := http.NewServeMux()
-		mux.Handle("/", newSummaryHandler(ctx))
-		contextutils.LoggerFrom(ctx).Fatal(http.ListenAndServe(opts.SummaryBindAddr, mux))
+		mux.Handle("/", newChatterHandler(ctx, opts))
+		contextutils.LoggerFrom(ctx).Fatal(http.ListenAndServe(opts.BindAddress, mux))
 	}()
 
+	makeSmallTalk(opts)
 }
 
-type StatsHandler struct {
+func makeSmallTalk(opts Opts) {
+	for {
+		for i, n := range opts.Neighbors {
+			if i != opts.StreetAddress {
+				fmt.Printf("calling %v\n", n)
+				msg, err := curl(fmt.Sprintf("http://%v/", n))
+				if err != nil {
+					fmt.Printf("ouch: %v\n", err)
+				}
+				fmt.Println(msg)
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+}
+
+type chatter struct {
 	ctx context.Context
 }
 
-func (d StatsHandler) reportError(err error, w http.ResponseWriter) {
-	contextutils.LoggerFrom(d.ctx).Errorw("error getting client", zap.Error(err))
-	fmt.Fprintf(w, "error in stats handler %v", err)
-}
-
-func (d StatsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Glooshot stats\n")
-	client, err := gsutil.GetExperimentClient(d.ctx, true)
-	if err != nil {
-		d.reportError(err, w)
-		return
-	}
-	experimentNamespaces := getExperimentNamespaces(d.ctx)
-	expCount := 0
-	summary := "Experiment Summary\n"
-	for _, ns := range experimentNamespaces {
-		exps, err := client.List(ns, clients.ListOpts{})
-		if err != nil {
-			d.reportError(err, w)
-			return
-		}
-		for _, exp := range exps {
-			summary += fmt.Sprintf("%v, %v: %v\n",
-				exp.Metadata.Namespace,
-				exp.Metadata.Name,
-				exp.Status.State.String())
-			expCount++
-		}
-	}
-	fmt.Fprintf(w, "Count: %v\n", expCount)
-	fmt.Fprintf(w, "%v", summary)
-}
-
-func getExperimentNamespaces(ctx context.Context) []string {
-	contextutils.LoggerFrom(ctx).Errorw("TODO: implement getExperimentNamespaces")
-	return []string{"default"}
-}
-
-type summaryHandler struct {
-	ctx context.Context
-}
-
-func newSummaryHandler(ctx context.Context) summaryHandler {
+func newChatterHandler(ctx context.Context, opts Opts) chatter {
 	loggingContext := []interface{}{"type", "stats"}
-	return summaryHandler{
+	return chatter{
 		ctx: contextutils.WithLoggerValues(ctx, loggingContext...),
 	}
 }
 
-func (d summaryHandler) reportError(err error, status int, w http.ResponseWriter) {
+func (d chatter) reportError(err error, status int, w http.ResponseWriter) {
 	contextutils.LoggerFrom(d.ctx).Errorw("error getting client", zap.Error(err))
 	w.WriteHeader(status)
 	fmt.Fprint(w, err)
 }
 
-type glooshotSummary struct {
-	ExperimentCount int    `json:"experiment_count"`
-	Summary         string `json:"summary"`
+type chitChat struct {
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Message string `json:"message"`
 }
 
-func (d summaryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	client, err := gsutil.GetExperimentClient(d.ctx, true)
-	if err != nil {
-		d.reportError(err, http.StatusInternalServerError, w)
-		return
-	}
-	experimentNamespaces := getExperimentNamespaces(d.ctx)
-	expCount := 0
-	summary := "Experiment Summary\n"
-	for _, ns := range experimentNamespaces {
-		exps, err := client.List(ns, clients.ListOpts{Ctx: r.Context()})
-		if err != nil {
-			d.reportError(err, http.StatusInternalServerError, w)
-			return
-		}
-		for _, exp := range exps {
-			summary += fmt.Sprintf("%v, %v: %v\n",
-				exp.Metadata.Namespace,
-				exp.Metadata.Name,
-				exp.Status.State.String())
-			expCount++
-		}
-	}
-	err = json.NewEncoder(w).Encode(glooshotSummary{
-		ExperimentCount: expCount,
-		Summary:         summary,
+func (d chatter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	err := json.NewEncoder(w).Encode(chitChat{
+		From:    "f",
+		To:      "t",
+		Message: "m",
 	})
 	if err != nil {
 		d.reportError(err, http.StatusInternalServerError, w)
 		return
 	}
+}
+
+func curl(url string) (string, error) {
+	body := bytes.NewReader([]byte(url))
+	req, err := http.NewRequest("GET", url, body)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	p := new(bytes.Buffer)
+	_, err = io.Copy(p, resp.Body)
+	defer resp.Body.Close()
+
+	return p.String(), nil
 }
