@@ -17,6 +17,10 @@ import (
 
 const RoutingRuleLabelKey = "glooshot-experiment"
 
+func ApplyCreatedByLabels(labels map[string]string) {
+	labels["created_by"] = "glooshot"
+}
+
 type glooshotSyncer struct {
 	expClient    v1.ExperimentClient
 	rrClient     sgv1.RoutingRuleClient
@@ -29,7 +33,9 @@ func (g glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	if err != nil {
 		return err
 	}
-	if err := g.rrReconciler.Reconcile("", desired, nil, clients.ListOpts{Ctx: ctx}); err != nil {
+	labels := map[string]string{}
+	ApplyCreatedByLabels(labels)
+	if err := g.rrReconciler.Reconcile("", desired, nil, clients.ListOpts{Ctx: ctx, Selector: labels}); err != nil {
 		return err
 	}
 	return nil
@@ -65,7 +71,7 @@ func translateToRoutingRule(exp *v1.Experiment, index int) (*sgv1.RoutingRule, e
 	expName := exp.Metadata.Name
 	namespace := exp.Metadata.Namespace
 	rrName := fmt.Sprintf("%v-%v", expName, index)
-	labels := labelsForRoutingRule(expName)
+	labels := LabelsForRoutingRule(expName)
 	f := exp.Spec.Faults[index]
 	spec, err := translateFaultToSpec(f.Fault)
 	wrap := func(e error) error {
@@ -133,6 +139,8 @@ func translateFaultToSpec(fault *sgv1.FaultInjection) (*sgv1.RoutingRuleSpec, er
 	}, nil
 }
 
-func labelsForRoutingRule(expName string) map[string]string {
-	return map[string]string{RoutingRuleLabelKey: expName}
+func LabelsForRoutingRule(expName string) map[string]string {
+	labels := map[string]string{RoutingRuleLabelKey: expName}
+	ApplyCreatedByLabels(labels)
+	return labels
 }

@@ -59,7 +59,7 @@ var _ = Describe("Glooshot", func() {
 	AfterEach(func() {
 		var zero int64
 		zero = 0
-		cs.kubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+		_ = cs.kubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 	})
 
 	It("should watch for experiment crds", func() {
@@ -90,7 +90,8 @@ func (cs clientSet) createAndWait(exp *v1.Experiment, expCount, rrCount int) {
 		return len(exps)
 	}).Should(BeNumerically("==", expCount))
 	Eventually(func() int {
-		rrs, err := cs.rrClient.List(exp.Metadata.Namespace, clients.ListOpts{Selector: map[string]string{translator.RoutingRuleLabelKey: exp.Metadata.Name}})
+		//rrs, err := cs.rrClient.List(exp.Metadata.Namespace, clients.ListOpts{Selector: map[string]string{translator.RoutingRuleLabelKey: exp.Metadata.Name}})
+		rrs, err := cs.rrClient.List(exp.Metadata.Namespace, clients.ListOpts{Selector: translator.LabelsForRoutingRule(exp.Metadata.Name)})
 		Expect(err).NotTo(HaveOccurred())
 		return len(rrs)
 	}, 3*time.Second, 250*time.Millisecond).Should(BeNumerically("==", rrCount))

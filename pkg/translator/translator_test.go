@@ -124,7 +124,8 @@ var _ = Describe("translator", func() {
 				Cluster:         "",
 				ResourceVersion: "",
 				Labels: map[string]string{
-					Routing: "basic",
+					RoutingRuleLabelKey: "basic",
+					"created_by":        "glooshot",
 				},
 				Annotations: nil,
 			},
