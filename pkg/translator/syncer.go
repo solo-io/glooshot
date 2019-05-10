@@ -15,6 +15,8 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 )
 
+const RoutingRuleLabelKey = "glooshot-experiment"
+
 type glooshotSyncer struct {
 	expClient    v1.ExperimentClient
 	rrClient     sgv1.RoutingRuleClient
@@ -132,5 +134,5 @@ func translateFaultToSpec(fault *sgv1.FaultInjection) (*sgv1.RoutingRuleSpec, er
 }
 
 func labelsForRoutingRule(expName string) map[string]string {
-	return map[string]string{"experiment": expName}
+	return map[string]string{RoutingRuleLabelKey: expName}
 }

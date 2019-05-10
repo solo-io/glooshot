@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/translator"
+
 	"github.com/solo-io/go-utils/testutils/kube"
 	"k8s.io/client-go/kubernetes"
 
@@ -25,28 +27,29 @@ import (
 var _ = Describe("Glooshot", func() {
 
 	var (
-		ctx        context.Context
-		client     v1.ExperimentClient
-		rrClient   sgv1.RoutingRuleClient
-		kubeClient kubernetes.Interface
-		namespace  string
-		name1      = "testexperiment1"
-		name2      = "testexperiment2"
-		name3      = "testexperiment3"
-		//url       = "http:http//localhost:8085"
-		err error
+		ctx       context.Context
+		cs        clientSet
+		namespace string
+		name1     = "testexperiment1"
+		name2     = "testexperiment2"
+		name3     = "testexperiment3"
 	)
 
 	BeforeEach(func() {
 		namespace = randomNamespace("glooshot-test")
-		kubeClient = kube.MustKubeClient()
-		_, err = kubeClient.Core().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+		kubeClient := kube.MustKubeClient()
+		_, err := kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 		Expect(err).NotTo(HaveOccurred())
 		ctx = context.Background()
-		client, err = gsutil.GetExperimentClient(ctx, false)
+		expClient, err := gsutil.GetExperimentClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
-		rrClient, err = gsutil.GetRoutingRuleClient(ctx, false)
+		rrClient, err := gsutil.GetRoutingRuleClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
+		cs = clientSet{
+			expClient:  expClient,
+			rrClient:   rrClient,
+			kubeClient: kubeClient,
+		}
 		go func() {
 			err := setup.Run(ctx)
 			Expect(err).NotTo(HaveOccurred())
@@ -56,50 +59,42 @@ var _ = Describe("Glooshot", func() {
 	AfterEach(func() {
 		var zero int64
 		zero = 0
-		kubeClient.Core().Namespaces().Delete(namespace, &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+		cs.kubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 	})
 
 	It("should watch for experiment crds", func() {
 		exp1 := getNewExperiment(namespace, name1)
-		_, err = client.Write(exp1, clients.WriteOpts{})
-		Expect(err).NotTo(HaveOccurred())
-
-		Eventually(func() int {
-			exps, err := client.List(namespace, clients.ListOpts{})
-			Expect(err).NotTo(HaveOccurred())
-			return len(exps)
-		}).Should(BeNumerically("==", 1))
+		cs.createAndWait(exp1, 1, 0)
 
 		exp2 := data.GetBasicExperimentAbort(namespace, name2)
-		_, err = client.Write(exp2, clients.WriteOpts{})
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func() int {
-			exps, err := client.List(namespace, clients.ListOpts{})
-			Expect(err).NotTo(HaveOccurred())
-			return len(exps)
-		}).Should(BeNumerically("==", 2))
-		Eventually(func() int {
-			rrs, err := rrClient.List(namespace, clients.ListOpts{Selector: map[string]string{"experiment": name2}})
-			Expect(err).NotTo(HaveOccurred())
-			return len(rrs)
-		}, 3*time.Second, 250*time.Millisecond).Should(BeNumerically("==", 1))
+		cs.createAndWait(exp2, 2, 1)
 
 		exp3 := data.GetBasicExperimentDelay(namespace, name3)
-		_, err = client.Write(exp3, clients.WriteOpts{})
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func() int {
-			exps, err := client.List(namespace, clients.ListOpts{})
-			Expect(err).NotTo(HaveOccurred())
-			return len(exps)
-		}).Should(BeNumerically("==", 3))
-		Eventually(func() int {
-			rrs, err := rrClient.List(namespace, clients.ListOpts{Selector: map[string]string{"experiment": name3}})
-			Expect(err).NotTo(HaveOccurred())
-			return len(rrs)
-		}, 3*time.Second, 250*time.Millisecond).Should(BeNumerically("==", 1))
-
+		cs.createAndWait(exp3, 3, 1)
 	})
+
 })
+
+type clientSet struct {
+	expClient  v1.ExperimentClient
+	rrClient   sgv1.RoutingRuleClient
+	kubeClient kubernetes.Interface
+}
+
+func (cs clientSet) createAndWait(exp *v1.Experiment, expCount, rrCount int) {
+	_, err := cs.expClient.Write(exp, clients.WriteOpts{})
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(func() int {
+		exps, err := cs.expClient.List(exp.Metadata.Namespace, clients.ListOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		return len(exps)
+	}).Should(BeNumerically("==", expCount))
+	Eventually(func() int {
+		rrs, err := cs.rrClient.List(exp.Metadata.Namespace, clients.ListOpts{Selector: map[string]string{translator.RoutingRuleLabelKey: exp.Metadata.Name}})
+		Expect(err).NotTo(HaveOccurred())
+		return len(rrs)
+	}, 3*time.Second, 250*time.Millisecond).Should(BeNumerically("==", rrCount))
+}
 
 func getNewExperiment(namespace, name string) *v1.Experiment {
 	return &v1.Experiment{
