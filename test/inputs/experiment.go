@@ -34,8 +34,12 @@ func MakeExperiment(name string) *v1.Experiment {
 		},
 		Duration: &duration,
 	}
-	experiment.Result.TimeStarted = time.Now()
+	experiment.Result.TimeStarted = P(time.Now())
 
 	experiment.Result.State = v1.ExperimentResult_Started
 	return experiment
+}
+
+func P(t time.Time) *time.Time {
+	return &t
 }

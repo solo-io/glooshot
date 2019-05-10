@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gogo/protobuf/types"
-
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/promquery"
 	"github.com/solo-io/go-utils/contextutils"
@@ -108,13 +106,10 @@ func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
 
 	// need to calculate the remaining duration in the event glooshot
 	// was restarted during an experiment
-	if experiment.Result.TimeStarted.Equal(time.Time{}) {
+	if experiment.Result.TimeStarted == nil {
 		return 0, errors.Errorf("internal error: cannot monitor an experiment which has no starting time")
 	}
-	startTime, err := experiment.Result.TimeStarted, error(nil)
-	if err != nil {
-		return 0, err
-	}
+	startTime := *experiment.Result.TimeStarted
 	elapsedTime := time.Now().Sub(startTime)
 	return experimentDuration - elapsedTime, nil
 }
@@ -169,7 +164,7 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 		experiment.Result.State = v1.ExperimentResult_Failed
 		experiment.Result.FailureReport = report
 	}
-	experiment.Result.TimeFinished = time.Now()
+	experiment.Result.TimeFinished = TimePtr(time.Now())
 
 	_, err = c.experiments.Write(experiment, clients.WriteOpts{
 		Ctx:               ctx,
@@ -179,11 +174,6 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 	return err
 }
 
-func p(t time.Time) *types.Timestamp {
-	ts, _ := types.TimestampProto(t)
-	return ts
-}
-
-func p2(t time.Time) *time.Time {
+func TimePtr(t time.Time) *time.Time {
 	return &t
 }

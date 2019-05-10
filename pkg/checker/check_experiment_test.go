@@ -69,7 +69,7 @@ var _ = Describe("CheckExperiment", func() {
 					},
 				},
 			}
-			experiment.Result.TimeStarted = time.Now()
+			experiment.Result.TimeStarted = TimePtr(time.Now())
 
 			// load the experiment into storage
 			experiment, err := experiments.Write(experiment, clients.WriteOpts{})
@@ -87,8 +87,8 @@ var _ = Describe("CheckExperiment", func() {
 				if err != nil {
 					return nil, err
 				}
-				exp.Result.TimeStarted = time.Time{}
-				exp.Result.TimeFinished = time.Time{}
+				exp.Result.TimeStarted = nil
+				exp.Result.TimeFinished = nil
 				return &exp.Result, nil
 			}, time.Second*3).Should(Equal(&v1.ExperimentResult{
 				State: v1.ExperimentResult_Failed,
@@ -134,7 +134,7 @@ var _ = Describe("CheckExperiment", func() {
 				},
 				Duration: &duration,
 			}
-			experiment.Result.TimeStarted = time.Now()
+			experiment.Result.TimeStarted = TimePtr(time.Now())
 
 			// load the experiment into storage
 			experiment, err := experiments.Write(experiment, clients.WriteOpts{})
@@ -152,8 +152,8 @@ var _ = Describe("CheckExperiment", func() {
 				if err != nil {
 					return nil, err
 				}
-				exp.Result.TimeStarted = time.Time{}
-				exp.Result.TimeFinished = time.Time{}
+				exp.Result.TimeStarted = nil
+				exp.Result.TimeFinished = nil
 				return &exp.Result, nil
 			}, time.Second*3).Should(Equal(&v1.ExperimentResult{
 				State: v1.ExperimentResult_Succeeded,
