@@ -15,6 +15,7 @@ import (
 	"github.com/solo-io/glooshot/pkg/cli/gsutil"
 	"github.com/solo-io/glooshot/pkg/promquery"
 	"github.com/solo-io/glooshot/pkg/setup/options"
+	"github.com/solo-io/glooshot/pkg/starter"
 	"github.com/solo-io/glooshot/pkg/translator"
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-checkpoint"
@@ -60,7 +61,6 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	translationSyncer := translator.NewSyncer(expClient, rrClient, meshClient, opts)
 
 	promClient, err := api.NewClient(api.Config{Address: opts.PrometheusAddr})
 	if err != nil {
@@ -69,12 +69,17 @@ func Run(ctx context.Context) error {
 
 	promCache := promquery.NewQueryPubSub(ctx, promv1.NewAPI(promClient), opts.PrometheusPollingInterval)
 	failureChecker := checker.NewChecker(promCache, expClient)
-	failureCheckerSyncer := checker.NewFailureChecker(failureChecker)
+
+	syncers := []v1.ApiSyncer{
+		starter.NewExperimentStarter(expClient),
+		translator.NewSyncer(expClient, rrClient, meshClient, opts),
+		checker.NewFailureChecker(failureChecker),
+	}
 
 	emitter := v1.NewApiSimpleEmitter(wrapper.AggregatedWatchFromClients(wrapper.ClientWatchOpts{
 		BaseClient: expClient.BaseClient(),
 	}))
-	el := v1.NewApiSimpleEventLoop(emitter, translationSyncer, failureCheckerSyncer)
+	el := v1.NewApiSimpleEventLoop(emitter, syncers...)
 	errs, err := el.Run(ctx)
 
 	for err := range errs {
