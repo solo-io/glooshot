@@ -564,9 +564,11 @@
   version = "v0.8.1"
 
 [[projects]]
-  digest = "1:93a746f1060a8acbcf69344862b2ceced80f854170e1caae089b2834c5fbf7f4"
+  digest = "1:4594833620d039a1c1e889d445988edfc2cdcc95b7e5f40fd63a9d17e2f2ed3f"
   name = "github.com/prometheus/client_golang"
   packages = [
+    "api",
+    "api/prometheus/v1",
     "prometheus",
     "prometheus/internal",
     "prometheus/promhttp",
@@ -699,7 +701,7 @@
   version = "v0.8.4"
 
 [[projects]]
-  digest = "1:a5d3d5bc8fe52fefbeaaa5c945889b8845a8e18922c3b4ae5e2ea5911f8ea51d"
+  digest = "1:6587c0fc75fffeb8d8f942a7534e7d25abc9bfc31ff2b97416303e32a838416f"
   name = "github.com/solo-io/solo-kit"
   packages = [
     "api/external/kubernetes/configmap",
@@ -748,16 +750,17 @@
     "test/tests/typed",
   ]
   pruneopts = "UT"
-  revision = "c9b4cc6f229cdf7508b99609b87ca7074251ae8d"
-  version = "v0.9.0"
+  revision = "977edfbbd92c535bad25a4e11d8d30fb909e6f6c"
+  version = "v0.9.1"
 
 [[projects]]
-  digest = "1:a8aaaa484e6950da189e607f281475829c2882ad0b88df1267a1ff78c2e9dad8"
+  digest = "1:e362aad4be8af92d8b5e8dfd7573fd500a36d225ad4bc0c82022871b3edfa165"
   name = "github.com/solo-io/supergloo"
   packages = [
     "pkg/api/external/istio/authorization/v1alpha1",
     "pkg/api/external/istio/networking/v1alpha3",
     "pkg/api/v1",
+    "pkg/api/v1/mocks",
   ]
   pruneopts = "UT"
   revision = "080916a32bf46f81b39af0ca56c244b5bc17a143"
@@ -1341,12 +1344,14 @@
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/types",
     "github.com/golang/mock/gomock",
-    "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/hashicorp/go-multierror",
     "github.com/olekukonko/tablewriter",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/pkg/errors",
+    "github.com/prometheus/client_golang/api",
+    "github.com/prometheus/client_golang/api/prometheus/v1",
+    "github.com/prometheus/common/model",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/helpers",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/surveyutils",
@@ -1372,6 +1377,7 @@
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube/crd",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/memory",
+    "github.com/solo-io/solo-kit/pkg/api/v1/clients/wrapper",
     "github.com/solo-io/solo-kit/pkg/api/v1/eventloop",
     "github.com/solo-io/solo-kit/pkg/api/v1/reconcile",
     "github.com/solo-io/solo-kit/pkg/api/v1/resources",
@@ -1382,11 +1388,13 @@
     "github.com/solo-io/solo-kit/test/helpers",
     "github.com/solo-io/solo-kit/test/tests/typed",
     "github.com/solo-io/supergloo/pkg/api/v1",
+    "github.com/solo-io/supergloo/pkg/api/v1/mocks",
     "github.com/spf13/cobra",
     "go.opencensus.io/stats",
     "go.opencensus.io/stats/view",
     "go.opencensus.io/tag",
     "go.opencensus.io/trace",
+    "go.uber.org/multierr",
     "go.uber.org/zap",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1",

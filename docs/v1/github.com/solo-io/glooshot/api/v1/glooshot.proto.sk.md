@@ -62,7 +62,7 @@ Describes an Experiment that GlooShot should run
 "state": .glooshot.solo.io.ExperimentResult.State
 "failureReport": map<string, string>
 "timeStarted": .google.protobuf.Timestamp
-"timeFinished": .google.protobuf.Duration
+"timeFinished": .google.protobuf.Timestamp
 
 ```
 
@@ -71,7 +71,7 @@ Describes an Experiment that GlooShot should run
 | `state` | [.glooshot.solo.io.ExperimentResult.State](../glooshot.proto.sk#state) | the current state of the experiment as reported by glooshot |  |
 | `failureReport` | `map<string, string>` | arbitrary data summarizing a failure in case one occurred |  |
 | `timeStarted` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | time the experiment was started |  |
-| `timeFinished` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the time the experiment completed |  |
+| `timeFinished` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | the time the experiment completed |  |
 
 
 

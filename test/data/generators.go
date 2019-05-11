@@ -65,7 +65,7 @@ func GetBasicExperiment(namespace, name string) *v1.Experiment {
 			Duration:          &duration1,
 			TargetMesh: &core.ResourceRef{
 				Name:      "basicmesh",
-				Namespace: "default",
+				Namespace: namespace,
 			},
 		},
 	}

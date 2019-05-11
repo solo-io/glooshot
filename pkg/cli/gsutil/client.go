@@ -2,7 +2,6 @@ package gsutil
 
 import (
 	"context"
-	"log"
 
 	sgv1 "github.com/solo-io/supergloo/pkg/api/v1"
 
@@ -15,13 +14,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
 )
 
-func MustExperimentClient() v1.ExperimentClient {
-	client, err := GetExperimentClient(context.TODO(), true)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return client
-}
 func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.ExperimentClient, error) {
 	cfg, err := kubeutils.GetConfig("", "")
 	if err != nil {
@@ -43,6 +35,7 @@ func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.Experime
 	}
 	return client, nil
 }
+
 func GetRoutingRuleClient(ctx context.Context, skipCrdCreation bool) (sgv1.RoutingRuleClient, error) {
 	cfg, err := kubeutils.GetConfig("", "")
 	if err != nil {
@@ -56,6 +49,28 @@ func GetRoutingRuleClient(ctx context.Context, skipCrdCreation bool) (sgv1.Routi
 		SkipCrdCreation: skipCrdCreation,
 	}
 	client, err := sgv1.NewRoutingRuleClient(rcFactory)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Register(); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func GetMeshClient(ctx context.Context, skipCrdCreation bool) (sgv1.MeshClient, error) {
+	cfg, err := kubeutils.GetConfig("", "")
+	if err != nil {
+		return nil, err
+	}
+	cache := kube.NewKubeCache(ctx)
+	rcFactory := &factory.KubeResourceClientFactory{
+		Crd:             sgv1.MeshCrd,
+		Cfg:             cfg,
+		SharedCache:     cache,
+		SkipCrdCreation: skipCrdCreation,
+	}
+	client, err := sgv1.NewMeshClient(rcFactory)
 	if err != nil {
 		return nil, err
 	}
