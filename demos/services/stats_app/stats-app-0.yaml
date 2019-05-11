@@ -20,7 +20,7 @@ spec:
             - name: NEIGHBOR_INDEX
               value: "0"
             - name: NEIGHBOR_SERVICE_LIST
-              value: stats-app-0,stats-app-1
+              value: stats-app-0,stats-app-1,stats-app-2
           ports:
             - containerPort: 8080
               protocol: TCP

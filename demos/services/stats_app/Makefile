@@ -40,3 +40,18 @@ run-local-1:
 .PHONY: run-local-2
 run-local-2:
 	NEIGHBOR_INDEX=2 NEIGHBOR_SERVICE_LIST=$(NLIST) BIND_ADDRESS=localhost:8093 go run main.go
+
+
+.PHONY: apply-yaml
+apply-yaml:
+	kubectl apply -f stats-app-all.yaml
+
+.PHONY: delete-yaml
+delete-yaml:
+	kubectl delete -f stats-app-all.yaml
+
+.PHONY: logs1
+logs1:
+	kubectl logs deploy/stats-app-1 stats-app -f
+
+
