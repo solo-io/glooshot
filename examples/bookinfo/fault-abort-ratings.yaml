@@ -1,0 +1,20 @@
+apiVersion: glooshot.solo.io/v1
+kind: Experiment
+metadata:
+  name: abort-ratings
+  namespace: default
+spec:
+  spec:
+    duration: 3600s
+    failureConditions:
+    faults:
+    - destinationServices:
+      - name: default-ratings-9080
+        namespace: supergloo-system
+      fault:
+        abort:
+          httpStatus: 500 
+        percentage: 100
+    targetMesh:
+      name: istio
+      namespace: supergloo-system
