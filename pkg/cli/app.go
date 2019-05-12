@@ -51,8 +51,6 @@ type TopOptions struct {
 
 	// Interactive indicates whether or not we are in an interactive input mode
 	Interactive bool
-	// TODO - REMOVE
-	Temp bool
 }
 
 type CreateOptions struct {
@@ -123,17 +121,6 @@ func App(ctx context.Context, version string) *cobra.Command {
 		Short:   "CLI for glooshot",
 		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if o.Top.Temp {
-				// Trigger some warnings, this will be removed
-				contextutils.CliLogInfow(ctx, "this info log should go to file and console")
-				contextutils.CliLogWarnw(ctx, "this warn log should go to file and console")
-				contextutils.CliLogErrorw(ctx, "this error log should go to file and console")
-				contextutils.CliLogInfow(ctx, "this infow log should go to file and console", "extrakey1", "val1")
-				contextutils.CliLogWarnw(ctx, "this warnw log should go to file and console", "extrakey2", "val2")
-				contextutils.CliLogErrorw(ctx, "this errorw log should go to file and console", "extrakey3", "val3")
-				fmt.Println("cobra says 'hisssss' - but he should leave the console logs to the CliLog* utils.")
-				return fmt.Errorf("cobra says 'hisssss' again - it's ok because this is a passed error")
-			}
 			return nil
 		},
 	}
@@ -146,7 +133,6 @@ func App(ctx context.Context, version string) *cobra.Command {
 	)
 	pflags := app.PersistentFlags()
 	pflags.BoolVarP(&o.Top.Interactive, "interactive", "i", false, "use interactive mode")
-	pflags.BoolVarP(&o.Top.Temp, "temp", "t", false, "this is a temp flag that will be removed after refactor")
 	return app
 }
 
