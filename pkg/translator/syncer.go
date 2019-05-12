@@ -50,7 +50,7 @@ func (g *glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	defer logger.Infof("end sync %v", snap.Hash())
 	logger.Debugf("full snapshot: %v", snap)
 
-	desired, err := g.translateExperimentsToRoutingRules(snap.Experiments)
+	desired, err := g.translateExperimentsToRoutingRules(ctx, snap.Experiments)
 	if err != nil {
 		return err
 	}
@@ -62,24 +62,33 @@ func (g *glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 	return nil
 }
 
-func (g *glooshotSyncer) translateExperimentsToRoutingRules(exps v1.ExperimentList) (sgv1.RoutingRuleList, error) {
+func (g *glooshotSyncer) translateExperimentsToRoutingRules(ctx context.Context, exps v1.ExperimentList) (sgv1.RoutingRuleList, error) {
 	rrs := sgv1.RoutingRuleList{}
 	for _, exp := range exps {
 		if exp.Spec == nil || len(exp.Spec.Faults) == 0 {
 			continue
 		}
 		for i := range exp.Spec.Faults {
-			rr, err := g.translateToRoutingRule(exp, i)
+			rr, err := g.translateToRoutingRule(ctx, exp, i)
 			if err != nil {
 				return nil, err
 			}
-			rrs = append(rrs, rr)
+			if rr != nil {
+				rrs = append(rrs, rr)
+			}
 		}
 	}
 	return rrs, nil
 }
 
-func (g *glooshotSyncer) translateToRoutingRule(exp *v1.Experiment, index int) (*sgv1.RoutingRule, error) {
+func (g *glooshotSyncer) translateToRoutingRule(ctx context.Context, exp *v1.Experiment, index int) (*sgv1.RoutingRule, error) {
+	if exp.Result.State == v1.ExperimentResult_Failed || exp.Result.State == v1.ExperimentResult_Succeeded {
+		contextutils.LoggerFrom(ctx).Infow("experiment concluded",
+			"namespace", exp.Metadata.Namespace,
+			"name", exp.Metadata.Name,
+			"state", exp.Result.State.String())
+		return nil, nil
+	}
 	expName := exp.Metadata.Name
 	namespace := exp.Metadata.Namespace
 	wrap := func(e error) error {
