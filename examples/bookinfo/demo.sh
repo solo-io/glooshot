@@ -16,13 +16,16 @@ case $1 in
         supergloo init
             ;;
     "2") ## deploy istio
-        supergloo install istio --name istio --installation-namespace istio-system --mtls=true --auto-inject=true
+        supergloo install istio --name istio --installation-namespace istio-system --mtls=true --auto-inject=true --prometheus
             ;;
     "3") ## label namespace for injection
         kubectl label namespace default istio-injection=enabled --overwrite
             ;;
     "4") ## deploy bookinfo sample applicaiton
         kubectl apply -f bookinfo.yaml
+        ;;
+    "4_a") ## delete bookinfo sample applicaiton
+        kubectl delete -f bookinfo.yaml
             ;;
     "forward") ## port forward to http://localhost:9080
         kubectl port-forward -n default deployment/productpage-v1 9080
@@ -67,24 +70,26 @@ case $1 in
         kubectl apply -f fault-abort-ratings.yaml
         ;;
     "12_a") ## verify that routingrule was created
-        kubectl get experiment abort-ratings
+        kubectl get experiment abort-ratings -o yaml
         ;;
     "12_b") ## delete the experiment
         kubectl delete experiment abort-ratings
         ;;
     "cleanup-istio")
+        # namespace (do in background to ignore not-exist error)
+        kubectl delete ns istio-system &
         # cluster-scoped resources
         for i in `kubectl get customresourcedefinitions -o=jsonpath="{.items[*].metadata.name}"`; do echo $i |grep istio|xargs kubectl delete customresourcedefinition ; done
         for i in `kubectl get clusterrole -o=jsonpath="{.items[*].metadata.name}"`; do echo $i |grep istio|xargs kubectl delete clusterrole ; done
         for i in `kubectl get clusterrolebinding -o=jsonpath="{.items[*].metadata.name}"`; do echo $i |grep istio|xargs kubectl delete clusterrolebinding ; done
+        # do in background to ignore not-exist error
+        kubectl delete mutatingwebhookconfiguration istio-sidecar-injector &
         # namespace-scoped resources in namespaces other than istio-system
         for n in `kubectl get ns -o=jsonpath="{.items[*].metadata.name}"`; do
             echo $n;
             # delete each secret made by istio
             for i in `kubectl get secrets -n=$n -o=jsonpath="{.items[*].metadata.name}"`; do echo $i |grep istio|xargs kubectl delete secret -n=$n; done
         done
-        # namespace (do last, since it will fail and exit the script if it has already been removed)
-        kubectl delete ns istio-system
     ;;
     *)
     error
