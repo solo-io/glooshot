@@ -66,7 +66,7 @@ case $1 in
                   --name reviews-v4 \
                   --dest-upstreams supergloo-system.default-reviews-9080 \
                   --target-mesh supergloo-system.istio \
-                  --destination supergloo-system.default-reviews-v3-9080:1
+                  --destination supergloo-system.default-reviews-v4-9080:1
         ;;
     "10") ## cleanup fault - Expect the reviews (red stars) to return
         kubectl delete routingrule -n supergloo-system fault-reviews-to-ratings
