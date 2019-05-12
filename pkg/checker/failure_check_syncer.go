@@ -40,15 +40,15 @@ func (c *failureChecker) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 
 func (c *failureChecker) ShouldSync(old, new *v1.ApiSnapshot) bool {
 	updatedList := startedExperiments(new.Experiments)
-	var originalList v1.ExperimentList
+	originalList := v1.ExperimentList{}
 	if old != nil {
 		originalList = startedExperiments(old.Experiments)
 	}
 	if len(originalList) != len(updatedList) {
 		return true
 	}
-	for _, original := range originalList {
-		updated, err := updatedList.Find(original.Metadata.Ref().Strings())
+	for _, updated := range updatedList {
+		original, err := originalList.Find(updated.Metadata.Ref().Strings())
 		if err != nil {
 			return true
 		}

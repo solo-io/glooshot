@@ -701,7 +701,7 @@
   version = "v0.8.4"
 
 [[projects]]
-  digest = "1:6587c0fc75fffeb8d8f942a7534e7d25abc9bfc31ff2b97416303e32a838416f"
+  digest = "1:accff6f7178f63735337bac9def4b3e897e801ec52b5974d458eb0d7b80370c2"
   name = "github.com/solo-io/solo-kit"
   packages = [
     "api/external/kubernetes/configmap",
@@ -750,8 +750,8 @@
     "test/tests/typed",
   ]
   pruneopts = "UT"
-  revision = "977edfbbd92c535bad25a4e11d8d30fb909e6f6c"
-  version = "v0.9.1"
+  revision = "66e881b43912c4614fe119efef7dbeb552000d2b"
+  version = "v0.9.2"
 
 [[projects]]
   digest = "1:e362aad4be8af92d8b5e8dfd7573fd500a36d225ad4bc0c82022871b3edfa165"
@@ -1403,6 +1403,7 @@
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
+    "sigs.k8s.io/yaml",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

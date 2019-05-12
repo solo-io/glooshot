@@ -7,6 +7,6 @@ import (
 type Opts struct {
 	SummaryBindAddr           string
 	MeshResourceNamespace     string
-	PrometheusAddr            string
+	PrometheusURL             string
 	PrometheusPollingInterval time.Duration
 }

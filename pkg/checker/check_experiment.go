@@ -46,6 +46,8 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 	// cancel all the child watches once the first result is returned
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	logger.Infof("beginning monitoring of experiment %v", experiment.Metadata.Ref())
 	for _, fc := range experiment.Spec.FailureConditions {
 		switch trigger := fc.FailureTrigger.(type) {
 		case *v1.FailureCondition_PrometheusTrigger:
@@ -177,6 +179,8 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 		Ctx:               ctx,
 		OverwriteExisting: true,
 	})
+
+	contextutils.LoggerFrom(ctx).Infow("reported experiment result", zap.Any("result", experiment.Result))
 
 	return err
 }
