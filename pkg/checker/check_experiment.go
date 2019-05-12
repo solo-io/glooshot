@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/checker/metrics"
+
 	"github.com/gogo/protobuf/types"
 
 	"go.uber.org/zap"
@@ -58,8 +60,12 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 			}
 			var queryString string
 			switch query := promTrigger.QueryType.(type) {
-			case *v1.PrometheusTrigger_MeshQuery_:
-				return errors.Errorf("mesh query not currently supported")
+			case *v1.PrometheusTrigger_SuccessRate:
+				var err error
+				queryString, err = generateQuery(query.SuccessRate)
+				if err != nil {
+					return errors.Wrapf(err, "invalid success rate query params")
+				}
 			case *v1.PrometheusTrigger_CustomQuery:
 				queryString = query.CustomQuery
 			}
@@ -101,6 +107,17 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 		// nil report means experiment passed
 	}
 	return c.reportResult(ctx, experiment.Metadata.Ref(), report)
+}
+
+func generateQuery(query *v1.PrometheusTrigger_SuccessRateQuery) (string, error) {
+	if query.Service == nil {
+		return "", errors.Errorf("service cannot be nil")
+	}
+	interval := time.Minute
+	if query.Interval != nil {
+		interval = *query.Interval
+	}
+	return metrics.IstioSuccessRateQuery(query.Service.Namespace, query.Service.Name, interval), nil
 }
 
 func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
