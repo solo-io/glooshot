@@ -1,0 +1,7 @@
+changelog:
+- type: NEW_FEATURE
+  description: Support prepared queries in the API and against istio
+  issueLink: https://github.com/solo-io/glooshot/issues/34
+- type: FIX
+  description: Fix some issues with connecting to prometheus
+  issueLink: https://github.com/solo-io/glooshot/issues/34
