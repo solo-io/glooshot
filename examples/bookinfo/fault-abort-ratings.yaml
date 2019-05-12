@@ -7,12 +7,10 @@ spec:
   spec:
     duration: 3600s
     failureConditions:
-      - failure_trigger:
-          prometheus_trigger:
-            query_type:
-              custom_query: "cpu_temp"
-            threshold_value: 110
-            comparison_operator: ">"
+      - prometheusTrigger:
+          customQuery: "scalar(sum(istio_requests_total))"
+          thresholdValue: 110
+          comparisonOperator: ">"
     faults:
     - destinationServices:
       - name: default-ratings-9080

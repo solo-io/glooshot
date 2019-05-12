@@ -63,16 +63,20 @@ case $1 in
     "10") ## cleanup fault - Expect the reviews (red stars) to return
         kubectl delete routingrule -n supergloo-system fault-reviews-to-ratings
         ;;
-    "11") ## deploy glooshot (run locally for now)
+    "11") ## port forward prometheus
+        kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=prometheus -o jsonpath='{.items[0].metadata.name}') 9099:9090
+
+        ;;
+    "12") ## deploy glooshot (run locally for now)
         go run ../../cmd/glooshot/main.go
         ;;
-    "12") ## deploy experiment
+    "13") ## deploy experiment
         kubectl apply -f fault-abort-ratings.yaml
         ;;
-    "12_a") ## verify that routingrule was created
+    "13_a") ## verify that routingrule was created
         kubectl get experiment abort-ratings -o yaml
         ;;
-    "12_b") ## delete the experiment
+    "13_b") ## delete the experiment
         kubectl delete experiment abort-ratings
         ;;
     "cleanup-istio")
