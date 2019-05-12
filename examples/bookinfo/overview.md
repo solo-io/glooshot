@@ -32,14 +32,14 @@ For simplicity, I've written a helper script the long form of all these commands
 
 Ok let's get started. Here is a demonstration of the "worst-case" failure mode:
 ```
-./demo.sh 9
+./demo.sh 6
 ```
 
 Notice that there is no information returned from the Reviews Service or the Ratings Service.
 
 Let's delete that failure and refresh.
 ```
-./demo.sh 9_a
+./demo.sh 7
 ```
 
 Ok, back to normal.
