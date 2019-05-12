@@ -28,8 +28,31 @@ Changes are summarized below.
     - result: error is propagated to route `a`
     - preferred behavior: the `reviews` service should be able to provide a valid response even if it encounters errors from the `ratings` service
 
-### NOTE - The supergloo commands below will be replaced with glooshot commands
-- Follow the steps below, or call `./demo.sh <n>` for n = 1-9
+# Tutorial: Demonstrate a cascading failure
+
+**NOTE - The supergloo commands below will be replaced with glooshot commands***
+
+There are two ways to use this demo, either with the helper script `demo.sh` or by passing the full commands yourself.
+
+## With helper script
+- follow the steps below, as ordered, calling `./demo.sh <command>` for command=watch-pods, 1, 2, etc.
+- you will need 3 terminals to complete all these steps since there are two long-running processes
+- **Suggestion**, open `demo.sh` to read along as you call these commands
+```bash
+    "watch-pods") ## watch pods transition between states
+    "1") ## [open new terminal] initialize supergloo
+    "2") ## deploy istio
+    "3") ## label namespace for injection
+    "4") ## deploy bookinfo sample applicaiton
+    "forward") ## port forward to http://localhost:9080
+    "5") ## [open a new terminal] send all traffic to the "weak" version of the app, reviews:v4 (verify: stars are always red)
+    "6") ##"preview-failure" Observe the "worst case" failure, Expect to see: "Error fetching product reviews!"
+    "7") ##"preview-failure-cleanup" Remove the fault that causes the "worst case" failure, Expect stars to have returned
+    "8") ## Triger the weakness (make failure between reviews and ratings) and note that it produces the "worst-case" failure - Expect to see failure between product and reviews
+    "9") ## Deploy a more robust version of the reviews app and note that despite the fault, we avoid the "worst-case" failure - Expect the reviews to show up and smaller error: "Ratings service is currently unavailable"
+```
+
+## Without helper script
 ### Initial setup
 - note that the reviews and ratings are shown
 ```bash
