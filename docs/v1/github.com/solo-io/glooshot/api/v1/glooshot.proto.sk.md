@@ -18,7 +18,7 @@ weight: 5
 - [InjectedFault](#injectedfault)
 - [FailureCondition](#failurecondition)
 - [PrometheusTrigger](#prometheustrigger)
-- [MeshQuery](#meshquery)
+- [SuccessRateQuery](#successratequery)
   
 
 
@@ -163,7 +163,7 @@ a condition based on an observed prometheus metric
 
 ```yaml
 "customQuery": string
-"meshQuery": .glooshot.solo.io.PrometheusTrigger.MeshQuery
+"successRate": .glooshot.solo.io.PrometheusTrigger.SuccessRateQuery
 "thresholdValue": float
 "comparisonOperator": string
 
@@ -172,7 +172,7 @@ a condition based on an observed prometheus metric
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `customQuery` | `string` | a user-specified query as an inline string |  |
-| `meshQuery` | [.glooshot.solo.io.PrometheusTrigger.MeshQuery](../glooshot.proto.sk#meshquery) | query a well known mesh statistic TODO: not implemented |  |
+| `successRate` | [.glooshot.solo.io.PrometheusTrigger.SuccessRateQuery](../glooshot.proto.sk#successratequery) | query the success rate for a specific service |  |
 | `thresholdValue` | `float` | consider the failure condition met if the metric falls below this threshold |  |
 | `comparisonOperator` | `string` | the comparison operator to use when comparing the threshold and observed metric values if the comparison evaluates to true, the failure condition will be considered met possible values are '==', '>', '<', '>=', and '<=' defaults to '<' |  |
 
@@ -180,20 +180,21 @@ a condition based on an observed prometheus metric
 
 
 ---
-### MeshQuery
+### SuccessRateQuery
 
-
+ 
+returns the # of non-5XX requests / total requests for the given interval
 
 ```yaml
-"metric": string
 "service": .core.solo.io.ResourceRef
+"interval": .google.protobuf.Duration
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
-| `metric` | `string` | the name of the metric to monitor possible values: envoy_cluster_upstream_rq istio_requests_total istio_request_duration_seconds_bucket |  |
-| `service` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | the service for which the query should be made |  |
+| `service` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | the service whose success rate Glooshot should monitor |  |
+| `interval` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the time interval over which the success rate should be measured defaults to 1 minute |  |
 
 
 

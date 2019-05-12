@@ -2,6 +2,8 @@ package checker_test
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"runtime"
 	"time"
 
@@ -38,6 +40,10 @@ var _ = Describe("FailureCheckSyncer", func() {
 	})
 
 	It("does not leak goroutines", func() {
+		if os.Getenv("CI_TESTS") == "1" {
+			fmt.Printf("this test is disabled in CI. to run, ensure env var `CI_TESTS` is not set to 1")
+			return
+		}
 		startGoroutines := runtime.NumGoroutine()
 
 		syncer := NewFailureChecker(checker)
