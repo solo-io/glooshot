@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/solo-io/go-utils/contextutils"
+
 	"github.com/solo-io/glooshot/pkg/setup/options"
 
 	"github.com/gogo/protobuf/proto"
@@ -31,7 +33,23 @@ type glooshotSyncer struct {
 	opts         options.Opts
 }
 
+func NewSyncer(expClient v1.ExperimentClient, rrClient sgv1.RoutingRuleClient, meshClient sgv1.MeshClient, opts options.Opts) *glooshotSyncer {
+	return &glooshotSyncer{
+		expClient:    expClient,
+		rrClient:     rrClient,
+		rrReconciler: sgv1.NewRoutingRuleReconciler(rrClient),
+		meshClient:   meshClient,
+		opts:         opts,
+	}
+}
+
 func (g *glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
+	ctx = contextutils.WithLogger(ctx, fmt.Sprintf("experiment-translator-sync-%v", snap.Hash()))
+	logger := contextutils.LoggerFrom(ctx)
+	logger.Infof("begin sync %v", snap.Hash())
+	defer logger.Infof("end sync %v", snap.Hash())
+	logger.Debugf("full snapshot: %v", snap)
+
 	desired, err := g.translateExperimentsToRoutingRules(snap.Experiments)
 	if err != nil {
 		return err
@@ -42,16 +60,6 @@ func (g *glooshotSyncer) Sync(ctx context.Context, snap *v1.ApiSnapshot) error {
 		return err
 	}
 	return nil
-}
-
-func NewSyncer(expClient v1.ExperimentClient, rrClient sgv1.RoutingRuleClient, meshClient sgv1.MeshClient, opts options.Opts) *glooshotSyncer {
-	return &glooshotSyncer{
-		expClient:    expClient,
-		rrClient:     rrClient,
-		rrReconciler: sgv1.NewRoutingRuleReconciler(rrClient),
-		meshClient:   meshClient,
-		opts:         opts,
-	}
 }
 
 func (g *glooshotSyncer) translateExperimentsToRoutingRules(exps v1.ExperimentList) (sgv1.RoutingRuleList, error) {

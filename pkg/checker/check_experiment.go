@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/checker/metrics"
+
 	"github.com/gogo/protobuf/types"
 
 	"go.uber.org/zap"
@@ -46,6 +48,15 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 	// cancel all the child watches once the first result is returned
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	if experiment.Spec == nil {
+		logger.Infof("short-circuiting monitor, experiment %v does not specify a failure condition", experiment.Metadata.Ref())
+		return c.reportResult(ctx, experiment.Metadata.Ref(), failureReport{
+			"failure_type": "invalid_config",
+			"message":      "no failure conditions specified",
+		})
+	}
+	logger.Infof("beginning monitoring of experiment %v", experiment.Metadata.Ref())
 	for _, fc := range experiment.Spec.FailureConditions {
 		switch trigger := fc.FailureTrigger.(type) {
 		case *v1.FailureCondition_PrometheusTrigger:
@@ -56,8 +67,12 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 			}
 			var queryString string
 			switch query := promTrigger.QueryType.(type) {
-			case *v1.PrometheusTrigger_MeshQuery_:
-				return errors.Errorf("mesh query not currently supported")
+			case *v1.PrometheusTrigger_SuccessRate:
+				var err error
+				queryString, err = generateQuery(query.SuccessRate)
+				if err != nil {
+					return errors.Wrapf(err, "invalid success rate query params")
+				}
 			case *v1.PrometheusTrigger_CustomQuery:
 				queryString = query.CustomQuery
 			}
@@ -99,6 +114,17 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 		// nil report means experiment passed
 	}
 	return c.reportResult(ctx, experiment.Metadata.Ref(), report)
+}
+
+func generateQuery(query *v1.PrometheusTrigger_SuccessRateQuery) (string, error) {
+	if query.Service == nil {
+		return "", errors.Errorf("service cannot be nil")
+	}
+	interval := time.Minute
+	if query.Interval != nil {
+		interval = *query.Interval
+	}
+	return metrics.IstioSuccessRateQuery(query.Service.Namespace, query.Service.Name, interval), nil
 }
 
 func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
@@ -177,6 +203,8 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 		Ctx:               ctx,
 		OverwriteExisting: true,
 	})
+
+	contextutils.LoggerFrom(ctx).Infow("reported experiment result", zap.Any("result", experiment.Result))
 
 	return err
 }

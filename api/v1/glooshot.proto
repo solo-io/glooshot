@@ -109,9 +109,8 @@ message PrometheusTrigger {
         // a user-specified query as an inline string
         string custom_query = 1;
 
-        // query a well known mesh statistic
-        // TODO: not implemented
-        MeshQuery mesh_query = 2;
+        // query the success rate for a specific service
+        SuccessRateQuery success_rate = 2;
     }
 
     // consider the failure condition met if the metric falls below this threshold
@@ -124,15 +123,13 @@ message PrometheusTrigger {
     string comparison_operator = 4;
 
 
-    message MeshQuery {
-        // the name of the metric to monitor
-        // possible values:
-        // envoy_cluster_upstream_rq
-        // istio_requests_total
-        // istio_request_duration_seconds_bucket
-        string metric = 1;
+    // returns the # of non-5XX requests / total requests for the given interval
+    message SuccessRateQuery {
+        // the service whose success rate Glooshot should monitor
+        core.solo.io.ResourceRef service = 1;
 
-        // the service for which the query should be made
-        core.solo.io.ResourceRef service = 2;
+        // the time interval over which the success rate should be measured
+        // defaults to 1 minute
+        google.protobuf.Duration interval = 6 [(gogoproto.stdduration) = true];
     }
 }

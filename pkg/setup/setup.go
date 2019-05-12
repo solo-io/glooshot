@@ -24,20 +24,22 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/wrapper"
 )
 
-func Run(ctx context.Context) error {
-	start := time.Now()
-	checkpoint.CallCheck(version.AppName, version.Version, start)
-
+func GetOptions() options.Opts {
 	var opts options.Opts
 	flag.StringVar(&opts.SummaryBindAddr, "summary-bind-addr", ":8085", "bind address for serving "+
 		"experiment summaries (debug info)")
 	flag.StringVar(&opts.MeshResourceNamespace, "mesh-namespace", "", "optional, namespace "+
 		"where Glooshot should look for mesh.supergloo.solo.io CRDs, unless otherwise specified, defaults to all namespaces")
-	flag.StringVar(&opts.PrometheusAddr, "prometheus-addr", "prometheus:9090", "required, address "+
-		"<host:port> to reach the prometheus server")
+	flag.StringVar(&opts.PrometheusURL, "prometheus-url", "http://prometheus:9090", "required, url on which to reach the prometheus server")
 	flag.DurationVar(&opts.PrometheusPollingInterval, "polling-interval", time.Second*5, "optional, "+
 		"interval between polls on running prometheus queries for experiments")
 	flag.Parse()
+	return opts
+}
+
+func Run(ctx context.Context, opts options.Opts) error {
+	start := time.Now()
+	checkpoint.CallCheck(version.AppName, version.Version, start)
 
 	if os.Getenv(START_STATS_SERVER) != "" {
 		stats.StartStatsServer()
@@ -62,12 +64,17 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	promClient, err := api.NewClient(api.Config{Address: opts.PrometheusAddr})
+	promClient, err := api.NewClient(api.Config{Address: opts.PrometheusURL})
 	if err != nil {
 		return errors.Wrapf(err, "connecting to prometheus")
 	}
+	promApi := promv1.NewAPI(promClient)
 
-	promCache := promquery.NewQueryPubSub(ctx, promv1.NewAPI(promClient), opts.PrometheusPollingInterval)
+	if err := checkPrometheusConnection(ctx, promApi); err != nil {
+		return err
+	}
+
+	promCache := promquery.NewQueryPubSub(ctx, promApi, opts.PrometheusPollingInterval)
 	failureChecker := checker.NewChecker(promCache, expClient)
 
 	syncers := []v1.ApiSyncer{
@@ -85,5 +92,14 @@ func Run(ctx context.Context) error {
 	for err := range errs {
 		return errors.Wrapf(err, "error in setup")
 	}
+	return nil
+}
+
+func checkPrometheusConnection(ctx context.Context, promApi promv1.API) error {
+	cfg, err := promApi.Config(ctx)
+	if err != nil {
+		return err
+	}
+	contextutils.LoggerFrom(ctx).Debugf("prom cfg: \n%v", cfg.YAML)
 	return nil
 }

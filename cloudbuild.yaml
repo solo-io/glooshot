@@ -119,6 +119,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/glooshot'
   - 'GOPATH=/workspace/gopath'
   - 'TAGGED_VERSION=$TAG_NAME'
+  - 'CI_TESTS=1'
   - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
   - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
   dir: './gopath/src/github.com/solo-io/glooshot'
