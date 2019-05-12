@@ -29,6 +29,7 @@ Changes are summarized below.
     - preferred behavior: the `reviews` service should be able to provide a valid response even if it encounters errors from the `ratings` service
 
 ### NOTE - The supergloo commands below will be replaced with glooshot commands
+- Follow the steps below, or call `./demo.sh <n>` for n = 1-9
 ### Initial setup
 - note that the reviews and ratings are shown
 ```bash
