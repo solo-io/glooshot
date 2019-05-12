@@ -18,5 +18,5 @@ func getInitialContext() context.Context {
 
 func main() {
 	ctx := getInitialContext()
-	contextutils.LoggerFrom(ctx).Fatal(setup.Run(ctx))
+	contextutils.LoggerFrom(ctx).Fatal(setup.Run(ctx, setup.GetOptions()))
 }

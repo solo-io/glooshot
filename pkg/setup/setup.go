@@ -24,10 +24,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/wrapper"
 )
 
-func Run(ctx context.Context) error {
-	start := time.Now()
-	checkpoint.CallCheck(version.AppName, version.Version, start)
-
+func GetOptions() options.Opts {
 	var opts options.Opts
 	flag.StringVar(&opts.SummaryBindAddr, "summary-bind-addr", ":8085", "bind address for serving "+
 		"experiment summaries (debug info)")
@@ -37,6 +34,12 @@ func Run(ctx context.Context) error {
 	flag.DurationVar(&opts.PrometheusPollingInterval, "polling-interval", time.Second*5, "optional, "+
 		"interval between polls on running prometheus queries for experiments")
 	flag.Parse()
+	return opts
+}
+
+func Run(ctx context.Context, opts options.Opts) error {
+	start := time.Now()
+	checkpoint.CallCheck(version.AppName, version.Version, start)
 
 	if os.Getenv(START_STATS_SERVER) != "" {
 		stats.StartStatsServer()

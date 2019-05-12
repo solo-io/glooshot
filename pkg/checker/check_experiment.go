@@ -49,6 +49,13 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	if experiment.Spec == nil {
+		logger.Infof("short-circuiting monitor, experiment %v does not specify a failure condition", experiment.Metadata.Ref())
+		return c.reportResult(ctx, experiment.Metadata.Ref(), failureReport{
+			"failure_type": "invalid_config",
+			"message":      "no failure conditions specified",
+		})
+	}
 	logger.Infof("beginning monitoring of experiment %v", experiment.Metadata.Ref())
 	for _, fc := range experiment.Spec.FailureConditions {
 		switch trigger := fc.FailureTrigger.(type) {
