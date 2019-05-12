@@ -60,6 +60,14 @@ case $1 in
                   --target-mesh supergloo-system.istio \
                   --destination supergloo-system.default-reviews-v3-9080:1
         ;;
+    "9_a") ## Revert from robust to vulnerable versions of the reviews app
+        kubectl delete routingrule -n supergloo-system reviews-v3
+        supergloo apply routingrule trafficshifting \
+                  --name reviews-v4 \
+                  --dest-upstreams supergloo-system.default-reviews-9080 \
+                  --target-mesh supergloo-system.istio \
+                  --destination supergloo-system.default-reviews-v3-9080:1
+        ;;
     "10") ## cleanup fault - Expect the reviews (red stars) to return
         kubectl delete routingrule -n supergloo-system fault-reviews-to-ratings
         ;;
@@ -79,6 +87,24 @@ case $1 in
     "13_b") ## delete the experiment
         kubectl delete experiment abort-ratings
         ;;
+    "14") ## apply an experiment that runs until a time limit is exceeded
+        kubectl apply -f fault-abort-ratings-timeout.yaml
+        ;;
+    "15") ## inspect the output
+        kubectl get -f fault-abort-ratings-timeout.yaml -o yaml
+        ;;
+    "16") ## apply an experiment that runs until a metric limit is exceeded
+        kubectl apply -f fault-abort-ratings-metric.yaml
+        ;;
+    "17") ## inspect the output
+        kubectl get -f fault-abort-ratings-metric.yaml -o yaml
+        ;;
+    "18") ## apply an experiment that runs until a metric limit is exceeded
+        kubectl apply -f fault-abort-ratings-metric-repeat.yaml
+        ;;
+    "19") ## inspect the output
+        kubectl get -f fault-abort-ratings-metric-repeat.yaml -o yaml
+        ;;
     "cleanup-istio")
         # namespace (do in background to ignore not-exist error)
         kubectl delete ns istio-system &
@@ -94,7 +120,13 @@ case $1 in
             # delete each secret made by istio
             for i in `kubectl get secrets -n=$n -o=jsonpath="{.items[*].metadata.name}"`; do echo $i |grep istio|xargs kubectl delete secret -n=$n; done
         done
-    ;;
+        ;;
+    "get-exp")
+        kubectl get experiments --all-namespaces
+        ;;
+    "get-rr")
+        kubectl get routingrules --all-namespaces
+        ;;
     *)
     error
     exit 1

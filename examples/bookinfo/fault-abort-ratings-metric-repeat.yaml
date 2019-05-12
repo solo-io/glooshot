@@ -1,16 +1,16 @@
 apiVersion: glooshot.solo.io/v1
 kind: Experiment
 metadata:
-  name: abort-ratings
+  name: abort-ratings-metric-repeat
   namespace: default
 spec:
   spec:
-    duration: 300s
+    duration: 6000s
     failureConditions:
       - prometheusTrigger:
           customQuery: |
             scalar(sum(istio_requests_total{ source_app="productpage",response_code="500"}))
-          thresholdValue: 800
+          thresholdValue: 1000
           comparisonOperator: ">"
     faults:
     - destinationServices:
