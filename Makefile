@@ -8,17 +8,19 @@ must: validate-computed-values
 
 # Read computed values into variables that can be used by make
 # Since both stdout and stderr are passed, our make targets validate the variables
-RELEASE := $(shell go run buildcmd/main.go parse-env release)
-VERSION := $(shell go run buildcmd/main.go parse-env version)
-IMAGE_TAG := $(shell go run buildcmd/main.go parse-env image-tag)
-CONTAINER_REPO_ORG := $(shell go run buildcmd/main.go parse-env container-prefix)
-HELM_REPO := $(shell go run buildcmd/main.go parse-env helm-repo)
+BUILD_CONFIG_FILE ?= solo-project.yaml
+BUILD_CMD := SOLOBUILD_CONFIG_FILE=${BUILD_CONFIG_FILE} go run cmd/build/main.go
+RELEASE := $(shell ${BUILD_CMD} parse-env release)
+VERSION := $(shell ${BUILD_CMD} parse-env version)
+IMAGE_TAG := $(shell ${BUILD_CMD} parse-env image-tag)
+CONTAINER_REPO_ORG := $(shell ${BUILD_CMD} parse-env container-prefix)
+HELM_REPO := $(shell ${BUILD_CMD} parse-env helm-repo)
 
 # use this, or the shorter alias "must", as a dependency for any target that uses
 # values produced by the build tool
 .PHONY: validate-computed-values
 validate-computed-values:
-	go run buildcmd/main.go validate-operating-parameters \
+	${BUILD_CMD} validate-operating-parameters \
 		$(RELEASE) \
 		$(VERSION) \
 		$(CONTAINER_REPO_ORG) \
