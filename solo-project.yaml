@@ -1,0 +1,13 @@
+config:
+  release_container_registry:
+    gcr:
+      project_id: gloo-ee
+  test_container_registry:
+    gcr:
+      project_id: gloo-ee
+  release_helm_repository:
+    google_cloud_storage:
+      bucket_url: gs://glooshot-helm/
+  test_helm_repository:
+    google_cloud_storage:
+      bucket_url: gs://glooshot-helm-test/

@@ -21,6 +21,8 @@ spec:
         imagePullPolicy: {{ .Values.glooshot.deployment.image.pullPolicy }}
         name: glooshot
         env:
+          - name: PROMETHEUS_URL
+            value: http://prometheus.istio-system.svc.cluster.local:9090/
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:

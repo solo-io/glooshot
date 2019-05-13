@@ -79,6 +79,7 @@ steps:
   env:
   - 'PROJECT_ROOT=github.com/solo-io/glooshot'
   - 'GOPATH=/workspace/gopath'
+  - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/glooshot'
   entrypoint: make
   args: ['check-format']
@@ -92,6 +93,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/glooshot'
   - 'GOPATH=/workspace/gopath'
   - 'TAGGED_VERSION=$TAG_NAME'
+  - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/glooshot'
   volumes:
   - name: 'ssh'
@@ -106,6 +108,7 @@ steps:
   - 'GOPATH=/workspace/gopath'
   - 'TAGGED_VERSION=$TAG_NAME'
   - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
+  - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/glooshot'
   volumes:
   - name: 'ssh'
@@ -121,7 +124,8 @@ steps:
   - 'TAGGED_VERSION=$TAG_NAME'
   - 'CI_TESTS=1'
   - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
-  - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=glooshot-e2e'
+  - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/glooshot'
   volumes:
   - name: 'ssh'
@@ -135,8 +139,9 @@ steps:
     - 'PROJECT_ROOT=github.com/solo-io/glooshot'
     - 'GOPATH=/workspace/gopath'
     - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
-    - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=glooshot-e2e'
     - 'RUN_GLOOSHOT_INSTALL_TESTS=1'
+    - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/glooshot'
   args: ['-r', 'test/install']
   waitFor: ['test', 'docker-login']
@@ -149,6 +154,7 @@ steps:
   - 'GOPATH=/workspace/gopath'
   - 'TAGGED_VERSION=$TAG_NAME'
   - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
+  - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/glooshot'
   volumes:
   - name: 'ssh'
@@ -164,6 +170,8 @@ steps:
   - -r
   - './_output/helm'
   - gs://glooshot-helm/
+  env:
+  - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/glooshot'
   id: 'save-helm-chart'
 

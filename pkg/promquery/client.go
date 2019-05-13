@@ -125,7 +125,7 @@ func (c *queryPubSub) queryScalar(ctx context.Context, query string) (float64, e
 	}
 	scalar, ok := result.(*model.Scalar)
 	if !ok {
-		return 0, errors.Errorf("query result was %s, only scalar values supported", result.Type())
+		return 0, errors.Errorf("result for query %s was: %s (type %s), only scalar values supported", query, result.String(), result.Type())
 	}
 	return float64(scalar.Value), nil
 }
