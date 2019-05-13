@@ -1,6 +1,7 @@
 package translator
 
 import (
+	"context"
 	"time"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
@@ -127,7 +128,7 @@ var _ = Describe("translator", func() {
 		mockMesh := sgmock.NewMockMeshClient(mockCtrl)
 		mockMesh.EXPECT().Read("default", "basicmesh", clients.ReadOpts{})
 		syncer.meshClient = mockMesh
-		rr, err := syncer.translateToRoutingRule(basicExperiment, 0)
+		rr, err := syncer.translateToRoutingRule(context.Background(), basicExperiment, 0)
 		Expect(err).NotTo(HaveOccurred())
 		expected := &sgv1.RoutingRule{
 			Status: core.Status{
