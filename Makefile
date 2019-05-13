@@ -50,30 +50,6 @@ SOURCES := $(shell find . -name "*.go" | grep -v test.go | grep -v '\.\#*' | gre
 LDFLAGS := "-X github.com/solo-io/$(SOLO_NAME)/pkg/version.Version=$(VERSION)"
 GCFLAGS := all="-N -l"
 
-#-------------------------------------------------------------------------------
-# Establish container values
-#------------------------------------------------------------------------------
-# # Passed by cloudbuild
-# GCLOUD_PROJECT_ID ?= gloo-ee
-# # VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
-# # LAST_COMMIT = $(shell git rev-parse HEAD | cut -c 1-6)
-# # Note: need to evaluate this with := to avoid re-evaluation
-# STAMP_DDHHMMSS := $(shell date +%d%H%M%S)
-# # IMAGE_TAG ?= $(LAST_COMMIT)-$(STAMP_DDHHMMSS)-pre
-# CONTAINER_REPO_ORG ?= gcr.io/$(GCLOUD_PROJECT_ID)
-
-# ifeq ($(TAGGED_VERSION),)
-# # no tagged version provided, we are not in a release, use CI values
-# # USE CI VALUES, overridable, above
-# else
-# # a tagged version has been provided, we are performing a release
-# # USE RELEASE VALUES, hard-coded below
-#   CONTAINER_ORG = soloio
-# # Use docker repo, which is inferred when none provided
-#   CONTAINER_REPO_ORG=$(CONTAINER_ORG)
-#   IMAGE_TAG = $(VERSION)
-# endif
-
 
 #----------------------------------------------------------------------------------
 # glooshot - main
