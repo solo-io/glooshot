@@ -115,6 +115,7 @@ $(OUTPUT_DIR)/glooshot-docker: glooshot-operator $(OUTPUT_DIR)/Dockerfile.gloosh
 
 HELM_SYNC_DIR := $(OUTPUT_DIR)/helm
 HELM_DIR := install/helm/$(SOLO_NAME)
+MANIFEST_DIR := install/manifest
 INSTALL_NAMESPACE ?= $(SOLO_NAME)
 
 .PHONY: manifest
@@ -143,6 +144,21 @@ install/$(SOLO_NAME).yaml: prepare-helm init-helm
 
 .PHONY: render-yaml
 render-yaml: must install/$(SOLO_NAME).yaml
+
+### Recipes to pull/push from remote chart repository
+.PHONY: fetch-helm-repo
+fetch-helm-repo: must helm-dirs
+	gsutil -m rsync -r $(HELM_REPO) $(HELM_SYNC_DIR)
+
+.PHONY: push-helm-repo
+push-helm-repo: must helm-dirs
+	gsutil -m rsync -r $(HELM_SYNC_DIR) $(HELM_REPO)
+
+### Creates required directories
+.PHONY: helm-dirs
+helm-dirs:
+	mkdir -p $(MANIFEST_DIR)
+	mkdir -p $(HELM_SYNC_DIR)/charts
 
 #----------------------------------------------------------------------------------
 # MAIN TARGETS

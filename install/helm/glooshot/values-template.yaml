@@ -12,6 +12,7 @@ glooshot:
       pullPolicy: Always
       pullSecret: solo-io-docker-secret
     replicas: 1
+    prometheusUrl: http://glooshot-prometheus-server.default.svc.cluster.local/
 
 prometheus:
   enabled: true
