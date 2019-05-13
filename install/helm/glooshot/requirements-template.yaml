@@ -1,0 +1,8 @@
+dependencies:
+- name: supergloo
+  repository: https://storage.googleapis.com/supergloo-helm
+  condition: supergloo.enabled
+- name: prometheus
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  version: 8.4.1
+  condition: prometheus.enabled
