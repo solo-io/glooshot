@@ -91,7 +91,7 @@ func installGlooshot(opts *options.Options) error {
 
 	fmt.Printf("installing glooshot version %v\nusing chart uri %v\n", releaseVersion, chartUri)
 
-	if err := kubectlApply(manifest); err != nil {
+	if err := kubectlApply(manifest, tmpInstallNamespace); err != nil {
 		return errors.Wrapf(err, "executing kubectl failed")
 	}
 
@@ -128,8 +128,8 @@ func readValues(path string) (string, error) {
 	return string(b), nil
 }
 
-func kubectlApply(manifest string) error {
-	return kubectl(bytes.NewBufferString(manifest), "apply", "-f", "-")
+func kubectlApply(manifest, namespace string) error {
+	return kubectl(bytes.NewBufferString(manifest), "apply", "-n", namespace, "-f", "-")
 }
 
 func kubectl(stdin io.Reader, args ...string) error {

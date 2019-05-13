@@ -4,7 +4,7 @@ metadata:
   labels:
     app: glooshot
   name: glooshot
-  namespace: {{ .Release.Namespace }}
+#  namespace: {{ .Release.Namespace }} # use -n for now
 spec:
   replicas: {{ .Values.glooshot.deployment.replicas }}
   selector:
@@ -20,8 +20,9 @@ spec:
       - image: "{{ .Values.glooshot.deployment.image.repository }}:{{ .Values.glooshot.deployment.image.tag }}"
         imagePullPolicy: {{ .Values.glooshot.deployment.image.pullPolicy }}
         name: glooshot
+        env:
           - name: PROMETHEUS_URL
-            value: {{ .Values.glooshot.deployment.PrometheusUrl }}
+            value: {{ .Values.glooshot.deployment.prometheusUrl }}
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:
