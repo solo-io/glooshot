@@ -5,6 +5,17 @@ We will use a slight modification of the familiar bookinfo app from Istio's
 [sample app repo](https://github.com/istio/istio/tree/master/samples/bookinfo). We have modified the reviews service to
 include a vulnerability that can lead to cascading failure. We will use Glooshot to detect this weakness.
 
+
+### The Goal
+
+Services should be resilient to system outages. In this example, we show how to detect cascading failures: failures
+where an error in one service disables other services that interact with it. In the diagram below, we show two versions
+of a reviews service. The version on the top right fails when it does not receive a valid response from the ratings.
+The version on the bottom right handles the error more gracefully. It still provides review information even though the
+ratings data is not available.
+
+![bookinfo resilience overview](./bookinfo_resilience_demo.png "bookinfo reslience demo")
+
 ## Prerequisites
 
 To follow this demo, you will need the following:
