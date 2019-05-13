@@ -30,7 +30,7 @@ Changes are summarized below.
 
 # Tutorial: Demonstrate a cascading failure
 
-**NOTE - The supergloo commands below will be replaced with glooshot commands***
+**NOTE - The supergloo commands below will be replaced with glooshot commands**
 
 There are two ways to use this demo, either with the helper script `demo.sh` or by passing the full commands yourself.
 
