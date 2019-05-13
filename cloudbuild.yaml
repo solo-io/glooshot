@@ -101,8 +101,7 @@ steps:
   waitFor: ['dep']
   id: 'check-code-and-docs-gen'
 
-
-  name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
+- name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
   args: ['docker-push', 'render-yaml']
   env:
   - 'PROJECT_ROOT=github.com/solo-io/glooshot'
