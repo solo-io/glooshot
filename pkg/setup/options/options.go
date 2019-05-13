@@ -14,7 +14,7 @@ type Opts struct {
 const (
 	DefaultSummaryBindAddr           = ":8085"
 	DefaultMeshResourceNamespace     = ""
-	DefaultPrometheusURL             = "http://prometheus:9090"
+	DefaultPrometheusURL             = "http://glooshot-prometheus-server:9090"
 	DefaultPrometheusPollingInterval = time.Second * 5
 
 	EnvPrometheusURL = "PROMETHEUS_URL"
