@@ -127,6 +127,8 @@ prepare-helm: must
 
 .PHONY: init-helm
 init-helm:
+	helm init --client-only
+	helm repo add helm-hub  https://kubernetes-charts.storage.googleapis.com/
 	helm repo add supergloo https://storage.googleapis.com/supergloo-helm
 	helm dependency update install/helm/glooshot
 
