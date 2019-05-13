@@ -138,7 +138,7 @@ update-helm-chart: must
 
 HELMFLAGS := --namespace $(INSTALL_NAMESPACE) --set namespace.create=true
 
-install/$(SOLO_NAME).yaml: prepare-helm
+install/$(SOLO_NAME).yaml: prepare-helm init-helm
 	helm template install/helm/$(SOLO_NAME) $(HELMFLAGS) > $@
 
 .PHONY: render-yaml
