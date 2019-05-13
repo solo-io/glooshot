@@ -11,6 +11,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/solo-io/glooshot/pkg/cli/flagutils"
+
 	"github.com/google/go-github/github"
 	"github.com/solo-io/glooshot/pkg/version"
 	"golang.org/x/oauth2"
@@ -33,11 +35,8 @@ const (
 func Cmd(opts *options.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "install SuperGloo to a Kubernetes cluster",
-		Long: `Installs SuperGloo using default values based on the official helm chart located in install/helm/glooshot
-
-The basic SuperGloo installation is composed of single-instance deployments for the glooshot-controller and discovery pods. 
-`,
+		Short: "install Glooshot to a Kubernetes cluster",
+		Long:  `Installs Glooshot using default values based on the official helm chart located in install/helm/glooshot`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := installGlooshot(opts); err != nil {
 				return errors.Wrapf(err, "installing glooshot")
@@ -45,7 +44,7 @@ The basic SuperGloo installation is composed of single-instance deployments for 
 			return nil
 		},
 	}
-	//flagutils.AddInitFlags(cmd.PersistentFlags(), &opts.Init)
+	flagutils.AddInitFlags(cmd.PersistentFlags(), &opts.Init)
 	return cmd
 }
 
