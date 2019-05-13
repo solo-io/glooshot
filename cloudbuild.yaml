@@ -109,6 +109,7 @@ steps:
   - 'TAGGED_VERSION=$TAG_NAME'
   - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   - 'BUILD_ID=$BUILD_ID'
+  - 'HELM_HOME=/root/.helm'
   dir: './gopath/src/github.com/solo-io/glooshot'
   volumes:
   - name: 'ssh'
@@ -126,6 +127,7 @@ steps:
   - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
   - 'CLOUDSDK_CONTAINER_CLUSTER=glooshot-e2e'
   - 'BUILD_ID=$BUILD_ID'
+  - 'HELM_HOME=/root/.helm'
   dir: './gopath/src/github.com/solo-io/glooshot'
   volumes:
   - name: 'ssh'
@@ -155,6 +157,7 @@ steps:
   - 'TAGGED_VERSION=$TAG_NAME'
   - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   - 'BUILD_ID=$BUILD_ID'
+  - 'HELM_HOME=/root/.helm'
   dir: './gopath/src/github.com/solo-io/glooshot'
   volumes:
   - name: 'ssh'

@@ -118,12 +118,17 @@ HELM_DIR := install/helm/$(SOLO_NAME)
 INSTALL_NAMESPACE ?= $(SOLO_NAME)
 
 .PHONY: manifest
-manifest: must prepare-helm install/$(SOLO_NAME).yaml update-helm-chart
+manifest: prepare-helm init-helm install/$(SOLO_NAME).yaml update-helm-chart
 
 # creates Chart.yaml, values.yaml
 .PHONY: prepare-helm
 prepare-helm: must
 	go run install/helm/$(SOLO_NAME)/generate/cmd/generate.go $(IMAGE_TAG) $(CONTAINER_REPO_ORG)
+
+.PHONY: init-helm
+init-helm:
+	helm repo add supergloo https://storage.googleapis.com/supergloo-helm
+	helm dependency update install/helm/glooshot
 
 .PHONY: update-helm-chart
 update-helm-chart: must
@@ -133,7 +138,7 @@ update-helm-chart: must
 
 HELMFLAGS := --namespace $(INSTALL_NAMESPACE) --set namespace.create=true
 
-install/$(SOLO_NAME).yaml: prepare-helm
+install/$(SOLO_NAME).yaml: prepare-helm init-helm
 	helm template install/helm/$(SOLO_NAME) $(HELMFLAGS) > $@
 
 .PHONY: render-yaml
