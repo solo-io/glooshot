@@ -633,6 +633,20 @@
   version = "v0.1"
 
 [[projects]]
+  digest = "1:2b8e271bb87ca65fda510cb6abf7e81958e8f286fa2e8adeb6521cfc28994f3a"
+  name = "github.com/solo-io/build"
+  packages = [
+    "pkg/api/v1",
+    "pkg/cli",
+    "pkg/constants",
+    "pkg/envutils",
+    "pkg/ingest",
+    "pkg/version",
+  ]
+  pruneopts = "UT"
+  revision = "v0.0.4"
+
+[[projects]]
   digest = "1:f79ff85a70f8cb614e5b3b5bf36d5b3cd1a63b13e2bc57c49d695dba9e86b836"
   name = "github.com/solo-io/gloo"
   packages = [
@@ -1352,6 +1366,7 @@
     "github.com/prometheus/client_golang/api",
     "github.com/prometheus/client_golang/api/prometheus/v1",
     "github.com/prometheus/common/model",
+    "github.com/solo-io/build/pkg/cli",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/flagutils",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/helpers",
     "github.com/solo-io/gloo/projects/gloo/cli/pkg/surveyutils",
