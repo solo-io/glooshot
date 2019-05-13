@@ -7,3 +7,9 @@ vendor/
 _output/
 _test
 install/glooshot.yaml
+
+# Docs
+docs/themes/
+docs/resources/
+site
+.firebase/

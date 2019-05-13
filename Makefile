@@ -218,3 +218,19 @@ check-format: must
 	NOT_FORMATTED=$$(gofmt -l $(FORMAT_DIRS)) && if [ -n "$$NOT_FORMATTED" ]; then echo These files are not formatted: $$NOT_FORMATTED; exit 1; fi
 
 # TODO - enable spell check
+
+#----------------------------------------------------------------------------------
+# Docs
+#----------------------------------------------------------------------------------
+
+site:
+	if [ ! -d docs/themes ]; then git clone https://github.com/matcornic/hugo-theme-learn.git docs/themes/hugo-theme-learn; fi
+	cd docs; hugo --config docs.toml
+
+.PHONY: deploy-site
+deploy-site: site
+	firebase deploy --only hosting:mesh-market-place-docs
+
+.PHONY: serve-site
+serve-site: site
+	cd docs; hugo --config docs.toml server -D

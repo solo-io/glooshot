@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "target": "glooshot-docs",
+    "public": "docs/site",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
