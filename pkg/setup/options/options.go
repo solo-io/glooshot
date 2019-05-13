@@ -1,6 +1,7 @@
 package options
 
 import (
+	"os"
 	"time"
 )
 
@@ -14,10 +15,18 @@ type Opts struct {
 const (
 	DefaultSummaryBindAddr           = ":8085"
 	DefaultMeshResourceNamespace     = ""
-	DefaultPrometheusURL             = "http://glooshot-prometheus-server:9090"
 	DefaultPrometheusPollingInterval = time.Second * 5
 
 	EnvPrometheusURL = "PROMETHEUS_URL"
+)
+
+var (
+	DefaultPrometheusURL = func() string {
+		if promUrl := os.Getenv(EnvPrometheusURL); promUrl != "" {
+			return promUrl
+		}
+		return "http://glooshot-prometheus-server:9090"
+	}()
 )
 
 func DefaultOpts() Opts {

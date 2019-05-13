@@ -34,12 +34,6 @@ func GetOptions() options.Opts {
 	flag.DurationVar(&opts.PrometheusPollingInterval, "polling-interval", options.DefaultPrometheusPollingInterval, "optional, "+
 		"interval between polls on running prometheus queries for experiments")
 	flag.Parse()
-	if opts.PrometheusURL == "" {
-		opts.PrometheusURL = os.Getenv(options.EnvPrometheusURL)
-		if opts.PrometheusURL == "" {
-			opts.PrometheusURL = options.DefaultPrometheusURL
-		}
-	}
 	return opts
 }
 
