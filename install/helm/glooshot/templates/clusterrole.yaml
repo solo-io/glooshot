@@ -11,5 +11,11 @@ rules:
 - apiGroups: ["glooshot.solo.io"]
   resources: ["experiments"]
   verbs: ["*"]
+- apiGroups: ["supergloo.solo.io"]
+  resources: ["meshes"]
+  verbs: ["get", "list"]
+- apiGroups: ["supergloo.solo.io"]
+  resources: ["routingrules"]
+  verbs: ["*"]
 
 {{- end -}}

@@ -1,5 +1,7 @@
 #! /bin/bash -ex
 
+BOOK_INFO_NS=${BOOK_INFO_NS:=default}
+
 case $1 in
     "help") ## prints help message
         echo "Run ./demo.sh watch-pods, ./demo.sh 1, etc. in the order shown below"
@@ -28,7 +30,7 @@ case $1 in
         kubectl delete -f bookinfo.yaml
             ;;
     "forward") ## port forward to http://localhost:9080
-        kubectl port-forward -n default deployment/productpage-v1 9080
+        kubectl port-forward -n $BOOK_INFO_NS deployment/productpage-v1 9080
             ;;
     "5") ## [open a new terminal] send all traffic to the "weak" version of the app, reviews:v4 (verify: stars are always red)
         supergloo apply routingrule trafficshifting \

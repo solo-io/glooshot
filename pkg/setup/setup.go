@@ -30,10 +30,16 @@ func GetOptions() options.Opts {
 		"experiment summaries (debug info)")
 	flag.StringVar(&opts.MeshResourceNamespace, "mesh-namespace", "", "optional, namespace "+
 		"where Glooshot should look for mesh.supergloo.solo.io CRDs, unless otherwise specified, defaults to all namespaces")
-	flag.StringVar(&opts.PrometheusURL, "prometheus-url", "http://prometheus:9090", "required, url on which to reach the prometheus server")
+	flag.StringVar(&opts.PrometheusURL, "prometheus-url", "", "required, url on which to reach the prometheus server")
 	flag.DurationVar(&opts.PrometheusPollingInterval, "polling-interval", time.Second*5, "optional, "+
 		"interval between polls on running prometheus queries for experiments")
 	flag.Parse()
+	if opts.PrometheusURL == "" {
+		opts.PrometheusURL = os.Getenv(options.EnvPrometheusURL)
+		if opts.PrometheusURL == "" {
+			opts.PrometheusURL = options.DefaultPrometheusURL
+		}
+	}
 	return opts
 }
 

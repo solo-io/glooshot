@@ -1,0 +1,25 @@
+apiVersion: glooshot.solo.io/v1
+kind: Experiment
+metadata:
+  name: bookinfo-abort-ratings-timeout
+  namespace: bookinfo
+spec:
+  spec:
+    duration: 30s
+    failureConditions:
+      - prometheusTrigger:
+          customQuery: |
+            scalar(sum(istio_requests_total{ source_app="productpage",response_code="500"}))
+          thresholdValue: 80000
+          comparisonOperator: ">"
+    faults:
+    - destinationServices:
+      - name: bookinfo-ratings-9080
+        namespace: supergloo-system
+      fault:
+        abort:
+          httpStatus: 500 
+        percentage: 100
+    targetMesh:
+      name: istio
+      namespace: supergloo-system

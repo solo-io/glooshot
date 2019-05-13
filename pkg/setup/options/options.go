@@ -16,6 +16,8 @@ const (
 	DefaultMeshResourceNamespace     = ""
 	DefaultPrometheusURL             = "http://prometheus:9090"
 	DefaultPrometheusPollingInterval = time.Second * 5
+
+	EnvPrometheusURL = "PROMETHEUS_URL"
 )
 
 func DefaultOpts() Opts {
