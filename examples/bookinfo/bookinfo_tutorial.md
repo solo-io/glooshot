@@ -219,7 +219,7 @@ EOF
 
 - Let's inspect the experiment results:
 ```bash
-k get exp abort-ratings-metric -o yaml
+kubectl get exp abort-ratings-metric -o yaml
 ```
 
 - You should see that the experiment exceeded, after having run for the entire time limit.
