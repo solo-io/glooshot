@@ -7,6 +7,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/solo-io/go-utils/versionutils"
+
 	"github.com/solo-io/glooshot/install/helm/glooshot/generate"
 
 	"github.com/ghodss/yaml"
@@ -14,13 +16,16 @@ import (
 )
 
 var (
-	valuesTemplate = "install/helm/glooshot/values-template.yaml"
-	valuesOutput   = "install/helm/glooshot/values.yaml"
-	chartTemplate  = "install/helm/glooshot/Chart-template.yaml"
-	chartOutput    = "install/helm/glooshot/Chart.yaml"
+	valuesTemplate       = "install/helm/glooshot/values-template.yaml"
+	valuesOutput         = "install/helm/glooshot/values.yaml"
+	chartTemplate        = "install/helm/glooshot/Chart-template.yaml"
+	chartOutput          = "install/helm/glooshot/Chart.yaml"
+	requirementsTemplate = "install/helm/glooshot/requirements-template.yaml"
+	requirementsOutput   = "install/helm/glooshot/requirements.yaml"
 
 	ifNotPresent = "IfNotPresent"
 )
+var superglooVersion string
 
 func main() {
 	var version, repoPrefixOverride = "", ""
@@ -34,12 +39,18 @@ func main() {
 		}
 
 	}
+	superglooVersion = mustSuperglooVersion()
+	log.Printf("Supergloo version is %v", superglooVersion)
+
 	log.Printf("Generating helm files.")
 	if err := generateValuesYaml(version, repoPrefixOverride); err != nil {
 		log.Fatalf("generating values.yaml failed!: %v", err)
 	}
 	if err := generateChartYaml(version); err != nil {
 		log.Fatalf("generating Chart.yaml failed!: %v", err)
+	}
+	if err := generateRequirementsYaml(); err != nil {
+		log.Fatalf("generating requirements.yaml failed!: %v", err)
 	}
 }
 
@@ -107,9 +118,33 @@ func generateChartYaml(version string) error {
 	return writeYaml(&chart, chartOutput)
 }
 
+func generateRequirementsYaml() error {
+	var dl generate.DependencyList
+	if err := readYaml(requirementsTemplate, &dl); err != nil {
+		return err
+	}
+	for i, v := range dl.Dependencies {
+		if v.Name == "supergloo" {
+			dl.Dependencies[i].Version = superglooVersion
+		}
+	}
+	return writeYaml(dl, requirementsOutput)
+}
+
 // We want to turn "quay.io/solo-io/foo" into "<newPrefix>/foo".
 func replacePrefix(repository, newPrefix string) string {
 	// Remove trailing slash, if present
 	newPrefix = strings.TrimSuffix(newPrefix, "/")
 	return strings.Join([]string{newPrefix, path.Base(repository)}, "/")
+}
+func mustSuperglooVersion() string {
+	tomlTree, err := versionutils.ParseToml()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	version, err := versionutils.GetVersion(versionutils.SuperglooPkg, tomlTree)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	return version
 }

@@ -1,10 +1,12 @@
 package generate
 
 type Config struct {
-	Namespace *Namespace `json:"namespace,omitempty"`
-	Rbac      *Rbac      `json:"rbac,omitempty"`
-	Crds      *Crds      `json:"crds,omitempty"`
-	Glooshot  *Glooshot  `json:"glooshot,omitempty"`
+	Namespace  *Namespace  `json:"namespace,omitempty"`
+	Rbac       *Rbac       `json:"rbac,omitempty"`
+	Crds       *Crds       `json:"crds,omitempty"`
+	Glooshot   *Glooshot   `json:"glooshot,omitempty"`
+	Supergloo  interface{} `json:"supergloo,omitempty"`
+	Prometheus interface{} `json:"prometheus,omitempty"`
 }
 
 type Namespace struct {
