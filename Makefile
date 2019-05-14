@@ -173,7 +173,7 @@ docker-push: must docker glooshot-docker-push manifest
 .PHONY: release
 release: must render-yaml docker-push
 # note, this only releases when TAGGED_VERSION has been set
-	go run ci/upload_github_release_assets.go
+	CGO_ENABLED=0 go run ci/upload_github_release_assets.go
 
 
 
