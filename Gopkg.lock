@@ -895,14 +895,6 @@
   version = "v0.1"
 
 [[projects]]
-  digest = "1:9421f6e9e28ef86933e824b5caff441366f2b69bb281085b9dca40e1f27a1602"
-  name = "github.com/shurcooL/sanitized_anchor_name"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "7bfe4c7ecddb3666a94b053b422cdd8f5aaa3615"
-  version = "v1.0.0"
-
-[[projects]]
   digest = "1:2b8e271bb87ca65fda510cb6abf7e81958e8f286fa2e8adeb6521cfc28994f3a"
   name = "github.com/solo-io/build"
   packages = [
@@ -1921,7 +1913,6 @@
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/types",
     "github.com/golang/mock/gomock",
-    "github.com/google/go-github/github",
     "github.com/hashicorp/go-multierror",
     "github.com/olekukonko/tablewriter",
     "github.com/onsi/ginkgo",
@@ -1976,7 +1967,6 @@
     "go.opencensus.io/trace",
     "go.uber.org/multierr",
     "go.uber.org/zap",
-    "golang.org/x/oauth2",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
