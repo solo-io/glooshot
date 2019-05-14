@@ -18,10 +18,10 @@ steps:
 
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
-  args: ['-c', 'docker login docker.io --username soloiobot --password $$DOCKER_HUB_PASSWORD']
-  secretEnv: ['DOCKER_HUB_PASSWORD']
-  id: 'docker-login'
+  args: ['-c', 'docker login quay.io --username "solo-io+solobot" --password $$QUAY_IO_PASSWORD']
+  secretEnv: ['QUAY_IO_PASSWORD']
   waitFor: ['-']
+  id: 'docker-login'
 
 - name: 'gcr.io/cloud-builders/git'
   entrypoint: 'bash'
@@ -115,6 +115,7 @@ steps:
   - name: 'ssh'
     path: /root/.ssh
   waitFor: ['dep', 'check-code-and-docs-gen']
+  secretEnv: ['QUAY_IO_PASSWORD']
   id: 'build-for-test'
 
 - name: 'gcr.io/$PROJECT_ID/e2e-ginkgo:0.1.5'
@@ -163,7 +164,7 @@ steps:
   - name: 'ssh'
     path: /root/.ssh
   waitFor: ['installation-tests']
-  secretEnv: ['GITHUB_TOKEN', 'DOCKER_HUB_PASSWORD']
+  secretEnv: ['GITHUB_TOKEN', 'QUAY_IO_PASSWORD']
   id: 'release'
 
   # Sync helm chart data back to google storage bucket
@@ -182,7 +183,7 @@ secrets:
 - kmsKeyName: projects/gloo-ee/locations/global/keyRings/build/cryptoKeys/build-key
   secretEnv:
     GITHUB_TOKEN: CiQAwdWthrSJ1uI5Ao/LnmX8OzXmA5TNCtDpeV6JdNouaGh5vpwSUQD5SXFIkCBvnu/wYDSGwgWNJaQV75wP/kDephn5GGuGCe0EGFXXE54zyH8iHRL45Uq0s39SoHEyYoZXF2Qla8IbKGAKswPRViYSChPthQILdA==
-    DOCKER_HUB_PASSWORD: CiQAwdWthjBCYCvT4dzVr1GcKXZhJe+gdSqXaNm7lJ4tHaoBPDISTQD5SXFIDVKxAT5OBQZnkSQpXBIVSUurefR+ry5f4kUqOYho5gONkdtrklW9Wxk4G3oBz8Z5042/GBG6vgjFyUdBBo9ETQirhMA+PH0x
+    QUAY_IO_PASSWORD: CiQAwdWthknPPz3v+xcbHWaCRhuSisUqPrkn6sQJxbo7SaI9iucSaQD5SXFILt6uY5C4xcuuzDcZXml2FXnRBg9Uk6BDJebycORdyslJz9iVEWeTrFZoOyHh5aDTLQhuNEmW4znFnleICVdasJtwFE9VIJCU5OGCgkTFdfGGvMx8up37ST9MwDYUPCB1vqLL1w==
 
 tags: ['glooshot']
 
