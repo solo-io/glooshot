@@ -25,16 +25,15 @@ To follow this demo, you will need the following:
 
 ## Setup
 
+### Deploy Glooshot
 
-- Initialize supergloo
+- Glooshot can easily be deployed from the command line tool.
+  - This will put Glooshot in the `glooshot` namespace.
 ```bash
-supergloo init
+glooshot init
 ```
-- Verify that supergloo is ready
-  - When the three supergloo pods are ready, you are all set to install a service mesh.
-```
-kubectl get pods -n supergloo-system -w
-```
+
+### Install a service mesh (if you have not already)
 
 - Install a service mesh.
   - We will use Istio for this tutorial.
@@ -55,6 +54,8 @@ kubectl get pods -n istio-system -w
 ```bash
 kubectl label namespace default istio-injection=enabled
 ```
+
+### Deploy the bookinfo app
 
 - Now deploy the bookinfo app to the default namespace
 ```bash
@@ -87,14 +88,6 @@ supergloo apply routingrule trafficshifting \
     --destination supergloo-system.default-reviews-v4-9080:1
 ```
 
-## Deploy Glooshot
-
-- Glooshot can easily be deployed from a helm chart:
-```bash
-##### TODO #####
-##### USE HELM #####
-kubectl apply -f 
-```
 
 ## Create an experiment
 

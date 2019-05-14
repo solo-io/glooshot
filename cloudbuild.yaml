@@ -86,7 +86,7 @@ steps:
   waitFor: ['dep']
   id: 'check-format'
 
-- name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
+- name: 'gcr.io/$PROJECT_ID/go-make:0.1.8'
   entrypoint: 'bash'
   args: ['ci/check-code-and-docs-gen.sh']
   env:
@@ -101,7 +101,7 @@ steps:
   waitFor: ['dep']
   id: 'check-code-and-docs-gen'
 
-- name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
+- name: 'gcr.io/$PROJECT_ID/go-make:0.1.8'
   args: ['docker-push', 'render-yaml']
   env:
   - 'PROJECT_ROOT=github.com/solo-io/glooshot'
@@ -150,7 +150,7 @@ steps:
   waitFor: ['test', 'docker-login']
   id: 'installation-tests'
 
-- name: 'gcr.io/$PROJECT_ID/go-make:0.1.5'
+- name: 'gcr.io/$PROJECT_ID/go-make:0.1.8'
   args: ['release']
   env:
   - 'PROJECT_ROOT=github.com/solo-io/glooshot'
