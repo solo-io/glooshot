@@ -89,9 +89,9 @@ kubectl port-forward -n default deployment/productpage-v1 9080
 supergloo apply routingrule trafficshifting \
     --namespace glooshot \
     --name reviews-v4 \
-    --dest-upstreams supergloo-system.default-reviews-9080 \
-    --target-mesh supergloo-system.istio \
-    --destination supergloo-system.default-reviews-v4-9080:1
+    --dest-upstreams glooshot.default-reviews-9080 \
+    --target-mesh glooshot.istio \
+    --destination glooshot.default-reviews-v4-9080:1
 ```
 
 
@@ -122,14 +122,14 @@ spec:
     faults:
     - destinationServices:
       - name: default-ratings-9080
-        namespace: supergloo-system
+        namespace: glooshot
       fault:
         abort:
           httpStatus: 500
         percentage: 100
     targetMesh:
       name: istio
-      namespace: supergloo-system
+      namespace: glooshot
 EOF
 ```
 
@@ -162,18 +162,18 @@ k get exp abort-ratings-metric -o yaml
 - Let's deploy a version of the app that does not have this vulnerability. Instead of failing when no data is returned from the ratings service, the more robust version of our app will just exclude the ratings content.
 - In this demo, we happened to already have deployed this version of the app. Let's use Supergloo to update Istio so that all traffic is routed to the robust version of the app, as we did above.
 ```bash
-kubectl delete routingrule -n supergloo-system reviews-v4
+kubectl delete routingrule -n glooshot reviews-v4
 supergloo apply routingrule trafficshifting \
     --namespace glooshot \
     --name reviews-v3 \
-    --dest-upstreams supergloo-system.default-reviews-9080 \
-    --target-mesh supergloo-system.istio \
-    --destination supergloo-system.default-reviews-v3-9080:1
+    --dest-upstreams glooshot.default-reviews-9080 \
+    --target-mesh glooshot.istio \
+    --destination glooshot.default-reviews-v3-9080:1
 ```
 
 - Verify that the new routing rule was applied
   - Refresh the page, you should see no errors
-  - Run the following command, you should see `reviews-v3` in the `supergloo-system` namespace
+  - Run the following command, you should see `reviews-v3` in the `glooshot` namespace
 ```bash
 kubectl get routingrule --all-namespaces
 ```
@@ -201,14 +201,14 @@ spec:
     faults:
     - destinationServices:
       - name: default-ratings-9080
-        namespace: supergloo-system
+        namespace: glooshot
       fault:
         abort:
           httpStatus: 500
         percentage: 100
     targetMesh:
       name: istio
-      namespace: supergloo-system
+      namespace: glooshot
 EOF
 ```
 
