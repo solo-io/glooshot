@@ -173,7 +173,7 @@ docker-push: must docker glooshot-docker-push manifest
 .PHONY: release
 release: must render-yaml docker-push
 # note, this only releases when TAGGED_VERSION has been set
-	CGO_ENABLED=0 go run ci/upload_github_release_assets.go
+	go run ci/upload_github_release_assets.go
 
 
 
@@ -219,7 +219,7 @@ generated-code: must $(OUTPUT_DIR)/.generated-code
 
 SUBDIRS:=pkg cmd ci
 $(OUTPUT_DIR)/.generated-code:
-	go generate ./...
+	CGO_ENABLED=0 go generate ./...
 	gofmt -w $(SUBDIRS)
 	goimports -w $(SUBDIRS)
 	mkdir -p $(OUTPUT_DIR)
