@@ -40,9 +40,9 @@ glooshot init
   - We will use Supergloo to install Istio with Prometheus.
 
 ```bash
-supergloo install istio-istio-system \
+supergloo install istio \
     --namespace glooshot \
-    --name istio \
+    --name istio-istio-system \
     --installation-namespace istio-system \
     --mtls=true \
     --auto-inject=true
