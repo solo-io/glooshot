@@ -1,4 +1,6 @@
 apiVersion: v1
 description: Bookinfo is a sample app from the makers of Istio for testing out service mesh features.
 name: bookinfo
+version: 0.0.2
 appVersion: 0.0.2
+tillerVersion: ">=2.7.2"
