@@ -87,6 +87,7 @@ kubectl port-forward -n default deployment/productpage-v1 9080
   - Now when you refresh the page, the stars should always be red.
 ```bash
 supergloo apply routingrule trafficshifting \
+    --namespace glooshot \
     --name reviews-v4 \
     --dest-upstreams supergloo-system.default-reviews-9080 \
     --target-mesh supergloo-system.istio \
@@ -163,10 +164,11 @@ k get exp abort-ratings-metric -o yaml
 ```bash
 kubectl delete routingrule -n supergloo-system reviews-v4
 supergloo apply routingrule trafficshifting \
-          --name reviews-v3 \
-          --dest-upstreams supergloo-system.default-reviews-9080 \
-          --target-mesh supergloo-system.istio \
-          --destination supergloo-system.default-reviews-v3-9080:1
+    --namespace glooshot \
+    --name reviews-v3 \
+    --dest-upstreams supergloo-system.default-reviews-9080 \
+    --target-mesh supergloo-system.istio \
+    --destination supergloo-system.default-reviews-v3-9080:1
 ```
 
 - Verify that the new routing rule was applied
