@@ -40,7 +40,7 @@ glooshot init
   - We will use Supergloo to install Istio with Prometheus.
 
 ```bash
-supergloo install istio \
+supergloo install istio-istio-system \
     --namespace glooshot \
     --name istio \
     --installation-namespace istio-system \
@@ -64,7 +64,7 @@ kubectl label namespace default istio-injection=enabled
 
 - Now deploy the bookinfo app to the default namespace
 ```bash
-kubectl apply -f bookinfo.yaml
+kubectl apply -f https://raw.githubusercontent.com/solo-io/glooshot/master/examples/bookinfo/bookinfo.yaml
 ```
 
 - Verify that the app is ready.
@@ -77,7 +77,7 @@ kubectl get pods -n default -w
   - Execute the command below.
   - Navigate to http://localhost:9080/productpage?u=normal in your browser.
   - You should see a book description, reviews, and ratings - each provided by their respective services.
-  - Reload the page a few times, notice that the ratings section changes. Sometimes there are no stars, other times red or black stars appear.. This is because Istio is load balancing across the four versions of the reviews service. Each reviews service renders the ratings data in a slightly different way.
+  - Reload the page a few times, notice that the ratings section changes. Sometimes there are no stars, other times red or black stars appear. This is because Istio is load balancing across the four versions of the reviews service. Each reviews service renders the ratings data in a slightly different way.
 ```bash
 kubectl port-forward -n default deployment/productpage-v1 9080
 ```
@@ -90,7 +90,7 @@ supergloo apply routingrule trafficshifting \
     --namespace glooshot \
     --name reviews-v4 \
     --dest-upstreams glooshot.default-reviews-9080 \
-    --target-mesh glooshot.istio \
+    --target-mesh glooshot.istio-istio-system \
     --destination glooshot.default-reviews-v4-9080:1
 ```
 
@@ -128,7 +128,7 @@ spec:
           httpStatus: 500
         percentage: 100
     targetMesh:
-      name: istio
+      name: istio-istio-system
       namespace: glooshot
 EOF
 ```
@@ -138,7 +138,7 @@ EOF
 - Within 15 seconds after the threshold value is exceeded you should see the error go away. The experiment stop condition has been met and the fault that caused this cascading failure has been removed.
 - Inspect the experiment results with the following command:
 ```bash
-k get exp abort-ratings-metric -o yaml
+kubectl get exp abort-ratings-metric -o yaml
 ```
 
 - You should see something like this:
@@ -167,7 +167,7 @@ supergloo apply routingrule trafficshifting \
     --namespace glooshot \
     --name reviews-v3 \
     --dest-upstreams glooshot.default-reviews-9080 \
-    --target-mesh glooshot.istio \
+    --target-mesh glooshot.istio-istio-system \
     --destination glooshot.default-reviews-v3-9080:1
 ```
 
@@ -207,7 +207,7 @@ spec:
           httpStatus: 500
         percentage: 100
     targetMesh:
-      name: istio
+      name: istio-istio-system
       namespace: glooshot
 EOF
 ```
@@ -219,7 +219,7 @@ EOF
 
 - Let's inspect the experiment results:
 ```bash
-kubectl get exp abort-ratings-metric -o yaml
+kubectl get exp abort-ratings-metric-repeat -o yaml
 ```
 
 - You should see that the experiment exceeded, after having run for the entire time limit.
