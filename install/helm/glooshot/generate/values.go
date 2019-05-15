@@ -30,8 +30,9 @@ type Image struct {
 }
 
 type DeploymentSpec struct {
-	Replicas int  `json:"replicas"`
-	Stats    bool `json:"stats"`
+	Replicas      int    `json:"replicas"`
+	Stats         bool   `json:"stats"`
+	PrometheusUrl string `json:"prometheusUrl"`
 }
 
 type Settings struct {

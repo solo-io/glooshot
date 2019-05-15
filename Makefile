@@ -14,7 +14,7 @@ RELEASE := $(shell ${BUILD_CMD} parse-env release)
 VERSION := $(shell ${BUILD_CMD} parse-env version)
 IMAGE_TAG := $(shell ${BUILD_CMD} parse-env image-tag)
 CONTAINER_REPO_ORG := $(shell ${BUILD_CMD} parse-env container-prefix)
-HELM_REPO := $(shell ${BUILD_CMD} parse-env helm-repo)
+helm_repo := $(shell ${BUILD_CMD} parse-env helm-repo)
 
 # use this, or the shorter alias "must", as a dependency for any target that uses
 # values produced by the build tool
@@ -25,7 +25,7 @@ validate-computed-values:
 		$(VERSION) \
 		$(CONTAINER_REPO_ORG) \
 		$(IMAGE_TAG) \
-		$(HELM_REPO)
+		$(helm_repo)
 
 .PHONY: preview-computed-values
 preview-computed-values: must
@@ -34,7 +34,7 @@ preview-computed-values: must
 		version: $(VERSION), \
 		container-prefix: $(CONTAINER_REPO_ORG), \
 		image-tag: $(IMAGE_TAG), \
-		helm-repo: $(HELM_REPO)
+		helm-repo: $(helm_repo)
 
 #### END OF MANAGED PORTION
 
@@ -115,10 +115,11 @@ $(OUTPUT_DIR)/glooshot-docker: glooshot-operator $(OUTPUT_DIR)/Dockerfile.gloosh
 
 HELM_SYNC_DIR := $(OUTPUT_DIR)/helm
 HELM_DIR := install/helm/$(SOLO_NAME)
+MANIFEST_DIR := install/manifest
 INSTALL_NAMESPACE ?= $(SOLO_NAME)
 
 .PHONY: manifest
-manifest: prepare-helm init-helm install/$(SOLO_NAME).yaml update-helm-chart
+manifest: manifest fetch-helm-repo prepare-helm init-helm install/$(SOLO_NAME).yaml update-helm-chart
 
 # creates Chart.yaml, values.yaml
 .PHONY: prepare-helm
@@ -144,6 +145,21 @@ install/$(SOLO_NAME).yaml: prepare-helm init-helm
 .PHONY: render-yaml
 render-yaml: must install/$(SOLO_NAME).yaml
 
+### Recipes to pull/push from remote chart repository
+.PHONY: fetch-helm-repo
+fetch-helm-repo: must helm-dirs
+	gsutil -m rsync -r $(helm_repo) $(HELM_SYNC_DIR)
+
+.PHONY: push-helm-repo
+push-helm-repo: must helm-dirs
+	gsutil -m rsync -r $(HELM_SYNC_DIR) $(helm_repo)
+
+### Creates required directories
+.PHONY: helm-dirs
+helm-dirs:
+	mkdir -p $(MANIFEST_DIR)
+	mkdir -p $(HELM_SYNC_DIR)/charts
+
 #----------------------------------------------------------------------------------
 # MAIN TARGETS
 #----------------------------------------------------------------------------------
@@ -152,7 +168,7 @@ render-yaml: must install/$(SOLO_NAME).yaml
 docker: must glooshot-cli glooshot-operator glooshot-docker
 
 .PHONY: docker-push
-docker-push: must docker glooshot-docker-push
+docker-push: must docker glooshot-docker-push manifest
 
 .PHONY: release
 release: must render-yaml docker-push
@@ -203,7 +219,7 @@ generated-code: must $(OUTPUT_DIR)/.generated-code
 
 SUBDIRS:=pkg cmd ci
 $(OUTPUT_DIR)/.generated-code:
-	go generate ./...
+	CGO_ENABLED=0 go generate ./...
 	gofmt -w $(SUBDIRS)
 	goimports -w $(SUBDIRS)
 	mkdir -p $(OUTPUT_DIR)

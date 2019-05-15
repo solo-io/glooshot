@@ -1,6 +1,18 @@
 package version
 
-var Version = "dev" // this value will be overwritten by the linker
+var (
+	UndefinedVersion = "undefined"
+
+	// default version set if running without setting TAGGED_VERSION in env
+	DevVersion = "dev"
+
+	// This will be set by the linker during build
+	Version = UndefinedVersion
+)
+
+func IsReleaseVersion() bool {
+	return Version != UndefinedVersion && Version != DevVersion
+}
 
 const AppName = "glooshot"
 const CliAppName = "glooshot"
