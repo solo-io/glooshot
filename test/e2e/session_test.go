@@ -59,6 +59,11 @@ var _ = Describe("Glooshot", func() {
 			kubeClient: kubeClient,
 		}
 		createMesh(cs.meshClient, namespace, meshName)
+		// TODO(mitchdraft) - restore when prometheus is deployed to the test env.
+		if os.Getenv("CI_TESTS") == "1" {
+			fmt.Printf("this test is disabled in CI. to run, ensure env var `CI_TESTS` is not set to 1")
+			return
+		}
 		go func() {
 			defer GinkgoRecover()
 			testOpts := options.DefaultOpts()
