@@ -18,7 +18,7 @@ spec:
       initContainers:
         - name: await-prometheus
           image: busybox:1.30.1
-          command: ['sh', '-c', 'sleep 90']
+          command: ['sh', '-c', 'until wget {{ .Values.glooshot.deployment.prometheusUrl }} -O /dev/null; do echo waiting for prometheus; sleep 1; done;']
       serviceAccountName: glooshot-serviceaccount
       containers:
       - image: "{{ .Values.glooshot.deployment.image.repository }}:{{ .Values.glooshot.deployment.image.tag }}"
