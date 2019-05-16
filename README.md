@@ -14,87 +14,35 @@ Gloo Shot is a chaos engineering framework for service meshes.
 &nbsp; [**Twitter**](https://twitter.com/soloio_inc)
 
 
-## Summary
-
-- [**Using Gloo Shot**](#using-gloo)
-- [**What makes Gloo Shot unique**](#what-makes-gloo-unique)
-
-
 ## Using Gloo Shot
 - **Harden your mesh**: Gloo Shot allows you to test failure modes before they occur in production.
 - **Preview architectural changes**: Real deployments have different performance characteristics than your production environment. Gloo Shot allows you to simulate your productionn environment (latency, faults, etc.) prior to deployment.
 
+### Getting started
+
+- Gloo Shot is easy to [install](glooshot.solo.io/installation/install/) from the `glooshot` command line tool.
+  - Once Gloo Shot is installed, you can trigger experiments with familiar `kubectl` commands.
+  - Please see our [getting started tutorial](glooshot.solo.io/tutorial/bookinfo_tutorial/) for a quick start usage overview.
+
+### Experiment specification
+
+- Gloo Shot has an expressive API for designing targeted experiments in your service mesh.
+- You can specify [fault injections](glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#faultinjection) in the form of:
+  - [Response delays](glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#delay) - simulate network delays
+  - [Aborted responses](glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#abort) - simulate outages
+- These faults can be applied to any [upstream](https://gloo.solo.io/v1/github.com/solo-io/gloo/projects/gloo/api/v1/upstream.proto.sk/#Upstream) for all requests or for a specified precentage of the requests.
+  - In an upcoming release, Gloo Shot will support even more [target selectors](https://supergloo.solo.io/v1/github.com/solo-io/supergloo/api/v1/selector.proto.sk/)
+- Experiments automatically terminate according to your specification.
+  - Failure condition - [Prometheus](https://prometheus.io/) metric value threshold or a custom webhook
+  - Timeout - if none of the metric thresholds are exceeded, Gloo Shot will terminate the experiment after a set duration.
+
 
 ## What makes Gloo Shot unique
-- **Integration with the most popular service meshes**: Gloo Shot was designed for service mesh environments. It leverages [Supergloo](https://supergloo.solo.io/) for a consistent interface to multiple different service meshes.
+- **Integration with service meshes**: Gloo Shot was designed for service mesh environments. It leverages [Supergloo](https://supergloo.solo.io/) for a consistent interface to multiple different service meshes.
+- **Kubernetes-native experiment specifications**: Gloo Shot's configuration resources are specified in Custom Resource Definitions (CRDs) which means that you can manage experiments with familiar `kubectl` commands.
 
-## Getting started
-- Glooshot works on top of Supergloo.
-- The steps below will guide you through a complete chaos engineering session.
-- Just point your `kubectl` config to the desired cluster (or `minikube`) and let's begin!
-### Install Supergloo
-- The latest release of `supergloo` can be found [here](https://github.com/solo-io/supergloo/releases).
-- Additional details are available on the [supergloo website](https://supergloo.solo.io/installation/).
-- Initialize `supergloo` and deploy Isto:
-```bash
-supergloo init
-supergloo install istio --name istio \
-  --installation-namespace istio-system \
-  --mtls=true --auto-inject=true
-```
-### Deploy a sample app
-- Here is a summary of how to get started with a sample bookstore app:
-```bash
-supergloo init
-supergloo install istio --name istio \
-  --installation-namespace istio-system \
-  --mtls=true --auto-inject=true
-kubectl apply -n default -f \
-  https://raw.githubusercontent.com/istio/istio/1.0.6/samples/bookinfo/platform/kube/bookinfo.yaml
-```
-- Verify that your app has been deployed
-```bash
-kubectl port-forward -n default deployment/productpage-v1 9080
-```
-- Visit http://localhost:9080/productpage?u=test in your browser and you should see the bookstore app.
-### Install Glooshot
-- The latest release of `glooshot` is available [here](https://github.com/solo-io/glooshot/releases)
-- Glooshot requires no setup, just define the Experiment you want to run. Let's get started with a delay:
-- Define an experiment with a delay, and save it to `delay.yaml`
-```yaml
-apiVersion: glooshot.solo.io/v1
-kind: Experiment
-metadata:
-  name: sample
-  namespace: default
-spec:
-  spec:
-    faults:
-    - fault:
-        delay:
-          fixedDelay: 1s
-          percentage: 100
-      service:
-        upstream:
-          name: todo
-          namespace: default
-    stopCondition:
-      duration: 60s
-      metric:
-      - metricName: dinner
-        value: 1800
 
-```
-- Now create that resource with:
-```bash
-glooshot apply -f delay.yaml
-```
-- Verify that it has been applied with:
-```bash
-glooshot get experiments
-```
-
-## Next Steps
+### Next Steps
 - Join us on our slack channel: [https://slack.solo.io/](https://slack.solo.io/)
 - Follow us on Twitter: [https://twitter.com/soloio_inc](https://twitter.com/soloio_inc)
 - Check out the docs: [https://gloo.solo.io](https://gloo.solo.io)
@@ -104,4 +52,3 @@ glooshot get experiments
 ### Thanks
 
 **Gloo Shot** would not be possible without the valuable open-source work of projects in the community. We would like to extend a special thank-you to [Envoy](https://www.envoyproxy.io).
-
