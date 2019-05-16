@@ -60,6 +60,32 @@ kubectl get pods -n istio-system -w
 kubectl label namespace default istio-injection=enabled
 ```
 
+### Provide metric source configuration to Prometheus
+
+Prometheus is a powerful tool for aggregating metrics. To use Prometheus most effectively, you need to tell it where it
+can find metrics by specifying a list of [scrape configs](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#scrape_config).
+
+Here is an [example config](https://github.com/morvencao/istio/blob/036f689ae211cd320d68412eb42916d2debb1b73/install/kubernetes/helm/istio/charts/prometheus/templates/configmap.yaml#L15) for how Istio's metrics should be handled by Prometheus.
+As you can see, scrape configs that are both insightful and resource-efficient can be quite complicated.
+Additionally, managing Prometheus configs for multiple scrape targets can be difficult.
+
+Fortunately, Supergloo provides a powerful utility for configuring your Prometheus instance in such a way that is
+appropriate for your chosen service mesh.
+
+By default, `glooshot init` deploys an instance of Prometheus (this can be disabled).
+For best results, you should configure this instance of Prometheus with the metrics that are relevant to your particular service mesh.
+We will use the `supergloo set mesh stats` utility for this.
+
+```bash
+supergloo set mesh stats \
+    --target-mesh glooshot.istio-istio-system \
+    --prometheus-configmap glooshot.glooshot-prometheus-server
+```
+
+Note that we just had to tell Supergloo where to find the mesh description and where to find the config map that we want to update.
+Supergloo knows which metrics are appropriate for the target mesh and sets these on the active prometheus config map.
+You can find more details on setting Prometheus configurations with Supergloo [here](https://supergloo.solo.io/tutorials/istio/tutorials-3-prometheus-metrics/).
+
 ### Deploy the bookinfo app
 
 - Now deploy the bookinfo app to the default namespace
