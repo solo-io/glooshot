@@ -1,25 +1,26 @@
 apiVersion: glooshot.solo.io/v1
 kind: Experiment
 metadata:
-  name: abort-ratings
+  name: abort-ratings-metric
   namespace: default
 spec:
   spec:
-    duration: 300s
+    duration: 600s
     failureConditions:
-      - prometheusTrigger:
-          customQuery: |
-            scalar(sum(istio_requests_total{ source_app="productpage",response_code="500"}))
-          thresholdValue: 800
-          comparisonOperator: ">"
+      - trigger:
+          prometheus:
+            customQuery: |
+              scalar(sum(istio_requests_total{ source_app="productpage",response_code="500"}))
+            thresholdValue: 10
+            comparisonOperator: ">"
     faults:
     - destinationServices:
       - name: default-ratings-9080
-        namespace: supergloo-system
+        namespace: glooshot
       fault:
         abort:
-          httpStatus: 500 
+          httpStatus: 500
         percentage: 100
     targetMesh:
-      name: istio
-      namespace: supergloo-system
+      name: istio-istio-system
+      namespace: glooshot
