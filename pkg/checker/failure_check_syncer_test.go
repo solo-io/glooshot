@@ -24,6 +24,7 @@ var _ = Describe("FailureCheckSyncer", func() {
 
 	var (
 		experiments v1.ExperimentClient
+		reports     v1.ReportClient
 		checker     ExperimentChecker
 		prom        *mockPromClient
 	)
@@ -35,8 +36,9 @@ var _ = Describe("FailureCheckSyncer", func() {
 		}
 		queries := promquery.NewQueryPubSub(context.TODO(), prom, time.Millisecond)
 		experiments, err = v1.NewExperimentClient(&factory.MemoryResourceClientFactory{Cache: memory.NewInMemoryResourceCache()})
+		reports, err = v1.NewReportClient(&factory.MemoryResourceClientFactory{Cache: memory.NewInMemoryResourceCache()})
 		Expect(err).NotTo(HaveOccurred())
-		checker = NewChecker(queries, experiments)
+		checker = NewChecker(queries, experiments, reports)
 	})
 
 	It("does not leak goroutines", func() {

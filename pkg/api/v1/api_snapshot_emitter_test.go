@@ -16,7 +16,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/factory"
 	kuberc "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients/memory"
 	"github.com/solo-io/solo-kit/test/helpers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -62,8 +61,10 @@ var _ = Describe("V1Emitter", func() {
 		experimentClient, err = NewExperimentClient(experimentClientFactory)
 		Expect(err).NotTo(HaveOccurred())
 		// Report Constructor
-		reportClientFactory := &factory.MemoryResourceClientFactory{
-			Cache: memory.NewInMemoryResourceCache(),
+		reportClientFactory := &factory.KubeResourceClientFactory{
+			Crd:         ReportCrd,
+			Cfg:         cfg,
+			SharedCache: kuberc.NewKubeCache(context.TODO()),
 		}
 
 		reportClient, err = NewReportClient(reportClientFactory)

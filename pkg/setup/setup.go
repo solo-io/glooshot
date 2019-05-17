@@ -63,6 +63,10 @@ func Run(ctx context.Context, opts options.Opts) error {
 	if err != nil {
 		return err
 	}
+	reportClient, err := gsutil.GetReportClient(ctx, true)
+	if err != nil {
+		return err
+	}
 
 	promClient, err := api.NewClient(api.Config{Address: opts.PrometheusURL})
 	if err != nil {
@@ -75,7 +79,7 @@ func Run(ctx context.Context, opts options.Opts) error {
 	}
 
 	promCache := promquery.NewQueryPubSub(ctx, promApi, opts.PrometheusPollingInterval)
-	failureChecker := checker.NewChecker(promCache, expClient)
+	failureChecker := checker.NewChecker(promCache, expClient, reportClient)
 
 	syncers := []v1.ApiSyncer{
 		starter.NewExperimentStarter(expClient),

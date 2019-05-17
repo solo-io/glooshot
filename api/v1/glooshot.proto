@@ -150,8 +150,10 @@ message Report {
     // the object metadata for this resource
     core.solo.io.Metadata metadata = 1 [(gogoproto.nullable) = false];
 
+    core.solo.io.Status status = 3 [(gogoproto.nullable) = false];
+
     // Name of the experiment this report pertains to
-    core.solo.io.ResourceRef experiment = 2;
+    core.solo.io.ResourceRef experiment = 4;
 
     message FailureConditionSnapshot {
         // return type for simple metrics queries
@@ -169,5 +171,5 @@ message Report {
     }
 
     // the measured values of each of the failure conditions at the time the report was captured
-    repeated FailureConditionHistory failure_condition_history = 3;
+    repeated FailureConditionHistory failure_condition_history = 5;
 }

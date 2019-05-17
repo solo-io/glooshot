@@ -27,6 +27,10 @@ func (r *Report) SetMetadata(meta core.Metadata) {
 	r.Metadata = meta
 }
 
+func (r *Report) SetStatus(status core.Status) {
+	r.Status = status
+}
+
 func (r *Report) Hash() uint64 {
 	metaCopy := r.GetMetadata()
 	metaCopy.ResourceVersion = ""
@@ -53,6 +57,14 @@ func (list ReportList) Find(namespace, name string) (*Report, error) {
 
 func (list ReportList) AsResources() resources.ResourceList {
 	var ress resources.ResourceList
+	for _, report := range list {
+		ress = append(ress, report)
+	}
+	return ress
+}
+
+func (list ReportList) AsInputResources() resources.InputResourceList {
+	var ress resources.InputResourceList
 	for _, report := range list {
 		ress = append(ress, report)
 	}

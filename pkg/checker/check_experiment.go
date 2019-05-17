@@ -32,9 +32,10 @@ type checker struct {
 	snapshotLock         sync.RWMutex
 }
 
-func NewChecker(queries promquery.QueryPubSub, experiments v1.ExperimentClient) *checker {
+func NewChecker(queries promquery.QueryPubSub, experiments v1.ExperimentClient, reports v1.ReportClient) *checker {
 	return &checker{promCache: queries,
 		experiments:          experiments,
+		reports:              reports,
 		queryResultHistories: make(map[string]*v1.Report_FailureConditionHistory)}
 }
 
@@ -258,13 +259,15 @@ func (c *checker) produceReport(ctx context.Context, exp *v1.Experiment) error {
 	c.snapshotLock.Lock()
 	defer c.snapshotLock.Unlock()
 	var histories []*v1.Report_FailureConditionHistory
-	for _, fc := range exp.Spec.FailureConditions {
-		fcHistory, ok := c.queryResultHistories[fc.Name]
-		if !ok {
-			contextutils.LoggerFrom(ctx).Warnw("no measurement history for failure condition found",
-				"failureCondition", fc.Name)
+	if exp.Spec != nil {
+		for _, fc := range exp.Spec.FailureConditions {
+			fcHistory, ok := c.queryResultHistories[fc.Name]
+			if !ok {
+				contextutils.LoggerFrom(ctx).Warnw("no measurement history for failure condition found",
+					"failureCondition", fc.Name)
+			}
+			histories = append(histories, fcHistory)
 		}
-		histories = append(histories, fcHistory)
 	}
 	expRef := exp.Metadata.Ref()
 	report := &v1.Report{

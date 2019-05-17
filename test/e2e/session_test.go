@@ -67,7 +67,7 @@ var _ = Describe("Glooshot", func() {
 		go func() {
 			defer GinkgoRecover()
 			testOpts := options.DefaultOpts()
-			testOpts.PrometheusURL = "http://localhost:9099"
+			testOpts.PrometheusURL = "http://localhost:9090"
 			err := setup.Run(ctx, testOpts)
 			By(fmt.Sprintf("goroutine running with error: %v", err))
 			Expect(err).NotTo(HaveOccurred())

@@ -63,6 +63,9 @@ func (s *experimentStarter) writeAsStarted(ctx context.Context, experimentToStar
 
 func validateOrGenerateFailureConditionNames(exp *v1.Experiment) error {
 	nameMap := make(map[string]bool)
+	if exp.Spec == nil {
+		return nil
+	}
 	for i, fc := range exp.Spec.FailureConditions {
 		if fc.Name == "" {
 			fc.Name = kubeutils.SanitizeName(fmt.Sprintf("%v-%v", i, time.Now().UnixNano()))

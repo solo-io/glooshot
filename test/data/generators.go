@@ -36,13 +36,15 @@ var destination1 = &core.ResourceRef{"name1", "default"}
 var destination2 = &core.ResourceRef{"name2", "default"}
 
 var basicFailureCondition = &v1.FailureCondition{
-	FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
-		PrometheusTrigger: &v1.PrometheusTrigger{
-			QueryType: &v1.PrometheusTrigger_CustomQuery{
-				CustomQuery: "cpu percent",
+	Trigger: &v1.FailureCondition_Trigger{
+		FailureTrigger: &v1.FailureCondition_Trigger_Prometheus{
+			Prometheus: &v1.PrometheusTrigger{
+				QueryType: &v1.PrometheusTrigger_CustomQuery{
+					CustomQuery: "cpu percent",
+				},
+				ThresholdValue:     10,
+				ComparisonOperator: "",
 			},
-			ThresholdValue:     10,
-			ComparisonOperator: "",
 		},
 	},
 }

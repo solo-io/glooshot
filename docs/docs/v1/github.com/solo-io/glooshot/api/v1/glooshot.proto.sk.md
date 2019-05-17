@@ -231,6 +231,7 @@ a snapshot of experiment metric values
 
 ```yaml
 "metadata": .core.solo.io.Metadata
+"status": .core.solo.io.Status
 "experiment": .core.solo.io.ResourceRef
 "failureConditionHistory": []glooshot.solo.io.Report.FailureConditionHistory
 
@@ -239,6 +240,7 @@ a snapshot of experiment metric values
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `metadata` | [.core.solo.io.Metadata](../../../../solo-kit/api/v1/metadata.proto.sk#metadata) | the object metadata for this resource |  |
+| `status` | [.core.solo.io.Status](../../../../solo-kit/api/v1/status.proto.sk#status) |  |  |
 | `experiment` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | Name of the experiment this report pertains to |  |
 | `failureConditionHistory` | [[]glooshot.solo.io.Report.FailureConditionHistory](../glooshot.proto.sk#failureconditionhistory) | the measured values of each of the failure conditions at the time the report was captured |  |
 
