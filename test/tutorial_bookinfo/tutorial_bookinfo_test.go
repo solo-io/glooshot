@@ -1,4 +1,4 @@
-package e2e
+package tutorial_bookinfo
 
 import (
 	"context"
@@ -36,8 +36,6 @@ var _ = Describe("Glooshot", func() {
 		name1     = "testexperiment1"
 		name2     = "testexperiment2"
 		name3     = "testexperiment3"
-
-		meshName = "basicmesh"
 	)
 
 	BeforeEach(func() {
@@ -61,7 +59,6 @@ var _ = Describe("Glooshot", func() {
 			meshClient: meshClient,
 			kubeClient: kubeClient,
 		}
-		createMesh(cs.meshClient, namespace, meshName)
 		// TODO(mitchdraft) - restore when prometheus is deployed to the test env.
 		if os.Getenv("CI_TESTS") == "1" {
 			fmt.Printf("this test is disabled in CI. to run, ensure env var `CI_TESTS` is not set to 1")
