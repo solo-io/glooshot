@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -55,6 +56,7 @@ var _ = BeforeSuite(func() {
 	setTestResources()
 	setupCluster()
 	setupLabelAppNamespace()
+	setupPromStats()
 
 })
 
@@ -307,6 +309,33 @@ supergloo set mesh stats \
     --target-mesh glooshot.istio-istio-system \
     --prometheus-configmap glooshot.glooshot-prometheus-server
 ```
+*/
+
+func setupPromStats() {
+	if isSetupPromStatsReady() {
+		return
+	}
+	cmd := exec.Command("supergloo", strings.Split("set mesh stats --target-mesh glooshot.istio-istio-system --prometheus-configmap glooshot.glooshot-prometheus-server", " ")...)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(isSetupPromStatsReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+}
+func isSetupPromStatsReady() bool {
+	cm, err := gtr.cs.kubeClient.CoreV1().ConfigMaps(gtr.GlooshotNamespace).Get("glooshot-prometheus-server", metav1.GetOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	for _, v := range cm.Data {
+		// this is one of the metrics that supergloo injects
+		matchV, _ := regexp.MatchString("istio-istio-system-istio-policy", v)
+		if matchV {
+			return true
+		}
+	}
+	return false
+}
+
+/*
 
 Note that we just had to tell SuperGloo where to find the mesh description and where to find the config map that we want to update.
 SuperGloo knows which metrics are appropriate for the target mesh and sets these on the active prometheus config map.
