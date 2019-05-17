@@ -83,6 +83,8 @@ func (c *apiSimpleEmitter) Snapshots(ctx context.Context) (<-chan *ApiSnapshot, 
 					switch typed := res.(type) {
 					case *Experiment:
 						currentSnapshot.Experiments = append(currentSnapshot.Experiments, typed)
+					case *Report:
+						currentSnapshot.Reports = append(currentSnapshot.Reports, typed)
 					default:
 						select {
 						case errs <- fmt.Errorf("ApiSnapshotEmitter "+

@@ -42,16 +42,18 @@ func init() {
 type ApiEmitter interface {
 	Register() error
 	Experiment() ExperimentClient
+	Report() ReportClient
 	Snapshots(watchNamespaces []string, opts clients.WatchOpts) (<-chan *ApiSnapshot, <-chan error, error)
 }
 
-func NewApiEmitter(experimentClient ExperimentClient) ApiEmitter {
-	return NewApiEmitterWithEmit(experimentClient, make(chan struct{}))
+func NewApiEmitter(experimentClient ExperimentClient, reportClient ReportClient) ApiEmitter {
+	return NewApiEmitterWithEmit(experimentClient, reportClient, make(chan struct{}))
 }
 
-func NewApiEmitterWithEmit(experimentClient ExperimentClient, emit <-chan struct{}) ApiEmitter {
+func NewApiEmitterWithEmit(experimentClient ExperimentClient, reportClient ReportClient, emit <-chan struct{}) ApiEmitter {
 	return &apiEmitter{
 		experiment: experimentClient,
+		report:     reportClient,
 		forceEmit:  emit,
 	}
 }
@@ -59,10 +61,14 @@ func NewApiEmitterWithEmit(experimentClient ExperimentClient, emit <-chan struct
 type apiEmitter struct {
 	forceEmit  <-chan struct{}
 	experiment ExperimentClient
+	report     ReportClient
 }
 
 func (c *apiEmitter) Register() error {
 	if err := c.experiment.Register(); err != nil {
+		return err
+	}
+	if err := c.report.Register(); err != nil {
 		return err
 	}
 	return nil
@@ -70,6 +76,10 @@ func (c *apiEmitter) Register() error {
 
 func (c *apiEmitter) Experiment() ExperimentClient {
 	return c.experiment
+}
+
+func (c *apiEmitter) Report() ReportClient {
+	return c.report
 }
 
 func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts) (<-chan *ApiSnapshot, <-chan error, error) {
@@ -94,6 +104,12 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 		namespace string
 	}
 	experimentChan := make(chan experimentListWithNamespace)
+	/* Create channel for Report */
+	type reportListWithNamespace struct {
+		list      ReportList
+		namespace string
+	}
+	reportChan := make(chan reportListWithNamespace)
 
 	for _, namespace := range watchNamespaces {
 		/* Setup namespaced watch for Experiment */
@@ -107,6 +123,17 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 			defer done.Done()
 			errutils.AggregateErrs(ctx, errs, experimentErrs, namespace+"-experiments")
 		}(namespace)
+		/* Setup namespaced watch for Report */
+		reportNamespacesChan, reportErrs, err := c.report.Watch(namespace, opts)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "starting Report watch")
+		}
+
+		done.Add(1)
+		go func(namespace string) {
+			defer done.Done()
+			errutils.AggregateErrs(ctx, errs, reportErrs, namespace+"-reports")
+		}(namespace)
 
 		/* Watch for changes and update snapshot */
 		go func(namespace string) {
@@ -119,6 +146,12 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 					case <-ctx.Done():
 						return
 					case experimentChan <- experimentListWithNamespace{list: experimentList, namespace: namespace}:
+					}
+				case reportList := <-reportNamespacesChan:
+					select {
+					case <-ctx.Done():
+						return
+					case reportChan <- reportListWithNamespace{list: reportList, namespace: namespace}:
 					}
 				}
 			}
@@ -141,6 +174,7 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 			snapshots <- &sentSnapshot
 		}
 		experimentsByNamespace := make(map[string]ExperimentList)
+		reportsByNamespace := make(map[string]ReportList)
 
 		for {
 			record := func() { stats.Record(ctx, mApiSnapshotIn.M(1)) }
@@ -168,6 +202,18 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 					experimentList = append(experimentList, experiments...)
 				}
 				currentSnapshot.Experiments = experimentList.Sort()
+			case reportNamespacedList := <-reportChan:
+				record()
+
+				namespace := reportNamespacedList.namespace
+
+				// merge lists by namespace
+				reportsByNamespace[namespace] = reportNamespacedList.list
+				var reportList ReportList
+				for _, reports := range reportsByNamespace {
+					reportList = append(reportList, reports...)
+				}
+				currentSnapshot.Reports = reportList.Sort()
 			}
 		}
 	}()

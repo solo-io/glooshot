@@ -11,17 +11,20 @@ import (
 
 type ApiSnapshot struct {
 	Experiments ExperimentList
+	Reports     ReportList
 }
 
 func (s ApiSnapshot) Clone() ApiSnapshot {
 	return ApiSnapshot{
 		Experiments: s.Experiments.Clone(),
+		Reports:     s.Reports.Clone(),
 	}
 }
 
 func (s ApiSnapshot) Hash() uint64 {
 	return hashutils.HashAll(
 		s.hashExperiments(),
+		s.hashReports(),
 	)
 }
 
@@ -29,9 +32,14 @@ func (s ApiSnapshot) hashExperiments() uint64 {
 	return hashutils.HashAll(s.Experiments.AsInterfaces()...)
 }
 
+func (s ApiSnapshot) hashReports() uint64 {
+	return hashutils.HashAll(s.Reports.AsInterfaces()...)
+}
+
 func (s ApiSnapshot) HashFields() []zap.Field {
 	var fields []zap.Field
 	fields = append(fields, zap.Uint64("experiments", s.hashExperiments()))
+	fields = append(fields, zap.Uint64("reports", s.hashReports()))
 
 	return append(fields, zap.Uint64("snapshotHash", s.Hash()))
 }
@@ -39,6 +47,7 @@ func (s ApiSnapshot) HashFields() []zap.Field {
 type ApiSnapshotStringer struct {
 	Version     uint64
 	Experiments []string
+	Reports     []string
 }
 
 func (ss ApiSnapshotStringer) String() string {
@@ -49,6 +58,11 @@ func (ss ApiSnapshotStringer) String() string {
 		s += fmt.Sprintf("    %v\n", name)
 	}
 
+	s += fmt.Sprintf("  Reports %v\n", len(ss.Reports))
+	for _, name := range ss.Reports {
+		s += fmt.Sprintf("    %v\n", name)
+	}
+
 	return s
 }
 
@@ -56,5 +70,6 @@ func (s ApiSnapshot) Stringer() ApiSnapshotStringer {
 	return ApiSnapshotStringer{
 		Version:     s.Hash(),
 		Experiments: s.Experiments.NamespacesDotNames(),
+		Reports:     s.Reports.NamespacesDotNames(),
 	}
 }

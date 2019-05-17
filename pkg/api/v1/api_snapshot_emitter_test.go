@@ -16,6 +16,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/factory"
 	kuberc "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients/memory"
 	"github.com/solo-io/solo-kit/test/helpers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -40,6 +41,7 @@ var _ = Describe("V1Emitter", func() {
 		kube             kubernetes.Interface
 		emitter          ApiEmitter
 		experimentClient ExperimentClient
+		reportClient     ReportClient
 	)
 
 	BeforeEach(func() {
@@ -59,7 +61,14 @@ var _ = Describe("V1Emitter", func() {
 
 		experimentClient, err = NewExperimentClient(experimentClientFactory)
 		Expect(err).NotTo(HaveOccurred())
-		emitter = NewApiEmitter(experimentClient)
+		// Report Constructor
+		reportClientFactory := &factory.MemoryResourceClientFactory{
+			Cache: memory.NewInMemoryResourceCache(),
+		}
+
+		reportClient, err = NewReportClient(reportClientFactory)
+		Expect(err).NotTo(HaveOccurred())
+		emitter = NewApiEmitter(experimentClient, reportClient)
 	})
 	AfterEach(func() {
 		err := kubeutils.DeleteNamespacesInParallelBlocking(kube, namespace1, namespace2)
@@ -134,6 +143,63 @@ var _ = Describe("V1Emitter", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotExperiments(nil, ExperimentList{experiment1a, experiment1b, experiment2a, experiment2b})
+
+		/*
+			Report
+		*/
+
+		assertSnapshotReports := func(expectReports ReportList, unexpectReports ReportList) {
+		drain:
+			for {
+				select {
+				case snap = <-snapshots:
+					for _, expected := range expectReports {
+						if _, err := snap.Reports.Find(expected.GetMetadata().Ref().Strings()); err != nil {
+							continue drain
+						}
+					}
+					for _, unexpected := range unexpectReports {
+						if _, err := snap.Reports.Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
+							continue drain
+						}
+					}
+					break drain
+				case err := <-errs:
+					Expect(err).NotTo(HaveOccurred())
+				case <-time.After(time.Second * 10):
+					nsList1, _ := reportClient.List(namespace1, clients.ListOpts{})
+					nsList2, _ := reportClient.List(namespace2, clients.ListOpts{})
+					combined := append(nsList1, nsList2...)
+					Fail("expected final snapshot before 10 seconds. expected " + log.Sprintf("%v", combined))
+				}
+			}
+		}
+		report1a, err := reportClient.Write(NewReport(namespace1, name1), clients.WriteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+		report1b, err := reportClient.Write(NewReport(namespace2, name1), clients.WriteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+
+		assertSnapshotReports(ReportList{report1a, report1b}, nil)
+		report2a, err := reportClient.Write(NewReport(namespace1, name2), clients.WriteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+		report2b, err := reportClient.Write(NewReport(namespace2, name2), clients.WriteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+
+		assertSnapshotReports(ReportList{report1a, report1b, report2a, report2b}, nil)
+
+		err = reportClient.Delete(report2a.GetMetadata().Namespace, report2a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+		err = reportClient.Delete(report2b.GetMetadata().Namespace, report2b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+
+		assertSnapshotReports(ReportList{report1a, report1b}, ReportList{report2a, report2b})
+
+		err = reportClient.Delete(report1a.GetMetadata().Namespace, report1a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+		err = reportClient.Delete(report1b.GetMetadata().Namespace, report1b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+
+		assertSnapshotReports(nil, ReportList{report1a, report1b, report2a, report2b})
 	})
 	It("tracks snapshots on changes to any resource using AllNamespace", func() {
 		ctx := context.Background()
@@ -204,5 +270,62 @@ var _ = Describe("V1Emitter", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotExperiments(nil, ExperimentList{experiment1a, experiment1b, experiment2a, experiment2b})
+
+		/*
+			Report
+		*/
+
+		assertSnapshotReports := func(expectReports ReportList, unexpectReports ReportList) {
+		drain:
+			for {
+				select {
+				case snap = <-snapshots:
+					for _, expected := range expectReports {
+						if _, err := snap.Reports.Find(expected.GetMetadata().Ref().Strings()); err != nil {
+							continue drain
+						}
+					}
+					for _, unexpected := range unexpectReports {
+						if _, err := snap.Reports.Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
+							continue drain
+						}
+					}
+					break drain
+				case err := <-errs:
+					Expect(err).NotTo(HaveOccurred())
+				case <-time.After(time.Second * 10):
+					nsList1, _ := reportClient.List(namespace1, clients.ListOpts{})
+					nsList2, _ := reportClient.List(namespace2, clients.ListOpts{})
+					combined := append(nsList1, nsList2...)
+					Fail("expected final snapshot before 10 seconds. expected " + log.Sprintf("%v", combined))
+				}
+			}
+		}
+		report1a, err := reportClient.Write(NewReport(namespace1, name1), clients.WriteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+		report1b, err := reportClient.Write(NewReport(namespace2, name1), clients.WriteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+
+		assertSnapshotReports(ReportList{report1a, report1b}, nil)
+		report2a, err := reportClient.Write(NewReport(namespace1, name2), clients.WriteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+		report2b, err := reportClient.Write(NewReport(namespace2, name2), clients.WriteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+
+		assertSnapshotReports(ReportList{report1a, report1b, report2a, report2b}, nil)
+
+		err = reportClient.Delete(report2a.GetMetadata().Namespace, report2a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+		err = reportClient.Delete(report2b.GetMetadata().Namespace, report2b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+
+		assertSnapshotReports(ReportList{report1a, report1b}, ReportList{report2a, report2b})
+
+		err = reportClient.Delete(report1a.GetMetadata().Namespace, report1a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+		err = reportClient.Delete(report1b.GetMetadata().Namespace, report1b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
+		Expect(err).NotTo(HaveOccurred())
+
+		assertSnapshotReports(nil, ReportList{report1a, report1b, report2a, report2b})
 	})
 })

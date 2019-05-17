@@ -136,8 +136,14 @@ message PrometheusTrigger {
 
 // a snapshot of experiment metric values
 message Report {
+    option (core.solo.io.resource).short_name = "report";
+    option (core.solo.io.resource).plural_name = "reports";
+
+    // the object metadata for this resource
+    core.solo.io.Metadata metadata = 1 [(gogoproto.nullable) = false];
+
     // Name of the experiment this report pertains to
-    string ExperimentName = 1;
+    string ExperimentName = 2;
 
     // The phase in which the report was captured
     enum CapturePhase {
@@ -152,10 +158,10 @@ message Report {
     }
 
     // the phase during which the progress report was captured
-    CapturePhase capture_phase = 2;
+    CapturePhase capture_phase = 3;
 
     // time the progress report was captured
-    google.protobuf.Timestamp time_started = 3 ;
+    google.protobuf.Timestamp time_started = 4 ;
 
     message FailureConditionValue {
         oneof value {
@@ -167,5 +173,5 @@ message Report {
     }
 
     // the measured values of each of the failure conditions at the time the report was captured
-    repeated FailureConditionValue failure_condition_values = 4;
+    repeated FailureConditionValue failure_condition_values = 5;
 }

@@ -19,6 +19,9 @@ weight: 5
 - [FailureCondition](#failurecondition)
 - [PrometheusTrigger](#prometheustrigger)
 - [SuccessRateQuery](#successratequery)
+- [Report](#report) **Top-Level Resource**
+- [FailureConditionValue](#failureconditionvalue)
+- [CapturePhase](#capturephase)
   
 
 
@@ -195,6 +198,66 @@ returns the # of non-5XX requests / total requests for the given interval
 | ----- | ---- | ----------- |----------- | 
 | `service` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | the service whose success rate Glooshot should monitor |  |
 | `interval` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the time interval over which the success rate should be measured defaults to 1 minute |  |
+
+
+
+
+---
+### Report
+
+ 
+a snapshot of experiment metric values
+
+```yaml
+"metadata": .core.solo.io.Metadata
+"experimentName": string
+"capturePhase": .glooshot.solo.io.Report.CapturePhase
+"timeStarted": .google.protobuf.Timestamp
+"failureConditionValues": []glooshot.solo.io.Report.FailureConditionValue
+
+```
+
+| Field | Type | Description | Default |
+| ----- | ---- | ----------- |----------- | 
+| `metadata` | [.core.solo.io.Metadata](../../../../solo-kit/api/v1/metadata.proto.sk#metadata) | the object metadata for this resource |  |
+| `experimentName` | `string` | Name of the experiment this report pertains to |  |
+| `capturePhase` | [.glooshot.solo.io.Report.CapturePhase](../glooshot.proto.sk#capturephase) | the phase during which the progress report was captured |  |
+| `timeStarted` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | time the progress report was captured |  |
+| `failureConditionValues` | [[]glooshot.solo.io.Report.FailureConditionValue](../glooshot.proto.sk#failureconditionvalue) | the measured values of each of the failure conditions at the time the report was captured |  |
+
+
+
+
+---
+### FailureConditionValue
+
+
+
+```yaml
+"scalarMetric": float
+"string": string
+
+```
+
+| Field | Type | Description | Default |
+| ----- | ---- | ----------- |----------- | 
+| `scalarMetric` | `float` | return type for simple metrics queries |  |
+| `string` | `string` | return type for webhook |  |
+
+
+
+
+---
+### CapturePhase
+
+ 
+The phase in which the report was captured
+
+| Name | Description |
+| ----- | ----------- | 
+| `START` | Experiment has just started |
+| `RUN` | Experiment is currently running |
+| `FINISH` | Experiment has ended |
 
 
 

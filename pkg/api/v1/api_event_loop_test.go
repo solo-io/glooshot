@@ -31,10 +31,18 @@ var _ = Describe("ApiEventLoop", func() {
 		experimentClient, err := NewExperimentClient(experimentClientFactory)
 		Expect(err).NotTo(HaveOccurred())
 
-		emitter = NewApiEmitter(experimentClient)
+		reportClientFactory := &factory.MemoryResourceClientFactory{
+			Cache: memory.NewInMemoryResourceCache(),
+		}
+		reportClient, err := NewReportClient(reportClientFactory)
+		Expect(err).NotTo(HaveOccurred())
+
+		emitter = NewApiEmitter(experimentClient, reportClient)
 	})
 	It("runs sync function on a new snapshot", func() {
 		_, err = emitter.Experiment().Write(NewExperiment(namespace, "jerry"), clients.WriteOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = emitter.Report().Write(NewReport(namespace, "jerry"), clients.WriteOpts{})
 		Expect(err).NotTo(HaveOccurred())
 		sync := &mockApiSyncer{}
 		el := NewApiEventLoop(emitter, sync)
