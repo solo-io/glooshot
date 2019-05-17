@@ -95,13 +95,21 @@ message ExperimentSpec {
 
 // a condition based on an observed prometheus metric
 message FailureCondition {
-    oneof failure_trigger {
-        // if HTTP GET returns non-200 status code, the condition was met
-        string webhook_url = 1;
+    // optional, a name for identifying the failure condition, must be unique
+    // if not provided, will be generated from index
+    string name = 1;
+    // condition that will terminate the experiment
+    message Trigger {
+        oneof failure_trigger {
+            // if HTTP GET returns non-200 status code, the condition was met
+            string webhook_url = 1;
 
-        // trigger a failure on observed prometheus metric
-        PrometheusTrigger prometheus_trigger = 2;
+            // trigger a failure on observed prometheus metric
+            PrometheusTrigger prometheus = 2;
+        }
     }
+    // the condition that will terminate the experiment
+    Trigger trigger = 2;
 }
 
 message PrometheusTrigger {

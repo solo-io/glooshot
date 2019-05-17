@@ -28,14 +28,14 @@ type checker struct {
 	promCache            promquery.QueryPubSub
 	experiments          v1.ExperimentClient
 	reports              v1.ReportClient
-	queryResultSnapshots map[promquery.Query]*v1.Report_FailureConditionHistory
+	queryResultHistories map[string]*v1.Report_FailureConditionHistory
 	snapshotLock         sync.RWMutex
 }
 
 func NewChecker(queries promquery.QueryPubSub, experiments v1.ExperimentClient) *checker {
 	return &checker{promCache: queries,
 		experiments:          experiments,
-		queryResultSnapshots: make(map[promquery.Query]*v1.Report_FailureConditionHistory)}
+		queryResultHistories: make(map[string]*v1.Report_FailureConditionHistory)}
 }
 
 var defaultDuration = time.Minute * 10
@@ -64,15 +64,15 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 	}
 	logger.Infof("beginning monitoring of experiment %v", experiment.Metadata.Ref())
 	for _, fc := range experiment.Spec.FailureConditions {
-		switch trigger := fc.FailureTrigger.(type) {
-		case *v1.FailureCondition_PrometheusTrigger:
-			queryString, comparisonOperator, threshold, err := getPromQuerySpecs(trigger.PrometheusTrigger)
+		switch trigger := fc.Trigger.FailureTrigger.(type) {
+		case *v1.FailureCondition_Trigger_Prometheus:
+			queryString, comparisonOperator, threshold, err := getPromQuerySpecs(trigger.Prometheus)
 			if err != nil {
 				return err
 			}
 
 			go func() {
-				failure, err := c.pollUntilFailure(ctx, promquery.Query(queryString), comparisonOperator, threshold)
+				failure, err := c.pollUntilFailure(ctx, fc.Name, promquery.Query(queryString), comparisonOperator, threshold)
 				if err != nil {
 					logger.Errorw("failure while polling prometheus", zap.Error(err), zap.String("query", queryString))
 					return
@@ -160,7 +160,7 @@ func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
 	return experimentDuration - elapsedTime, nil
 }
 
-func (c *checker) pollUntilFailure(ctx context.Context, query promquery.Query, comparisonOperator string, threshold float64) (failureReport, error) {
+func (c *checker) pollUntilFailure(ctx context.Context, fcName string, query promquery.Query, comparisonOperator string, threshold float64) (failureReport, error) {
 	values := c.promCache.Subscribe(query)
 	defer c.promCache.Unsubscribe(query, values)
 	for {
@@ -172,7 +172,7 @@ func (c *checker) pollUntilFailure(ctx context.Context, query promquery.Query, c
 			if !ok {
 				return nil, errors.Errorf("unexpected close of query subscription")
 			}
-			c.storeQueryValue(query, val)
+			c.storeQueryValue(fcName, val)
 			if exceededThreshold(float64(val), threshold, comparisonOperator) {
 				return failureReport{
 					"failure_type":        "value_exceeded_threshold",
@@ -222,7 +222,16 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 	}
 
 	contextutils.LoggerFrom(ctx).Infow("reported experiment result", zap.Any("result", experiment.Result))
-	return c.produceReport(experiment)
+
+	// just log reporting errors, don't propagate
+	reportErr := c.produceReport(ctx, experiment)
+	if reportErr != nil {
+		contextutils.LoggerFrom(ctx).Warnw("error while producing report",
+			zap.Error(err),
+			"experiment", experiment.Metadata.Name,
+			"namespace", experiment.Metadata.Namespace)
+	}
+	return nil
 }
 
 func TimeProto(t time.Time) *types.Timestamp {
@@ -230,13 +239,13 @@ func TimeProto(t time.Time) *types.Timestamp {
 	return ts
 }
 
-func (c *checker) storeQueryValue(query promquery.Query, val promquery.Result) {
+func (c *checker) storeQueryValue(fcName string, val promquery.Result) {
 	c.snapshotLock.Lock()
 	defer c.snapshotLock.Unlock()
-	history, ok := c.queryResultSnapshots[query]
+	history, ok := c.queryResultHistories[fcName]
 	if !ok {
 		history = &v1.Report_FailureConditionHistory{
-			FailureConditionName: string(query),
+			FailureConditionName: string(fcName),
 		}
 	}
 	history.FailureConditionSnapshots = append(history.FailureConditionSnapshots, &v1.Report_FailureConditionSnapshot{
@@ -244,13 +253,18 @@ func (c *checker) storeQueryValue(query promquery.Query, val promquery.Result) {
 		Timestamp: TimeProto(time.Now()),
 	})
 }
-func (c *checker) produceReport(exp *v1.Experiment) error {
+
+func (c *checker) produceReport(ctx context.Context, exp *v1.Experiment) error {
 	c.snapshotLock.Lock()
 	defer c.snapshotLock.Unlock()
 	var histories []*v1.Report_FailureConditionHistory
-	// TEMP!! Need to range through exps and use their names to access the values
-	for _, v := range c.queryResultSnapshots {
-		histories = append(histories, v)
+	for _, fc := range exp.Spec.FailureConditions {
+		fcHistory, ok := c.queryResultHistories[fc.Name]
+		if !ok {
+			contextutils.LoggerFrom(ctx).Warnw("no measurement history for failure condition found",
+				"failureCondition", fc.Name)
+		}
+		histories = append(histories, fcHistory)
 	}
 	expRef := exp.Metadata.Ref()
 	report := &v1.Report{

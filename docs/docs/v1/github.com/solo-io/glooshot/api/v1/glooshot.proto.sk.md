@@ -17,6 +17,7 @@ weight: 5
 - [ExperimentSpec](#experimentspec)
 - [InjectedFault](#injectedfault)
 - [FailureCondition](#failurecondition)
+- [Trigger](#trigger)
 - [PrometheusTrigger](#prometheustrigger)
 - [SuccessRateQuery](#successratequery)
 - [Report](#report) **Top-Level Resource**
@@ -146,15 +147,35 @@ decribes a single fault to  inject
 a condition based on an observed prometheus metric
 
 ```yaml
+"name": string
+"trigger": .glooshot.solo.io.FailureCondition.Trigger
+
+```
+
+| Field | Type | Description | Default |
+| ----- | ---- | ----------- |----------- | 
+| `name` | `string` | optional, a name for identifying the failure condition, must be unique if not provided, will be generated from index |  |
+| `trigger` | [.glooshot.solo.io.FailureCondition.Trigger](../glooshot.proto.sk#trigger) | the condition that will terminate the experiment |  |
+
+
+
+
+---
+### Trigger
+
+ 
+condition that will terminate the experiment
+
+```yaml
 "webhookUrl": string
-"prometheusTrigger": .glooshot.solo.io.PrometheusTrigger
+"prometheus": .glooshot.solo.io.PrometheusTrigger
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `webhookUrl` | `string` | if HTTP GET returns non-200 status code, the condition was met |  |
-| `prometheusTrigger` | [.glooshot.solo.io.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
+| `prometheus` | [.glooshot.solo.io.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
 
 
 

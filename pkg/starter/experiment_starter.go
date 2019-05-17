@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/solo-io/go-utils/kubeutils"
+
 	"github.com/gogo/protobuf/types"
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/utils"
@@ -37,10 +39,7 @@ func (s *experimentStarter) Sync(ctx context.Context, snap *v1.ApiSnapshot) erro
 
 	var errs error
 	pending.Each(func(experimentToStart *v1.Experiment) {
-		experimentToStart.Result.TimeStarted = now
-		experimentToStart.Result.State = v1.ExperimentResult_Started
-		_, err := s.experiments.Write(experimentToStart, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
-		if err != nil {
+		if err := s.writeAsStarted(ctx, experimentToStart, now); err != nil {
 			errs = multierr.Append(errs, err)
 		}
 	})
@@ -50,4 +49,28 @@ func (s *experimentStarter) Sync(ctx context.Context, snap *v1.ApiSnapshot) erro
 
 func (s *experimentStarter) ShouldSync(old, new *v1.ApiSnapshot) bool {
 	return len(utils.ExperimentsWithState(new.Experiments, v1.ExperimentResult_Pending)) > 0
+}
+
+func (s *experimentStarter) writeAsStarted(ctx context.Context, experimentToStart *v1.Experiment, now *types.Timestamp) error {
+	experimentToStart.Result.TimeStarted = now
+	experimentToStart.Result.State = v1.ExperimentResult_Started
+	if err := validateOrGenerateFailureConditionNames(experimentToStart); err != nil {
+		return err
+	}
+	_, err := s.experiments.Write(experimentToStart, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
+	return err
+}
+
+func validateOrGenerateFailureConditionNames(exp *v1.Experiment) error {
+	nameMap := make(map[string]bool)
+	for i, fc := range exp.Spec.FailureConditions {
+		if fc.Name == "" {
+			fc.Name = kubeutils.SanitizeName(fmt.Sprintf("%v-%v", i, time.Now().UnixNano()))
+		}
+		if _, exists := nameMap[fc.Name]; exists {
+			return fmt.Errorf("duplicate failure condition names are not allowed, found multiple with name %v", fc.Name)
+		}
+		nameMap[fc.Name] = true
+	}
+	return nil
 }
