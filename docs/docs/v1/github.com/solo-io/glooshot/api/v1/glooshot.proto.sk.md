@@ -20,8 +20,8 @@ weight: 5
 - [PrometheusTrigger](#prometheustrigger)
 - [SuccessRateQuery](#successratequery)
 - [Report](#report) **Top-Level Resource**
-- [FailureConditionValue](#failureconditionvalue)
-- [CapturePhase](#capturephase)
+- [FailureConditionSnapshot](#failureconditionsnapshot)
+- [FailureConditionHistory](#failureconditionhistory)
   
 
 
@@ -210,54 +210,54 @@ a snapshot of experiment metric values
 
 ```yaml
 "metadata": .core.solo.io.Metadata
-"experimentName": string
-"capturePhase": .glooshot.solo.io.Report.CapturePhase
-"timeStarted": .google.protobuf.Timestamp
-"failureConditionValues": []glooshot.solo.io.Report.FailureConditionValue
+"experiment": .core.solo.io.ResourceRef
+"failureConditionHistory": []glooshot.solo.io.Report.FailureConditionHistory
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `metadata` | [.core.solo.io.Metadata](../../../../solo-kit/api/v1/metadata.proto.sk#metadata) | the object metadata for this resource |  |
-| `experimentName` | `string` | Name of the experiment this report pertains to |  |
-| `capturePhase` | [.glooshot.solo.io.Report.CapturePhase](../glooshot.proto.sk#capturephase) | the phase during which the progress report was captured |  |
-| `timeStarted` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | time the progress report was captured |  |
-| `failureConditionValues` | [[]glooshot.solo.io.Report.FailureConditionValue](../glooshot.proto.sk#failureconditionvalue) | the measured values of each of the failure conditions at the time the report was captured |  |
+| `experiment` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | Name of the experiment this report pertains to |  |
+| `failureConditionHistory` | [[]glooshot.solo.io.Report.FailureConditionHistory](../glooshot.proto.sk#failureconditionhistory) | the measured values of each of the failure conditions at the time the report was captured |  |
 
 
 
 
 ---
-### FailureConditionValue
+### FailureConditionSnapshot
 
 
 
 ```yaml
-"scalarMetric": float
-"string": string
+"value": float
+"timestamp": .google.protobuf.Timestamp
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
-| `scalarMetric` | `float` | return type for simple metrics queries |  |
-| `string` | `string` | return type for webhook |  |
+| `value` | `float` | return type for simple metrics queries |  |
+| `timestamp` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | time that value was recorded |  |
 
 
 
 
 ---
-### CapturePhase
+### FailureConditionHistory
 
- 
-The phase in which the report was captured
 
-| Name | Description |
-| ----- | ----------- | 
-| `START` | Experiment has just started |
-| `RUN` | Experiment is currently running |
-| `FINISH` | Experiment has ended |
+
+```yaml
+"failureConditionName": string
+"failureConditionSnapshots": []glooshot.solo.io.Report.FailureConditionSnapshot
+
+```
+
+| Field | Type | Description | Default |
+| ----- | ---- | ----------- |----------- | 
+| `failureConditionName` | `string` | name of the corresponding failure condition TODO - add name to spec, using array index for now |  |
+| `failureConditionSnapshots` | [[]glooshot.solo.io.Report.FailureConditionSnapshot](../glooshot.proto.sk#failureconditionsnapshot) | history of all measurements of the failure condition |  |
 
 
 

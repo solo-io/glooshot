@@ -72,10 +72,8 @@ func ReportClientTest(namespace string, client ReportClient, name1, name2, name3
 	Expect(r1.GetMetadata().Namespace).To(Equal(namespace))
 	Expect(r1.GetMetadata().ResourceVersion).NotTo(Equal(input.GetMetadata().ResourceVersion))
 	Expect(r1.GetMetadata().Ref()).To(Equal(input.GetMetadata().Ref()))
-	Expect(r1.ExperimentName).To(Equal(input.ExperimentName))
-	Expect(r1.CapturePhase).To(Equal(input.CapturePhase))
-	Expect(r1.TimeStarted).To(Equal(input.TimeStarted))
-	Expect(r1.FailureConditionValues).To(Equal(input.FailureConditionValues))
+	Expect(r1.Experiment).To(Equal(input.Experiment))
+	Expect(r1.FailureConditionHistory).To(Equal(input.FailureConditionHistory))
 
 	_, err = client.Write(input, clients.WriteOpts{
 		OverwriteExisting: true,

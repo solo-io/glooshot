@@ -143,35 +143,23 @@ message Report {
     core.solo.io.Metadata metadata = 1 [(gogoproto.nullable) = false];
 
     // Name of the experiment this report pertains to
-    string ExperimentName = 2;
+    core.solo.io.ResourceRef experiment = 2;
 
-    // The phase in which the report was captured
-    enum CapturePhase {
-        // Experiment has just started
-        START = 0;
-
-        // Experiment is currently running
-        RUN = 1;
-
-        // Experiment has ended
-        FINISH = 2;
+    message FailureConditionSnapshot {
+        // return type for simple metrics queries
+        double value = 1;
+        // time that value was recorded
+        google.protobuf.Timestamp timestamp = 2;
     }
 
-    // the phase during which the progress report was captured
-    CapturePhase capture_phase = 3;
-
-    // time the progress report was captured
-    google.protobuf.Timestamp time_started = 4 ;
-
-    message FailureConditionValue {
-        oneof value {
-            // return type for simple metrics queries
-            double scalar_metric = 1;
-            // return type for webhook
-            string string = 2;
-        }
+    message FailureConditionHistory {
+        // name of the corresponding failure condition
+        // TODO - add name to spec, using array index for now
+        string failure_condition_name = 1;
+        // history of all measurements of the failure condition
+        repeated FailureConditionSnapshot failure_condition_snapshots = 2;
     }
 
     // the measured values of each of the failure conditions at the time the report was captured
-    repeated FailureConditionValue failure_condition_values = 5;
+    repeated FailureConditionHistory failure_condition_history = 3;
 }

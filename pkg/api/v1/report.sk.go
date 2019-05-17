@@ -32,10 +32,8 @@ func (r *Report) Hash() uint64 {
 	metaCopy.ResourceVersion = ""
 	return hashutils.HashAll(
 		metaCopy,
-		r.ExperimentName,
-		r.CapturePhase,
-		r.TimeStarted,
-		r.FailureConditionValues,
+		r.Experiment,
+		r.FailureConditionHistory,
 	)
 }
 

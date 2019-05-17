@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gogo/protobuf/types"
+
 	"github.com/solo-io/go-utils/contextutils"
 
 	"github.com/prometheus/common/model"
@@ -13,6 +15,10 @@ import (
 
 // for now, only support float64 results
 type Result float64
+type ResultSnapshot struct {
+	Result    Result
+	Timestamp *types.Timestamp
+}
 
 // for now, queries are just strings
 type Query string
