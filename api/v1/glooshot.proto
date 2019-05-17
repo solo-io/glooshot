@@ -133,3 +133,39 @@ message PrometheusTrigger {
         google.protobuf.Duration interval = 6 [(gogoproto.stdduration) = true];
     }
 }
+
+// a snapshot of experiment metric values
+message Report {
+    // Name of the experiment this report pertains to
+    string ExperimentName = 1;
+
+    // The phase in which the report was captured
+    enum CapturePhase {
+        // Experiment has just started
+        START = 0;
+
+        // Experiment is currently running
+        RUN = 1;
+
+        // Experiment has ended
+        FINISH = 2;
+    }
+
+    // the phase during which the progress report was captured
+    CapturePhase capture_phase = 2;
+
+    // time the progress report was captured
+    google.protobuf.Timestamp time_started = 3 ;
+
+    message FailureConditionValue {
+        oneof value {
+            // return type for simple metrics queries
+            double scalar_metric = 1;
+            // return type for webhook
+            string string = 2;
+        }
+    }
+
+    // the measured values of each of the failure conditions at the time the report was captured
+    repeated FailureConditionValue failure_condition_values = 4;
+}
