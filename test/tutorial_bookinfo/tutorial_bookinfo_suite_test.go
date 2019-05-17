@@ -1,15 +1,27 @@
 package tutorial_bookinfo
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 	"testing"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+
+	v1 "github.com/solo-io/glooshot/pkg/api/v1"
+	"github.com/solo-io/glooshot/pkg/cli/gsutil"
+	"github.com/solo-io/go-utils/testutils/kube"
 
 	buildv1 "github.com/solo-io/build/pkg/api/v1"
 	"github.com/solo-io/build/pkg/ingest"
+	sgv1 "github.com/solo-io/supergloo/pkg/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/solo-io/glooshot/pkg/cli"
-	"github.com/spf13/cobra"
 
 	"github.com/solo-io/go-utils/testutils"
 
@@ -30,6 +42,9 @@ func TestTutorialBookinfo(t *testing.T) {
 	RunSpecs(t, "Bookinfo Tutorial Suite")
 }
 
+// these are setup before the suite and available test-wide
+var gtr = testResources{}
+
 var _ = BeforeSuite(func() {
 	// set up the cluster
 	if os.Getenv("CI_TESTS") == "1" {
@@ -37,28 +52,60 @@ var _ = BeforeSuite(func() {
 		return
 	}
 
-	buildRun, err := ingest.InitializeBuildRun("../../solo-project.yaml", &buildv1.BuildEnvVars{})
-	Expect(err).NotTo(HaveOccurred())
-	tp := testParams{buildId: buildRun.Config.BuildEnvVars.BuildId}
-	setupCluster(tp)
+	setTestResources()
+	setupCluster()
+	setupLabelAppNamespace()
 
 })
 
-func newTestResources() testResources {
-	return testResources{}
+type clientSet struct {
+	expClient  v1.ExperimentClient
+	repClient  v1.ReportClient
+	rrClient   sgv1.RoutingRuleClient
+	meshClient sgv1.MeshClient
+	kubeClient kubernetes.Interface
+}
+
+func setTestResources() {
+	kubeClient := kube.MustKubeClient()
+	ctx := context.Background()
+	expClient, err := gsutil.GetExperimentClient(ctx, false)
+	Expect(err).NotTo(HaveOccurred())
+	repClient, err := gsutil.GetReportClient(ctx, false)
+	Expect(err).NotTo(HaveOccurred())
+	rrClient, err := gsutil.GetRoutingRuleClient(ctx, false)
+	Expect(err).NotTo(HaveOccurred())
+	meshClient, err := gsutil.GetMeshClient(ctx, false)
+	Expect(err).NotTo(HaveOccurred())
+	cs := clientSet{
+		expClient:  expClient,
+		repClient:  repClient,
+		rrClient:   rrClient,
+		meshClient: meshClient,
+		kubeClient: kubeClient,
+	}
+	buildRun, err := ingest.InitializeBuildRun("../../solo-project.yaml", &buildv1.BuildEnvVars{})
+	Expect(err).NotTo(HaveOccurred())
+	gtr = testResources{
+		cs:                cs,
+		buildId:           buildRun.Config.BuildEnvVars.BuildId,
+		GlooshotNamespace: "glooshot",
+		IstioNamespace:    "istio-system",
+		AppNamespace:      "default",
+	}
 }
 
 type testResources struct {
-	glooshotCli *cobra.Command
+	buildId           string
+	cs                clientSet
+	GlooshotNamespace string
+	IstioNamespace    string
+	AppNamespace      string
 }
 
-type testParams struct {
-	buildId string
-}
-
-func setupCluster(tp testParams) {
-	setupGlooshotInit(tp)
-
+func setupCluster() {
+	setupGlooshotInit()
+	setupIstio()
 }
 
 /*
@@ -109,14 +156,23 @@ glooshot init
 ```
 */
 
-func setupGlooshotInit(tp testParams) {
-
-	out, err := cli.GlooshotConfig.RunForTest(fmt.Sprintf("init -f ../../_output/helm/charts/glooshot-%v.tgz", tp.buildId))
+func setupGlooshotInit() {
+	if isSetupGlooshotInitReady() {
+		return
+	}
+	out, err := cli.GlooshotConfig.RunForTest(fmt.Sprintf("init -f ../../_output/helm/charts/glooshot-%v.tgz", gtr.buildId))
 	Expect(err).NotTo(HaveOccurred())
-	//Expect(out.CobraStderr).To(Equal(""))
 	fmt.Println(out.CobraStderr)
 	fmt.Println(out.CobraStdout)
-
+	Eventually(isSetupGlooshotInitReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+}
+func isSetupGlooshotInitReady() bool {
+	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.GlooshotNamespace).List(metav1.ListOptions{LabelSelector: "glooshot=glooshot-op"})
+	Expect(err).NotTo(HaveOccurred())
+	if len(list.Items) == 0 || len(list.Items) > 1 {
+		return false
+	}
+	return list.Items[0].Status.Phase == corev1.PodRunning
 }
 
 /*
@@ -162,6 +218,35 @@ supergloo install istio \
     --mtls=true \
     --auto-inject=true
 ```
+*/
+
+func setupIstio() {
+	if isSetupIstioReady() {
+		return
+	}
+	cmd := exec.Command("supergloo", strings.Split("install istio --namespace glooshot --name istio-istio-system --installation-namespace istio-system --mtls=true --auto-inject=true", " ")...)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(isSetupIstioReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+}
+func isSetupIstioReady() bool {
+	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.IstioNamespace).List(metav1.ListOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	if len(list.Items) == 0 {
+		return false
+	}
+	nPodsGettingReady := 0
+	for _, p := range list.Items {
+		if p.Status.Phase == corev1.PodPending {
+			nPodsGettingReady++
+		}
+	}
+	return list.Items[0].Status.Phase == corev1.PodRunning
+}
+
+/*
 
 - Verify that Istio is ready.
 - When the pods in the `istio-system` namespace are ready or completed, you are ready to deploy the demo app.
@@ -176,6 +261,30 @@ kubectl get pods -n istio-system -w
 ```bash
 kubectl label namespace default istio-injection=enabled
 ```
+*/
+
+func setupLabelAppNamespace() {
+	if isSetupLabelAppNamespaceReady() {
+		return
+	}
+	cmd := exec.Command("kubectl", strings.Split("label namespace default istio-injection=enabled", " ")...)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(isSetupLabelAppNamespaceReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+}
+func isSetupLabelAppNamespaceReady() bool {
+	ns, err := gtr.cs.kubeClient.CoreV1().Namespaces().Get(gtr.AppNamespace, metav1.GetOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	val, ok := ns.ObjectMeta.Labels["istio-injection"]
+	if !ok {
+		return false
+	}
+	return val == "enabled"
+}
+
+/*
 
 #### Provide metric source configuration to Prometheus
 
@@ -192,6 +301,32 @@ appropriate for your chosen service mesh.
 By default, `glooshot init` deploys an instance of Prometheus (this can be disabled).
 For best results, you should configure this instance of Prometheus with the metrics that are relevant to your particular service mesh.
 We will use the `supergloo set mesh stats` utility for this.
+func setupIstio() {
+	if isSetupIstioReady() {
+		return
+	}
+	cmd := exec.Command("supergloo", strings.Split("install istio --namespace glooshot --name istio-istio-system --installation-namespace istio-system --mtls=true --auto-inject=true", " ")...)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(isSetupIstioReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+}
+func isSetupIstioReady() bool {
+	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.IstioNamespace).List(metav1.ListOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	if len(list.Items) == 0 {
+		return false
+	}
+	nPodsGettingReady := 0
+	for _, p := range list.Items {
+		if p.Status.Phase == corev1.PodPending {
+			nPodsGettingReady++
+		}
+	}
+	return list.Items[0].Status.Phase == corev1.PodRunning
+}
+
 
 ```bash
 supergloo set mesh stats \
