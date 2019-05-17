@@ -20,16 +20,16 @@ Gloo Shot is a chaos engineering framework for service meshes.
 
 ### Getting started
 
-- Gloo Shot is easy to [install](glooshot.solo.io/installation/install/) from the `glooshot` command line tool.
+- Gloo Shot is easy to [install](https://glooshot.solo.io/installation/) from the `glooshot` command line tool.
   - Once Gloo Shot is installed, you can trigger experiments with familiar `kubectl` commands.
-  - Please see our [getting started tutorial](glooshot.solo.io/tutorial/bookinfo_tutorial/) for a quick start usage overview.
+  - Please see our [getting started tutorial](https://glooshot.solo.io/tutorial/) for a quick start usage overview.
 
 ### Experiment specification
 
 - Gloo Shot has an expressive API for designing targeted experiments in your service mesh.
-- You can specify [fault injections](glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#faultinjection) in the form of:
-  - [Response delays](glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#delay) - simulate network delays
-  - [Aborted responses](glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#abort) - simulate outages
+- You can specify [fault injections](https://glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#faultinjection) in the form of:
+  - [Response delays](https://glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#delay) - simulate network delays
+  - [Aborted responses](https://glooshot.solo.io/v1/github.com/solo-io/supergloo/api/v1/routing.proto.sk/#abort) - simulate outages
 - These faults can be applied to any [upstream](https://gloo.solo.io/v1/github.com/solo-io/gloo/projects/gloo/api/v1/upstream.proto.sk/#Upstream) for all requests or for a specified precentage of the requests.
   - In an upcoming release, Gloo Shot will support even more [target selectors](https://supergloo.solo.io/v1/github.com/solo-io/supergloo/api/v1/selector.proto.sk/)
 - Experiments automatically terminate according to your specification.
