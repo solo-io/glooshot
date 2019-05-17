@@ -301,32 +301,6 @@ appropriate for your chosen service mesh.
 By default, `glooshot init` deploys an instance of Prometheus (this can be disabled).
 For best results, you should configure this instance of Prometheus with the metrics that are relevant to your particular service mesh.
 We will use the `supergloo set mesh stats` utility for this.
-func setupIstio() {
-	if isSetupIstioReady() {
-		return
-	}
-	cmd := exec.Command("supergloo", strings.Split("install istio --namespace glooshot --name istio-istio-system --installation-namespace istio-system --mtls=true --auto-inject=true", " ")...)
-	cmd.Stdout = GinkgoWriter
-	cmd.Stderr = GinkgoWriter
-	err := cmd.Run()
-	Expect(err).NotTo(HaveOccurred())
-	Eventually(isSetupIstioReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
-}
-func isSetupIstioReady() bool {
-	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.IstioNamespace).List(metav1.ListOptions{})
-	Expect(err).NotTo(HaveOccurred())
-	if len(list.Items) == 0 {
-		return false
-	}
-	nPodsGettingReady := 0
-	for _, p := range list.Items {
-		if p.Status.Phase == corev1.PodPending {
-			nPodsGettingReady++
-		}
-	}
-	return list.Items[0].Status.Phase == corev1.PodRunning
-}
-
 
 ```bash
 supergloo set mesh stats \
