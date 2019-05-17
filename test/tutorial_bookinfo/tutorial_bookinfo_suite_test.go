@@ -55,9 +55,15 @@ var _ = BeforeSuite(func() {
 
 	setTestResources()
 	setupCluster()
-	setupLabelAppNamespace()
-	setupPromStats()
+})
+var _ = AfterSuite(func() {
+	// set up the cluster
+	if os.Getenv("CI_TESTS") == "1" {
+		fmt.Printf("this test is disabled in CI. to run, ensure env var `CI_TESTS` is not set to 1")
+		return
+	}
 
+	restoreCluster()
 })
 
 type clientSet struct {
@@ -103,11 +109,42 @@ type testResources struct {
 	GlooshotNamespace string
 	IstioNamespace    string
 	AppNamespace      string
+	cleanupResources  []crd
+}
+type crd struct {
+	resource  string
+	namespace string
+	name      string
 }
 
 func setupCluster() {
 	setupGlooshotInit()
 	setupIstio()
+	setupLabelAppNamespace()
+	setupPromStats()
+	setupDeployBookinfo()
+	setupRoutingRuleToVulnerableApp()
+}
+
+func restoreCluster() {
+	cleanupResources()
+}
+
+func cleanupResources() {
+	for _, crd := range gtr.cleanupResources {
+		cmdArgs := []string{"delete", crd.resource, "-n", crd.namespace, crd.name}
+		cmd := exec.Command("kubectl", cmdArgs...)
+		cmd.Stdout = GinkgoWriter
+		cmd.Stderr = GinkgoWriter
+		err := cmd.Run()
+		if err != nil {
+			fmt.Printf("error with cmd %v, %v", cmdArgs, err)
+		}
+	}
+}
+
+func pushCleanup(c crd) {
+	gtr.cleanupResources = append(gtr.cleanupResources, c)
 }
 
 /*
@@ -348,6 +385,35 @@ You can find more details on setting Prometheus configurations with SuperGloo [h
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/solo-io/glooshot/master/examples/bookinfo/bookinfo.yaml
 ```
+*/
+
+func setupDeployBookinfo() {
+	if isSetupDeployBookinfoReady() {
+		return
+	}
+	cmd := exec.Command("kubectl", strings.Split("apply -f https://raw.githubusercontent.com/solo-io/glooshot/master/examples/bookinfo/bookinfo.yaml", " ")...)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(isSetupDeployBookinfoReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+}
+func isSetupDeployBookinfoReady() bool {
+	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.AppNamespace).List(metav1.ListOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	if len(list.Items) == 0 {
+		return false
+	}
+	nPodsGettingReady := 0
+	for _, p := range list.Items {
+		if p.Status.Phase == corev1.PodPending {
+			nPodsGettingReady++
+		}
+	}
+	return list.Items[0].Status.Phase == corev1.PodRunning
+}
+
+/*
 
 - Verify that the app is ready.
 - When the pods in the `default` namespace are ready, we can start testing our app
@@ -376,6 +442,31 @@ supergloo apply routingrule trafficshifting \
     --target-mesh glooshot.istio-istio-system \
     --destination glooshot.default-reviews-v4-9080:1
 ```
+*/
+
+func setupRoutingRuleToVulnerableApp() {
+	//if isSetupRoutingRuleToVulnerableAppReady() {
+	//	return
+	//}
+	cmdString := "apply routingrule trafficshifting " +
+		"--namespace glooshot " +
+		"--name reviews-vulnerable " +
+		"--dest-upstreams glooshot.default-reviews-9080 " +
+		"--target-mesh glooshot.istio-istio-system " +
+		"--destination glooshot.default-reviews-v4-9080:1"
+	cmd := exec.Command("supergloo", strings.Split(cmdString, " ")...)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
+	pushCleanup(crd{"routingrule", "glooshot", "reviews-vulnerable"})
+	//Eventually(isSetupRoutingRuleToVulnerableAppReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+}
+
+//func isSetupRoutingRuleToVulnerableAppReady() bool {
+//}
+
+/*
 
 - Now when you refresh the page, the stars should always be red.
 
