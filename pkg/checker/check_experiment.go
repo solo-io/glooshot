@@ -24,8 +24,9 @@ type ExperimentChecker interface {
 }
 
 type checker struct {
-	promCache   promquery.QueryPubSub
-	experiments v1.ExperimentClient
+	promCache            promquery.QueryPubSub
+	experiments          v1.ExperimentClient
+	queryResultSnapshots map[promquery.Query]promquery.Result
 }
 
 func NewChecker(queries promquery.QueryPubSub, experiments v1.ExperimentClient) *checker {
@@ -79,7 +80,7 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 			threshold := promTrigger.ThresholdValue
 
 			go func() {
-				failure, err := c.pollUntilFailure(ctx, queryString, comparisonOperator, threshold)
+				failure, err := c.pollUntilFailure(ctx, promquery.Query(queryString), comparisonOperator, threshold)
 				if err != nil {
 					logger.Errorw("failure while polling prometheus", zap.Error(err), zap.String("query", queryString))
 					return
@@ -147,7 +148,7 @@ func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
 	return experimentDuration - elapsedTime, nil
 }
 
-func (c *checker) pollUntilFailure(ctx context.Context, query, comparisonOperator string, threshold float64) (failureReport, error) {
+func (c *checker) pollUntilFailure(ctx context.Context, query promquery.Query, comparisonOperator string, threshold float64) (failureReport, error) {
 	values := c.promCache.Subscribe(query)
 	defer c.promCache.Unsubscribe(query, values)
 	for {
@@ -159,7 +160,7 @@ func (c *checker) pollUntilFailure(ctx context.Context, query, comparisonOperato
 			if !ok {
 				return nil, errors.Errorf("unexpected close of query subscription")
 			}
-			if exceededThreshold(val, threshold, comparisonOperator) {
+			if exceededThreshold(float64(val), threshold, comparisonOperator) {
 				return failureReport{
 					"failure_type":        "value_exceeded_threshold",
 					"value":               fmt.Sprintf("%v", val),
