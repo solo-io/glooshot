@@ -1,13 +1,19 @@
 package tutorial_bookinfo
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/solo-io/glooshot/test/utils"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -63,16 +69,33 @@ func setTestResources() {
 		GlooshotNamespace: "glooshot",
 		IstioNamespace:    "istio-system",
 		AppNamespace:      "default",
+
+		// values used in tutorial
+		tut: tutorialValues{
+			meshName: "istio-istio-system",
+		},
+
+		cleanupResources:      nil,
+		portForwardAppCancel:  nil,
+		portForwardPromCancel: nil,
+		localGlooshotCancel:   nil,
 	}
 }
 
 type testResources struct {
-	buildId           string
-	cs                clientSet
-	GlooshotNamespace string
-	IstioNamespace    string
-	AppNamespace      string
-	cleanupResources  []crd
+	buildId               string
+	cs                    clientSet
+	GlooshotNamespace     string
+	IstioNamespace        string
+	AppNamespace          string
+	tut                   tutorialValues
+	cleanupResources      []crd
+	portForwardAppCancel  context.CancelFunc
+	portForwardPromCancel context.CancelFunc
+	localGlooshotCancel   context.CancelFunc
+}
+type tutorialValues struct {
+	meshName string
 }
 type crd struct {
 	resource  string
@@ -81,17 +104,23 @@ type crd struct {
 }
 
 func setupCluster() {
+	//setupUseMinikube()
 	setupGlooshotInit()
 	setupIstio()
 	setupLabelAppNamespace()
 	setupPromStats()
 	setupDeployBookinfo()
 	setupRoutingRuleToVulnerableApp()
+	setupLocalTestEnv()
 	setupApplyFirstExperiment()
+	setupProduceTraffic()
 }
 
 func restoreCluster() {
 	cleanupResources()
+	terminateAppPortForward()
+	cleanupLocalTestEnv()
+	cleanupMesh()
 }
 
 func cleanupResources() {
@@ -110,6 +139,147 @@ func cleanupResources() {
 func pushCleanup(c crd) {
 	gtr.cleanupResources = append(gtr.cleanupResources, c)
 }
+
+func setupLocalTestEnv() {
+	if os.Getenv("RUN_GLOOSHOT_LOCAL") != "1" {
+		return
+	}
+	// port-forward prometheus
+	Eventually(portForwardPromRetry, 120*time.Second, 3*time.Second).Should(BeTrue())
+	// delete the glooshot deployment
+	err := gtr.cs.kubeClient.AppsV1().Deployments(gtr.GlooshotNamespace).Delete("glooshot", &metav1.DeleteOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	// run glooshot locally
+	ctx, cancel := context.WithCancel(context.Background())
+	gtr.localGlooshotCancel = cancel
+	utils.RunGlooshotLocal(ctx, "http://localhost:9090")
+}
+func portForwardPromRetry() bool {
+	portForwardProm()
+	time.Sleep(3 * time.Second)
+	if isPortForwardPromReady() {
+		return true
+	}
+	terminatePromPortForward()
+	return false
+}
+func portForwardProm() {
+	// we will be restarting the prom server when we update its config with supergloo
+	// we need to find the new pod and connect to that
+	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.GlooshotNamespace).List(metav1.ListOptions{LabelSelector: "app=prometheus,component=server"})
+	readyPods := getReadyPods(list)
+	if len(readyPods.Items) == 0 {
+		fmt.Println("no prometheus server pods ready")
+		return
+	}
+	fmt.Println(len(readyPods.Items))
+	fmt.Println(err)
+	localPort := 9090
+	cmdString := fmt.Sprintf("port-forward -n %v %v %v:9090",
+		gtr.GlooshotNamespace,
+		readyPods.Items[0].ObjectMeta.Name,
+		localPort)
+	ctx, cancel := context.WithCancel(context.Background())
+	gtr.portForwardPromCancel = cancel
+	go kubectlWithCancel(ctx, cmdString)
+}
+func getReadyPods(list *corev1.PodList) *corev1.PodList {
+	readyPods := &corev1.PodList{}
+	fmt.Printf("checking %v pods\n", len(list.Items))
+	for _, p := range list.Items {
+		nContainersNotReady := 0
+		for _, stat := range p.Status.ContainerStatuses {
+			fmt.Println("stat")
+			fmt.Println(stat)
+			if stat.State.Running == nil {
+				nContainersNotReady++
+			}
+		}
+		if nContainersNotReady == 0 {
+			readyPods.Items = append(readyPods.Items, p)
+		} else {
+			fmt.Printf("waiting for %v containers\n", nContainersNotReady)
+		}
+	}
+	return readyPods
+}
+func isPortForwardPromReady() bool {
+	resp, err := curl("http://localhost:9090")
+	fmt.Println("RESPONSE")
+	fmt.Println(resp)
+	fmt.Println(err)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func cleanupLocalTestEnv() {
+	if os.Getenv("RUN_GLOOSHOT_LOCAL") != "1" {
+		return
+	}
+	if gtr.localGlooshotCancel != nil {
+		gtr.localGlooshotCancel()
+		gtr.localGlooshotCancel = nil
+	}
+	terminatePromPortForward()
+}
+func terminatePromPortForward() {
+	if gtr.portForwardPromCancel != nil {
+		gtr.portForwardPromCancel()
+		gtr.portForwardPromCancel = nil
+	}
+}
+
+func cleanupMesh() {
+	// in order to restore the prom config for the next test, we need to reset mesh.monitoringConfig.prometheusConfigmaps:
+	// deleting the mesh and letting it get rediscovered by supergloo is an easy way to do that
+	err := gtr.cs.meshClient.Delete(gtr.GlooshotNamespace, gtr.tut.meshName, clients.DeleteOpts{})
+	if err != nil {
+		fmt.Printf("error deleting mesh: %v\n", err)
+	}
+}
+
+//func setupUseMinikube() {
+//	buff := bytes.NewBuffer([]byte{})
+//	cmd := exec.Command("minikube", "docker-env")
+//	cmd.Stdout = buff
+//	err := cmd.Run()
+//	Expect(err).NotTo(HaveOccurred())
+//	fmt.Println(buff.String())
+//	//lines := strings.Split(buff.String(), "\n")
+//	reTls := regexp.MustCompile("export DOCKER_TLS_VERIFY=\"(.*)\"")
+//	reHost := regexp.MustCompile("export DOCKER_HOST=\"(.*)\"")
+//	reCertPath := regexp.MustCompile("export DOCKER_CERT_PATH=\"(.*)\"")
+//	reApiVersion := regexp.MustCompile("export DOCKER_API_VERSION=\"(.*)\"")
+//	maTls := reTls.FindAllStringSubmatch(buff.String(), -1)
+//	maHost := reHost.FindAllStringSubmatch(buff.String(), -1)
+//	maCertPath := reCertPath.FindAllStringSubmatch(buff.String(), -1)
+//	maApiVersion := reApiVersion.FindAllStringSubmatch(buff.String(), -1)
+//	//for _, l := range lines {
+//	//	matches := re.FindAllString(l, -1)
+//	//	fmt.Println(matches)
+//	//	matches2 := re.FindAllStringSubmatch(l, -1)
+//	//	fmt.Println(matches2)
+//	//	//regexp.MatchString()
+//	//}
+//	//export DOCKER_TLS_VERIFY="1"
+//	//export DOCKER_HOST="tcp://192.168.99.100:2376"
+//	//export DOCKER_CERT_PATH="/Users/mitch/.minikube/certs"
+//	//export DOCKER_API_VERSION="1.35"
+//}
+
+// minikube docker-env
+// export DOCKER_TLS_VERIFY="1"
+// export DOCKER_HOST="tcp://192.168.99.100:2376"
+// export DOCKER_CERT_PATH="/Users/mitch/.minikube/certs"
+// export DOCKER_API_VERSION="1.35"
+// # Run this command to configure your shell:
+// # eval $(minikube docker-env)
+
+//func applyDockerEnv(subName, body string) error {
+//
+//}
 
 /*
 ---
@@ -167,7 +337,7 @@ func setupGlooshotInit() {
 	Expect(err).NotTo(HaveOccurred())
 	fmt.Println(out.CobraStderr)
 	fmt.Println(out.CobraStdout)
-	Eventually(isSetupGlooshotInitReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(isSetupGlooshotInitReady, 180*time.Second, 250*time.Millisecond).Should(BeTrue())
 }
 func isSetupGlooshotInitReady() bool {
 	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.GlooshotNamespace).List(metav1.ListOptions{LabelSelector: "glooshot=glooshot-op"})
@@ -316,12 +486,16 @@ func setupPromStats() {
 	if isSetupPromStatsReady() {
 		return
 	}
-	cmd := exec.Command("supergloo", strings.Split("set mesh stats --target-mesh glooshot.istio-istio-system --prometheus-configmap glooshot.glooshot-prometheus-server", " ")...)
+	Eventually(getIstioMeshCrd, 60*time.Second, 1*time.Second).Should(BeTrue())
+	cmdString := "set mesh stats " +
+		" --target-mesh glooshot.istio-istio-system " +
+		"--prometheus-configmap glooshot.glooshot-prometheus-server"
+	cmd := exec.Command("supergloo", strings.Split(cmdString, " ")...)
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(isSetupPromStatsReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(isSetupPromStatsReady, 10*time.Second, 250*time.Millisecond).Should(BeTrue())
 }
 func isSetupPromStatsReady() bool {
 	cm, err := gtr.cs.kubeClient.CoreV1().ConfigMaps(gtr.GlooshotNamespace).Get("glooshot-prometheus-server", metav1.GetOptions{})
@@ -334,6 +508,13 @@ func isSetupPromStatsReady() bool {
 		}
 	}
 	return false
+}
+func getIstioMeshCrd() bool {
+	_, err := gtr.cs.meshClient.Read(gtr.GlooshotNamespace, gtr.tut.meshName, clients.ReadOpts{})
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 /*
@@ -495,8 +676,8 @@ spec:
       - trigger:
           prometheus:
             customQuery: |
-              scalar(sum(istio_requests_total{ source_app="productpage",response_code="500"}))
-            thresholdValue: 10
+              scalar(rate(istio_requests_total{ source_app="productpage",response_code="500",reporter="destination"}[1m]))
+            thresholdValue: 0.1
             comparisonOperator: ">"
     faults:
     - destinationServices:
@@ -510,18 +691,15 @@ spec:
       name: istio-istio-system
       namespace: glooshot
 `
+	// note about the query: specify reporter to avoid duplicate reports, specify that the rate consider the last minute's worth of data
 	expPath := "../../examples/bookinfo/fault-abort-ratings.yaml"
 	validateFileContent(expPath, expString)
 	cmdString := fmt.Sprintf("apply -f %v", expPath)
-	cmd := exec.Command("kubectl", strings.Split(cmdString, " ")...)
-	cmd.Stdout = GinkgoWriter
-	cmd.Stderr = GinkgoWriter
-	err := cmd.Run()
-	Expect(err).NotTo(HaveOccurred())
+	kubectl(cmdString)
 	pushCleanup(crd{"experiment", "default", "abort-ratings-metric"})
 	pushCleanup(crd{"routingrule", "default", "abort-ratings-metric-0"})
 
-	timeLimit := 5 * time.Second
+	timeLimit := 15 * time.Second
 	Eventually(isSetupApplyFirstExperimentReady, timeLimit, 250*time.Millisecond).Should(BeTrue())
 }
 func isSetupApplyFirstExperimentReady() bool {
@@ -532,6 +710,26 @@ func isSetupApplyFirstExperimentReady() bool {
 		return false
 	}
 	return true
+}
+
+// return the cancel function so that we can kill long-running commands like port-forward
+func kubectlWithCancel(ctx context.Context, cmdString string) {
+	defer GinkgoRecover()
+	fmt.Printf("running command: kubectl %v\n", cmdString)
+	cmd := exec.CommandContext(ctx, "kubectl", strings.Split(cmdString, " ")...)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("error while running cmd: kubectl %v, err: %v\n", cmdString, err)
+	}
+}
+func kubectl(cmdString string) {
+	cmd := exec.Command("kubectl", strings.Split(cmdString, " ")...)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
 }
 
 // for ensuring that the files we reference in our tutorials match the e2e test values
@@ -549,6 +747,94 @@ func validateFileContent(path, value string) {
 - The reason for this is that Prometheus gathers metrics every 15 seconds.
 - Inspect the experiment results with the following command:
 
+*/
+
+func portForwardApp() {
+	localPort := 9080
+	cmdString := fmt.Sprintf("port-forward deploy/productpage-v1 %v:9080", localPort)
+	ctx, cancel := context.WithCancel(context.Background())
+	gtr.portForwardAppCancel = cancel
+	go kubectlWithCancel(ctx, cmdString)
+}
+func terminateAppPortForward() {
+	if gtr.portForwardAppCancel != nil {
+		gtr.portForwardAppCancel()
+		gtr.portForwardAppCancel = nil
+	}
+}
+
+// TODO(mitchdraft) migrate this to go-utils https://github.com/solo-io/glooshot/issues/16
+func curl(url string) (string, error) {
+	body := bytes.NewReader([]byte(url))
+	req, err := http.NewRequest("GET", url, body)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	p := new(bytes.Buffer)
+	_, err = io.Copy(p, resp.Body)
+	defer resp.Body.Close()
+
+	return p.String(), nil
+}
+
+func setupProduceTraffic() {
+	portForwardApp()
+	// wait for port to be available - combine with timeLimit?
+	//time.Sleep(3 * time.Second)
+	timeLimit := 8 * time.Second
+	successCount := 0
+	Eventually(getTenValidResponses(&successCount), timeLimit, 250*time.Millisecond).Should(BeTrue())
+	// wait for prom q's to get scraped
+	Eventually(expectExpToHaveFailed("default", "abort-ratings-metric"), 30*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(expectExpFailureReport("default", "abort-ratings-metric"), 5*time.Second, 250*time.Millisecond).Should(BeTrue())
+}
+func getTenValidResponses(successCount *int) func() bool {
+	// use a closure so we can increment a success rate across retries
+	return func() bool {
+		_, err := curl("http://localhost:9080/productpage?u=normal")
+		if err == nil {
+			*successCount = *successCount + 1
+		}
+		if *successCount > 10 {
+			return true
+		}
+		return false
+	}
+}
+func expectExpToHaveFailed(namespace, name string) func() bool {
+	return func() bool {
+		exp, err := gtr.cs.expClient.Read(namespace, name, clients.ReadOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		if exp.Result.State == v1.ExperimentResult_Failed {
+			return true
+		}
+		return false
+	}
+}
+func expectExpFailureReport(expNamespace, expName string) func() bool {
+	repNamespace := expNamespace
+	repName := expName
+	return func() bool {
+		rep, err := gtr.cs.repClient.Read(repNamespace, repName, clients.ReadOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		if len(rep.FailureConditionHistory) != 1 {
+			By(fmt.Sprintf("len of failure condition history: %v", len(rep.FailureConditionHistory)))
+			return false
+		}
+		if rep.FailureConditionHistory[0] == nil {
+			By(fmt.Sprintf("%v", rep.FailureConditionHistory[0]))
+			return false
+		}
+		return true
+	}
+}
+
+/*
 ```bash
 kubectl get exp abort-ratings-metric -o yaml
 ```
