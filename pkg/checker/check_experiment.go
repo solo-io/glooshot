@@ -253,6 +253,7 @@ func (c *checker) storeQueryValue(fcName string, val promquery.Result) {
 		Value:     float64(val),
 		Timestamp: TimeProto(time.Now()),
 	})
+	c.queryResultHistories[fcName] = history
 }
 
 func (c *checker) produceReport(ctx context.Context, exp *v1.Experiment) error {

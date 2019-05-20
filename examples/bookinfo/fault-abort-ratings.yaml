@@ -10,8 +10,8 @@ spec:
       - trigger:
           prometheus:
             customQuery: |
-              scalar(rate(istio_requests_total{ source_app="productpage",response_code="500",reporter="destination"}[1m]))
-            thresholdValue: 0.1
+              scalar(rate(istio_requests_total{ source_app="productpage",response_code="500",reporter="destination"}[3m]))
+            thresholdValue: 0.01
             comparisonOperator: ">"
     faults:
     - destinationServices:

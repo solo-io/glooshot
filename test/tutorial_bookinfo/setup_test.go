@@ -72,7 +72,8 @@ func setTestResources() {
 
 		// values used in tutorial
 		tut: tutorialValues{
-			meshName: "istio-istio-system",
+			meshName:         "istio-istio-system",
+			rrVulnerableName: "reviews-vulnerable",
 		},
 
 		cleanupResources:      nil,
@@ -95,7 +96,8 @@ type testResources struct {
 	localGlooshotCancel   context.CancelFunc
 }
 type tutorialValues struct {
-	meshName string
+	meshName         string
+	rrVulnerableName string
 }
 type crd struct {
 	resource  string
@@ -122,6 +124,8 @@ func restoreCluster() {
 	cleanupLocalTestEnv()
 	cleanupMesh()
 }
+
+const readyString = "ready: the eventually-function has returned as expected"
 
 func cleanupResources() {
 	for _, crd := range gtr.cleanupResources {
@@ -166,48 +170,66 @@ func portForwardPromRetry() bool {
 func portForwardProm() {
 	// we will be restarting the prom server when we update its config with supergloo
 	// we need to find the new pod and connect to that
-	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.GlooshotNamespace).List(metav1.ListOptions{LabelSelector: "app=prometheus,component=server"})
-	readyPods := getReadyPods(list)
-	if len(readyPods.Items) == 0 {
-		fmt.Println("no prometheus server pods ready")
+	promPod, err := getPromPod()
+	if err != nil {
 		return
 	}
-	fmt.Println(len(readyPods.Items))
-	fmt.Println(err)
+	promPodName := promPod.Name
+	stable := promIsStable()
+	if !stable {
+		return
+	}
 	localPort := 9090
 	cmdString := fmt.Sprintf("port-forward -n %v %v %v:9090",
 		gtr.GlooshotNamespace,
-		readyPods.Items[0].ObjectMeta.Name,
+		promPodName,
 		localPort)
 	ctx, cancel := context.WithCancel(context.Background())
 	gtr.portForwardPromCancel = cancel
 	go kubectlWithCancel(ctx, cmdString)
 }
-func getReadyPods(list *corev1.PodList) *corev1.PodList {
-	readyPods := &corev1.PodList{}
-	fmt.Printf("checking %v pods\n", len(list.Items))
+func getPromPod() (corev1.Pod, error) {
+	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.GlooshotNamespace).List(metav1.ListOptions{LabelSelector: "app=prometheus,component=server"})
+	if err != nil {
+		return corev1.Pod{}, err
+	}
+	runningList := corev1.PodList{}
 	for _, p := range list.Items {
-		nContainersNotReady := 0
-		for _, stat := range p.Status.ContainerStatuses {
-			fmt.Println("stat")
-			fmt.Println(stat)
-			if stat.State.Running == nil {
-				nContainersNotReady++
-			}
-		}
-		if nContainersNotReady == 0 {
-			readyPods.Items = append(readyPods.Items, p)
-		} else {
-			fmt.Printf("waiting for %v containers\n", nContainersNotReady)
+		if p.Status.Phase == corev1.PodRunning {
+			runningList.Items = append(runningList.Items, p)
 		}
 	}
-	return readyPods
+	if len(runningList.Items) != 1 {
+		return corev1.Pod{}, fmt.Errorf("no pods found")
+	}
+	promPod := list.Items[0]
+	return promPod, nil
+}
+func promIsStable() bool {
+	promPod, err := getPromPod()
+	if err != nil {
+		fmt.Println("could not get prom pod")
+		return false
+	}
+	promReady := areAllContainersReady(promPod)
+	if !promReady {
+		return false
+	}
+	return true
+}
+func areAllContainersReady(pod corev1.Pod) bool {
+	nContainersNotReady := 0
+	for _, stat := range pod.Status.ContainerStatuses {
+		if stat.State.Running == nil {
+			nContainersNotReady++
+			fmt.Println(stat.State)
+		}
+	}
+	fmt.Println(nContainersNotReady)
+	return nContainersNotReady == 0
 }
 func isPortForwardPromReady() bool {
-	resp, err := curl("http://localhost:9090")
-	fmt.Println("RESPONSE")
-	fmt.Println(resp)
-	fmt.Println(err)
+	_, err := curl("http://localhost:9090")
 	if err != nil {
 		return false
 	}
@@ -331,6 +353,7 @@ glooshot init
 
 func setupGlooshotInit() {
 	if isSetupGlooshotInitReady() {
+		fmt.Println("skipping glooshot init, already ready")
 		return
 	}
 	out, err := cli.GlooshotConfig.RunForTest(fmt.Sprintf("init -f ../../_output/helm/charts/glooshot-%v.tgz", gtr.buildId))
@@ -395,6 +418,7 @@ supergloo install istio \
 
 func setupIstio() {
 	if isSetupIstioReady() {
+		fmt.Println("skipping setup Istio, already ready")
 		return
 	}
 	cmd := exec.Command("supergloo", strings.Split("install istio --namespace glooshot --name istio-istio-system --installation-namespace istio-system --mtls=true --auto-inject=true", " ")...)
@@ -438,6 +462,7 @@ kubectl label namespace default istio-injection=enabled
 
 func setupLabelAppNamespace() {
 	if isSetupLabelAppNamespaceReady() {
+		fmt.Println("skipping setup label app namespace, already ready")
 		return
 	}
 	cmd := exec.Command("kubectl", strings.Split("label namespace default istio-injection=enabled", " ")...)
@@ -484,9 +509,10 @@ supergloo set mesh stats \
 
 func setupPromStats() {
 	if isSetupPromStatsReady() {
+		fmt.Println("skipping setup prom stats, already ready")
 		return
 	}
-	Eventually(getIstioMeshCrd, 60*time.Second, 1*time.Second).Should(BeTrue())
+	Eventually(getIstioMeshCrd, 180*time.Second, 1*time.Second).Should(BeTrue())
 	cmdString := "set mesh stats " +
 		" --target-mesh glooshot.istio-istio-system " +
 		"--prometheus-configmap glooshot.glooshot-prometheus-server"
@@ -495,19 +521,24 @@ func setupPromStats() {
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(isSetupPromStatsReady, 10*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(isSetupPromStatsReady, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
+	Eventually(promIsStable, 60*time.Second, 500*time.Millisecond).Should(BeTrue())
 }
 func isSetupPromStatsReady() bool {
 	cm, err := gtr.cs.kubeClient.CoreV1().ConfigMaps(gtr.GlooshotNamespace).Get("glooshot-prometheus-server", metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
+	hasIstioMetrics := false
 	for _, v := range cm.Data {
 		// this is one of the metrics that supergloo injects
 		matchV, _ := regexp.MatchString("istio-istio-system-istio-policy", v)
 		if matchV {
-			return true
+			hasIstioMetrics = true
 		}
 	}
-	return false
+	if !hasIstioMetrics {
+		return false
+	}
+	return true
 }
 func getIstioMeshCrd() bool {
 	_, err := gtr.cs.meshClient.Read(gtr.GlooshotNamespace, gtr.tut.meshName, clients.ReadOpts{})
@@ -534,6 +565,7 @@ kubectl apply -f https://raw.githubusercontent.com/solo-io/glooshot/master/examp
 
 func setupDeployBookinfo() {
 	if isSetupDeployBookinfoReady() {
+		fmt.Println("skipping setup deploy bookinfo, already ready")
 		return
 	}
 	cmd := exec.Command("kubectl", strings.Split("apply -f https://raw.githubusercontent.com/solo-io/glooshot/master/examples/bookinfo/bookinfo.yaml", " ")...)
@@ -590,9 +622,10 @@ supergloo apply routingrule trafficshifting \
 */
 
 func setupRoutingRuleToVulnerableApp() {
-	//if isSetupRoutingRuleToVulnerableAppReady() {
-	//	return
-	//}
+	if isSetupRoutingRuleToVulnerableAppReady() {
+		fmt.Println("skipping setup rr vulnerable, already ready")
+		return
+	}
 	cmdString := "apply routingrule trafficshifting " +
 		"--namespace glooshot " +
 		"--name reviews-vulnerable " +
@@ -605,11 +638,16 @@ func setupRoutingRuleToVulnerableApp() {
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
 	pushCleanup(crd{"routingrule", "glooshot", "reviews-vulnerable"})
-	//Eventually(isSetupRoutingRuleToVulnerableAppReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(isSetupRoutingRuleToVulnerableAppReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
 }
 
-//func isSetupRoutingRuleToVulnerableAppReady() bool {
-//}
+func isSetupRoutingRuleToVulnerableAppReady() bool {
+	_, err := gtr.cs.rrClient.Read(gtr.GlooshotNamespace, gtr.tut.rrVulnerableName, clients.ReadOpts{})
+	if err != nil {
+		return false
+	}
+	return true
+}
 
 /*
 
@@ -661,7 +699,8 @@ EOF
 */
 
 func setupApplyFirstExperiment() {
-	if isSetupApplyFirstExperimentReady() {
+	if isSetupApplyFirstExperimentReady() == readyString {
+		fmt.Println("skipping setup apply first experiment, already ready")
 		return
 	}
 	expString := `apiVersion: glooshot.solo.io/v1
@@ -676,8 +715,8 @@ spec:
       - trigger:
           prometheus:
             customQuery: |
-              scalar(rate(istio_requests_total{ source_app="productpage",response_code="500",reporter="destination"}[1m]))
-            thresholdValue: 0.1
+              scalar(rate(istio_requests_total{ source_app="productpage",response_code="500",reporter="destination"}[3m]))
+            thresholdValue: 0.01
             comparisonOperator: ">"
     faults:
     - destinationServices:
@@ -700,16 +739,16 @@ spec:
 	pushCleanup(crd{"routingrule", "default", "abort-ratings-metric-0"})
 
 	timeLimit := 15 * time.Second
-	Eventually(isSetupApplyFirstExperimentReady, timeLimit, 250*time.Millisecond).Should(BeTrue())
+	Eventually(isSetupApplyFirstExperimentReady, timeLimit, 250*time.Millisecond).Should(Equal(readyString))
 }
-func isSetupApplyFirstExperimentReady() bool {
+func isSetupApplyFirstExperimentReady() string {
 	if _, err := gtr.cs.expClient.Read("default", "abort-ratings-metric", clients.ReadOpts{}); err != nil {
-		return false
+		return "could not read experiment"
 	}
 	if _, err := gtr.cs.rrClient.Read("default", "abort-ratings-metric-0", clients.ReadOpts{}); err != nil {
-		return false
+		return "could not read routing rule"
 	}
-	return true
+	return readyString
 }
 
 // return the cancel function so that we can kill long-running commands like port-forward
@@ -788,49 +827,57 @@ func setupProduceTraffic() {
 	//time.Sleep(3 * time.Second)
 	timeLimit := 8 * time.Second
 	successCount := 0
-	Eventually(getTenValidResponses(&successCount), timeLimit, 250*time.Millisecond).Should(BeTrue())
+	//fmt.Println("time.Sleep(60 *time.Second)")
+	//time.Sleep(60 * time.Second)
+	Eventually(promIsStable, 60*time.Second, 500*time.Millisecond).Should(BeTrue())
+	// give prom a moment to run
+	time.Sleep(1 * time.Second)
+	Eventually(getNValidResponses(&successCount, 50), timeLimit, 50*time.Millisecond).Should(BeTrue())
 	// wait for prom q's to get scraped
-	Eventually(expectExpToHaveFailed("default", "abort-ratings-metric"), 30*time.Second, 250*time.Millisecond).Should(BeTrue())
-	Eventually(expectExpFailureReport("default", "abort-ratings-metric"), 5*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(expectExpToHaveFailed("default", "abort-ratings-metric"), 30*time.Second, 500*time.Millisecond).Should(BeNil())
+	Eventually(expectExpFailureReport("default", "abort-ratings-metric"), 15*time.Second, 250*time.Millisecond).Should(BeNil())
 }
-func getTenValidResponses(successCount *int) func() bool {
+func getNValidResponses(successCount *int, targetCount int) func() bool {
 	// use a closure so we can increment a success rate across retries
 	return func() bool {
 		_, err := curl("http://localhost:9080/productpage?u=normal")
 		if err == nil {
 			*successCount = *successCount + 1
 		}
-		if *successCount > 10 {
+		if *successCount > targetCount {
 			return true
 		}
 		return false
 	}
 }
-func expectExpToHaveFailed(namespace, name string) func() bool {
-	return func() bool {
+func expectExpToHaveFailed(namespace, name string) func() error {
+	return func() error {
 		exp, err := gtr.cs.expClient.Read(namespace, name, clients.ReadOpts{})
-		Expect(err).NotTo(HaveOccurred())
-		if exp.Result.State == v1.ExperimentResult_Failed {
-			return true
+		if err != nil {
+			return err
 		}
-		return false
+		if exp.Result.State == v1.ExperimentResult_Failed {
+			return nil
+		}
+		return fmt.Errorf("expected exp to have failed, got: %v", exp.Result.State)
 	}
 }
-func expectExpFailureReport(expNamespace, expName string) func() bool {
+func expectExpFailureReport(expNamespace, expName string) func() error {
 	repNamespace := expNamespace
 	repName := expName
-	return func() bool {
+	return func() error {
 		rep, err := gtr.cs.repClient.Read(repNamespace, repName, clients.ReadOpts{})
-		Expect(err).NotTo(HaveOccurred())
+		if err != nil {
+			return err
+		}
 		if len(rep.FailureConditionHistory) != 1 {
-			By(fmt.Sprintf("len of failure condition history: %v", len(rep.FailureConditionHistory)))
-			return false
+			return fmt.Errorf("failure condition history length %v, not 1", len(rep.FailureConditionHistory))
 		}
 		if rep.FailureConditionHistory[0] == nil {
-			By(fmt.Sprintf("%v", rep.FailureConditionHistory[0]))
-			return false
+			By(fmt.Sprintf("failure condition history[0]: %v", rep.FailureConditionHistory[0]))
+			return fmt.Errorf("nil entry for failure condition history")
 		}
-		return true
+		return nil
 	}
 }
 

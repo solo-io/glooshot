@@ -9,3 +9,5 @@ export RUN_GLOOSHOT_LOCAL=1
 make render-yaml docker-push manifest -B
 ginkgo -v .
 ```
+- Note: Local testing is flaky since prometheus pods restart when the config is reloaded.
+This interrupts the port-forward
