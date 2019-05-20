@@ -1,16 +1,21 @@
 package tutorial_bookinfo
 
 import (
-	"fmt"
-	"os"
 	"testing"
+
+	"github.com/avast/retry-go"
+	"github.com/solo-io/go-utils/testutils/clusterlock"
+	"github.com/solo-io/go-utils/testutils/kube"
 
 	"github.com/solo-io/go-utils/testutils"
 
 	"github.com/solo-io/solo-kit/test/helpers"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
+
+var locker *clusterlock.TestClusterLocker
 
 func TestTutorialBookinfo(t *testing.T) {
 
@@ -27,21 +32,15 @@ func TestTutorialBookinfo(t *testing.T) {
 var gtr = testResources{}
 
 var _ = BeforeSuite(func() {
-	// set up the cluster
-	if os.Getenv("CI_TESTS") == "1" {
-		fmt.Printf("this test is disabled in CI. to run, ensure env var `CI_TESTS` is not set to 1")
-		return
-	}
-
+	var err error
+	locker, err = clusterlock.NewTestClusterLocker(kube.MustKubeClient(), clusterlock.Options{})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(locker.AcquireLock(retry.Attempts(20))).NotTo(HaveOccurred())
 	setTestResources()
 	setupCluster()
 })
-var _ = AfterSuite(func() {
-	// set up the cluster
-	if os.Getenv("CI_TESTS") == "1" {
-		fmt.Printf("this test is disabled in CI. to run, ensure env var `CI_TESTS` is not set to 1")
-		return
-	}
 
+var _ = AfterSuite(func() {
+	defer locker.ReleaseLock()
 	restoreCluster()
 })
