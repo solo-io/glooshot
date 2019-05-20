@@ -14,22 +14,26 @@ func MakeExperiment(name string) *v1.Experiment {
 	experiment.Spec = &v1.ExperimentSpec{
 		FailureConditions: []*v1.FailureCondition{
 			{
-				FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
-					PrometheusTrigger: &v1.PrometheusTrigger{
-						QueryType: &v1.PrometheusTrigger_CustomQuery{
-							CustomQuery: "query1",
+				Trigger: &v1.FailureCondition_Trigger{
+					FailureTrigger: &v1.FailureCondition_Trigger_Prometheus{
+						Prometheus: &v1.PrometheusTrigger{
+							QueryType: &v1.PrometheusTrigger_CustomQuery{
+								CustomQuery: "query1",
+							},
+							ThresholdValue: 50,
 						},
-						ThresholdValue: 50,
 					},
 				},
 			},
 			{
-				FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
-					PrometheusTrigger: &v1.PrometheusTrigger{
-						QueryType: &v1.PrometheusTrigger_CustomQuery{
-							CustomQuery: "query2",
+				Trigger: &v1.FailureCondition_Trigger{
+					FailureTrigger: &v1.FailureCondition_Trigger_Prometheus{
+						Prometheus: &v1.PrometheusTrigger{
+							QueryType: &v1.PrometheusTrigger_CustomQuery{
+								CustomQuery: "query2",
+							},
+							ThresholdValue: 50,
 						},
-						ThresholdValue: 50,
 					},
 				},
 			},
