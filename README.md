@@ -7,8 +7,8 @@
 Gloo Shot is a chaos engineering framework for service meshes.
 
 
-[**Installation**](https://gloo.solo.io/installation/) &nbsp; |
-&nbsp; [**Documentation**](https://gloo.solo.io) &nbsp; |
+[**Installation**](https://glooshot.solo.io/installation/) &nbsp; |
+&nbsp; [**Documentation**](https://glooshot.solo.io/) &nbsp; |
 &nbsp; [**Blog**](https://medium.com/solo-io/) &nbsp; |
 &nbsp; [**Slack**](https://slack.solo.io) &nbsp; |
 &nbsp; [**Twitter**](https://twitter.com/soloio_inc)
