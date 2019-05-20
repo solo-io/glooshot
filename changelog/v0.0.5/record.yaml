@@ -1,0 +1,4 @@
+changelog:
+- type: NEW_FEATURE
+  description: Store measurement values so values can be queried and reported.
+  issueLink: https://github.com/solo-io/glooshot/issues/48
