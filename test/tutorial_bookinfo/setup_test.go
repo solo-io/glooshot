@@ -825,14 +825,13 @@ func setupProduceTraffic() {
 	portForwardApp()
 	// wait for port to be available - combine with timeLimit?
 	//time.Sleep(3 * time.Second)
-	timeLimit := 8 * time.Second
 	successCount := 0
 	//fmt.Println("time.Sleep(60 *time.Second)")
 	//time.Sleep(60 * time.Second)
 	Eventually(promIsStable, 60*time.Second, 500*time.Millisecond).Should(BeTrue())
 	// give prom a moment to run
 	time.Sleep(1 * time.Second)
-	Eventually(getNValidResponses(&successCount, 50), timeLimit, 50*time.Millisecond).Should(BeTrue())
+	Eventually(getNValidResponses(&successCount, 50), 60*time.Second, 50*time.Millisecond).Should(BeTrue())
 	// wait for prom q's to get scraped
 	Eventually(expectExpToHaveFailed("default", "abort-ratings-metric"), 30*time.Second, 500*time.Millisecond).Should(BeNil())
 	Eventually(expectExpFailureReport("default", "abort-ratings-metric"), 15*time.Second, 250*time.Millisecond).Should(BeNil())
