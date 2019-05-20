@@ -27,7 +27,7 @@ var _ = Describe("Client", func() {
 			case <-time.After(time.Second):
 				return 0
 			}
-		}, time.Second*1).Should(Equal(float64(50)))
+		}, time.Second*1).Should(Equal(Result(50)))
 
 		Eventually(func() Result {
 			select {
@@ -36,7 +36,7 @@ var _ = Describe("Client", func() {
 			case <-time.After(time.Second):
 				return 0
 			}
-		}).Should(Equal(float64(50)))
+		}).Should(Equal(Result(50)))
 	})
 })
 
