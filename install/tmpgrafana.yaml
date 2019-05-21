@@ -1,0 +1,461 @@
+---
+# Source: grafana/templates/podsecuritypolicy.yaml
+
+apiVersion: extensions/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: kubecon-eu-grafana
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    heritage: Tiller
+    release: kubecon-eu
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    # Default set from Docker, without DAC_OVERRIDE or CHOWN
+    - FOWNER
+    - FSETID
+    - KILL
+    - SETGID
+    - SETUID
+    - SETPCAP
+    - NET_BIND_SERVICE
+    - NET_RAW
+    - SYS_CHROOT
+    - MKNOD
+    - AUDIT_WRITE
+    - SETFCAP
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: false
+
+---
+# Source: grafana/templates/tests/test-podsecuritypolicy.yaml
+
+apiVersion: extensions/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: kubecon-eu-grafana-test
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    heritage: Tiller
+    release: kubecon-eu
+spec:
+  allowPrivilegeEscalation: true
+  privileged: false
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  fsGroup:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  runAsUser:
+    rule: RunAsAny
+  volumes:
+  - configMap
+  - downwardAPI
+  - emptyDir
+  - projected
+  - secret
+
+---
+# Source: grafana/templates/secret.yaml
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kubecon-eu-grafana
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    release: kubecon-eu
+    heritage: Tiller
+type: Opaque
+data:
+  admin-user: "YWRtaW4="
+  admin-password: "cWlNbVVLdnoyM1BwSmp2V29lS0NHdTBPUXA2OVgzekxRek56U2ZMTA=="
+  ldap-toml: ""
+
+---
+# Source: grafana/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubecon-eu-grafana
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    release: kubecon-eu
+    heritage: Tiller
+data:
+  grafana.ini: |
+    [analytics]
+    check_for_updates = true
+    [grafana_net]
+    url = https://grafana.net
+    [log]
+    mode = console
+    [paths]
+    data = /var/lib/grafana/data
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+
+---
+# Source: grafana/templates/tests/test-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubecon-eu-grafana-test
+  labels:
+    app: kubecon-eu-grafana
+    chart: "grafana-3.3.8"
+    heritage: "Tiller"
+    release: "kubecon-eu"
+data:
+  run.sh: |-
+    @test "Test Health" {
+      url="http://kubecon-eu-grafana/api/health"
+
+      code=$(curl -s -o /dev/null -I -w "%{http_code}" $url)
+      [ "$code" == "200" ]
+    }
+
+---
+# Source: grafana/templates/serviceaccount.yaml
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    heritage: Tiller
+    release: kubecon-eu
+  name: kubecon-eu-grafana
+
+---
+# Source: grafana/templates/tests/test-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    heritage: Tiller
+    release: kubecon-eu
+  name: kubecon-eu-grafana-test
+
+---
+# Source: grafana/templates/clusterrole.yaml
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    release: kubecon-eu
+    heritage: Tiller
+  name: kubecon-eu-grafana-clusterrole
+rules: []
+
+---
+# Source: grafana/templates/clusterrolebinding.yaml
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kubecon-eu-grafana-clusterrolebinding
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    release: kubecon-eu
+    heritage: Tiller
+subjects:
+  - kind: ServiceAccount
+    name: kubecon-eu-grafana
+    namespace: grafana
+roleRef:
+  kind: ClusterRole
+  name: kubecon-eu-grafana-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: grafana/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: kubecon-eu-grafana
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    heritage: Tiller
+    release: kubecon-eu
+rules:
+- apiGroups:      ['extensions']
+  resources:      ['podsecuritypolicies']
+  verbs:          ['use']
+  resourceNames:  [kubecon-eu-grafana]
+
+---
+# Source: grafana/templates/tests/test-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubecon-eu-grafana-test
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    heritage: Tiller
+    release: kubecon-eu
+rules:
+- apiGroups:      ['policy']
+  resources:      ['podsecuritypolicies']
+  verbs:          ['use']
+  resourceNames:  [kubecon-eu-grafana-test]
+
+---
+# Source: grafana/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: kubecon-eu-grafana
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    heritage: Tiller
+    release: kubecon-eu
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubecon-eu-grafana
+subjects:
+- kind: ServiceAccount
+  name: kubecon-eu-grafana
+  namespace: grafana
+---
+# Source: grafana/templates/tests/test-rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubecon-eu-grafana-test
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    heritage: Tiller
+    release: kubecon-eu
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubecon-eu-grafana-test
+subjects:
+- kind: ServiceAccount
+  name: kubecon-eu-grafana-test
+  namespace: grafana
+
+---
+# Source: grafana/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubecon-eu-grafana
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    release: kubecon-eu
+    heritage: Tiller
+spec:
+  type: ClusterIP
+  ports:
+    - name: service
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+
+  selector:
+    app: grafana
+    release: kubecon-eu
+
+---
+# Source: grafana/templates/tests/test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kubecon-eu-grafana-test
+  labels:
+    app: kubecon-eu-grafana
+    chart: "grafana-3.3.8"
+    heritage: "Tiller"
+    release: "kubecon-eu"
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  serviceAccountName: kubecon-eu-grafana-test
+  initContainers:
+    - name: test-framework
+      image: "dduportal/bats:0.4.0"
+      command:
+      - "bash"
+      - "-c"
+      - |
+        set -ex
+        # copy bats to tools dir
+        cp -R /usr/local/libexec/ /tools/bats/
+      volumeMounts:
+      - mountPath: /tools
+        name: tools
+  containers:
+    - name: kubecon-eu-test
+      image: "dduportal/bats:0.4.0"
+      command: ["/tools/bats/bats", "-t", "/tests/run.sh"]
+      volumeMounts:
+        - mountPath: /tests
+          name: tests
+          readOnly: true
+        - mountPath: /tools
+          name: tools
+  volumes:
+  - name: tests
+    configMap:
+      name: kubecon-eu-grafana-test
+  - name: tools
+    emptyDir: {}
+  restartPolicy: Never
+
+---
+# Source: grafana/templates/deployment.yaml
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: kubecon-eu-grafana
+  labels:
+    app: grafana
+    chart: grafana-3.3.8
+    release: kubecon-eu
+    heritage: Tiller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+      release: kubecon-eu
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: grafana
+        release: kubecon-eu
+      annotations:
+        checksum/config: 0a9ea22ea5795e92c465a872e12bac0bdd5484a077e5eb850f9c01355df412ab
+        checksum/dashboards-json-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/sc-dashboard-provider-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/secret: 9673c955786ca45b7327ec6062a5588cdedf7dcf0246a9e066ef9d1b1a3f84fb
+    spec:
+      serviceAccountName: kubecon-eu-grafana
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
+        
+      containers:
+        - name: grafana
+          image: "grafana/grafana:6.1.6"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: "/etc/grafana/grafana.ini"
+              subPath: grafana.ini
+            - name: ldap
+              mountPath: "/etc/grafana/ldap.toml"
+              subPath: ldap.toml
+            - name: storage
+              mountPath: "/var/lib/grafana"
+          ports:
+            - name: service
+              containerPort: 80
+              protocol: TCP
+            - name: grafana
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: kubecon-eu-grafana
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kubecon-eu-grafana
+                  key: admin-password
+          livenessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 60
+            timeoutSeconds: 30
+            
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            
+          resources:
+            {}
+            
+      volumes:
+        - name: config
+          configMap:
+            name: kubecon-eu-grafana
+        - name: ldap
+          secret:
+            secretName: kubecon-eu-grafana
+            items:
+              - key: ldap-toml
+                path: ldap.toml
+        - name: storage
+          emptyDir: {}
+
+---
+# Source: grafana/templates/configmap-dashboard-provider.yaml
+
+
+---
+# Source: grafana/templates/dashboards-json-configmap.yaml
+
+
+---
+# Source: grafana/templates/ingress.yaml
+
+
+---
+# Source: grafana/templates/pvc.yaml
+

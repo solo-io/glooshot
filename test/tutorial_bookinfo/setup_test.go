@@ -421,10 +421,12 @@ func setupIstio() {
 		fmt.Println("skipping setup Istio, already ready")
 		return
 	}
-	cmd := exec.Command("supergloo", strings.Split("install istio --namespace glooshot --name istio-istio-system --installation-namespace istio-system --mtls=true --auto-inject=true", " ")...)
+	cmdString := "install istio --namespace glooshot --name istio-istio-system --installation-namespace istio-system --mtls=true --auto-inject=true"
+	cmd := exec.Command("supergloo", strings.Split(cmdString, " ")...)
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
+	//err := sgutils.Supergloo(cmdString)
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(isSetupIstioReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
 }
@@ -520,6 +522,7 @@ func setupPromStats() {
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
+	//err := sgutils.Supergloo(cmdString)
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(isSetupPromStatsReady, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
 	Eventually(promIsStable, 60*time.Second, 500*time.Millisecond).Should(BeTrue())
@@ -715,7 +718,7 @@ spec:
       - trigger:
           prometheus:
             customQuery: |
-              scalar(rate(istio_requests_total{ source_app="productpage",response_code="500",reporter="destination"}[3m]))
+              scalar(sum(rate(istio_requests_total{ source_app="productpage",response_code="500",reporter="destination",destination_app="reviews",destination_version!="v1"}[1m])))
             thresholdValue: 0.01
             comparisonOperator: ">"
     faults:
