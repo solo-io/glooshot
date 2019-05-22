@@ -127,6 +127,7 @@ type ClientCache struct {
 	// internal cache
 	kubeClient *kubernetes.Clientset
 	expClient  *v1.ExperimentClient
+	repClient  *v1.ReportClient
 }
 
 func NewClientCache(ctx context.Context, registerCrds bool, handleError func(error)) ClientCache {
@@ -153,6 +154,15 @@ func (cc *ClientCache) ExpClient() v1.ExperimentClient {
 		cc.expClient = &expClient
 	}
 	return *cc.expClient
+}
+
+func (cc *ClientCache) ReportClient() v1.ReportClient {
+	if cc.repClient == nil {
+		repClient, err := GetReportClient(cc.ctx, !cc.registerCrds)
+		cc.check(err)
+		cc.repClient = &repClient
+	}
+	return *cc.repClient
 }
 
 func (cc *ClientCache) Ctx() context.Context {
