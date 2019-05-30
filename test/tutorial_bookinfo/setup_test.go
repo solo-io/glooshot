@@ -517,7 +517,6 @@ supergloo set mesh stats \
 */
 
 func generateSuperglooCmd(cmdString string) *exec.Cmd {
-	//cmdString = fmt.Sprintf("run gcr.io/solo-public/supergloo-cli-cloudbuild:dev1 ")
 	cmd := exec.Command("supergloo", strings.Split(cmdString, " ")...)
 	return cmd
 }
@@ -754,7 +753,7 @@ spec:
 	pushCleanup(crd{"experiment", gtr.AppNamespace, "abort-ratings-metric"})
 	pushCleanup(crd{"routingrule", gtr.AppNamespace, "abort-ratings-metric-0"})
 
-	timeLimit := 15 * time.Second
+	timeLimit := 45 * time.Second
 	Eventually(isSetupApplyFirstExperimentReady, timeLimit, 250*time.Millisecond).Should(Equal(readyString))
 }
 func isSetupApplyFirstExperimentReady() string {
