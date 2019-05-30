@@ -2,7 +2,7 @@ apiVersion: glooshot.solo.io/v1
 kind: Experiment
 metadata:
   name: abort-ratings-metric
-  namespace: default
+  namespace: bookinfo
 spec:
   spec:
     duration: 600s
@@ -15,7 +15,7 @@ spec:
             comparisonOperator: ">"
     faults:
     - destinationServices:
-      - name: default-ratings-9080
+      - name: bookinfo-ratings-9080
         namespace: glooshot
       fault:
         abort:

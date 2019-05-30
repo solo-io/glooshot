@@ -100,7 +100,7 @@ metadata:
 type: Opaque
 data:
   admin-user: "YWRtaW4="
-  admin-password: "cWlNbVVLdnoyM1BwSmp2V29lS0NHdTBPUXA2OVgzekxRek56U2ZMTA=="
+  admin-password: "TmRuQTB5Nzl1TEdZMXV3bUF3WnJxOU5tNzVqeDh1ZmpHb21zOWVCbg=="
   ldap-toml: ""
 
 ---
@@ -377,7 +377,7 @@ spec:
         checksum/config: 0a9ea22ea5795e92c465a872e12bac0bdd5484a077e5eb850f9c01355df412ab
         checksum/dashboards-json-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
         checksum/sc-dashboard-provider-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/secret: 9673c955786ca45b7327ec6062a5588cdedf7dcf0246a9e066ef9d1b1a3f84fb
+        checksum/secret: a58214f528befd0853277f5fadb0afc39d5d8cc8932404b0560f2367e205e075
     spec:
       serviceAccountName: kubecon-eu-grafana
       securityContext:

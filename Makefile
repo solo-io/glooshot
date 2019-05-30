@@ -239,4 +239,4 @@ check-format: must
 ## TODO - move to install cmd
 .PHONY: grafana
 grafana:
-	helm template ~/git/github.com/helm/charts/stable/grafana/ --name kubecon-eu -f ~/git/github.com/helm/charts/stable/grafana/values.yaml --namespace grafana --set namespace.create=true  > install/tmpgrafana.yaml
+	helm template ~/git/github.com/helm/charts/stable/grafana/ --name kubecon-eu -f install/helm/grafana/values.yaml --namespace grafana --set namespace.create=true  > install/tmpgrafana.yaml

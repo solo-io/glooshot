@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/solo-io/glooshot/pkg/cli"
+
 	"github.com/solo-io/glooshot/test/utils"
 
 	corev1 "k8s.io/api/core/v1"
@@ -26,8 +28,6 @@ import (
 	sgv1 "github.com/solo-io/supergloo/pkg/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	"github.com/solo-io/glooshot/pkg/cli"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 
@@ -68,7 +68,7 @@ func setTestResources() {
 		buildId:           buildRun.Config.BuildEnvVars.BuildId,
 		GlooshotNamespace: "glooshot",
 		IstioNamespace:    "istio-system",
-		AppNamespace:      "default",
+		AppNamespace:      "bookinfo",
 
 		// values used in tutorial
 		tut: tutorialValues{
@@ -303,7 +303,7 @@ func cleanupMesh() {
 //
 //}
 
-/*
+var vvv = `
 ---
 title: Tutorial
 menuTitle: Tutorial
@@ -334,9 +334,9 @@ ratings data is not available.
 
 To follow this demo, you will need the following:
 
-- `glooshot` [(download)](https://github.com/solo-io/glooshot/releases) command line tool, v0.0.4 or greater
-- `supergloo` [(download)](https://supergloo.solo.io/installation/) command line tool, v0.3.18 or greater, for simplified mesh management during the tutorial.
-- `kubectl` [(download)](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- <code>glooshot</code> [(download)](https://github.com/solo-io/glooshot/releases) command line tool, v0.0.4 or greater
+- <code>supergloo</code> [(download)](https://supergloo.solo.io/installation/) command line tool, v0.3.18 or greater, for simplified mesh management during the tutorial.
+- <code>kubectl</code> [(download)](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - A Kubernetes cluster - [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/#install-minikube) will do
 
 ### Setup
@@ -344,12 +344,10 @@ To follow this demo, you will need the following:
 #### Deploy Gloo Shot
 
 - Gloo Shot can easily be deployed from the command line tool.
-- This will put Gloo Shot in the `glooshot` namespace.
+- This will put Gloo Shot in the <code>glooshot</code> namespace.
 
-```bash
-glooshot init
-```
-*/
+<code>glooshot init</code>
+`
 
 func setupGlooshotInit() {
 	if isSetupGlooshotInitReady() {
@@ -422,7 +420,7 @@ func setupIstio() {
 		return
 	}
 	cmdString := "install istio --namespace glooshot --name istio-istio-system --installation-namespace istio-system --mtls=true --auto-inject=true"
-	cmd := exec.Command("supergloo", strings.Split(cmdString, " ")...)
+	cmd := generateSuperglooCmd(cmdString)
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
@@ -467,7 +465,14 @@ func setupLabelAppNamespace() {
 		fmt.Println("skipping setup label app namespace, already ready")
 		return
 	}
-	cmd := exec.Command("kubectl", strings.Split("label namespace default istio-injection=enabled", " ")...)
+	_, _ = gtr.cs.kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: gtr.AppNamespace,
+		},
+	})
+	cmdString := fmt.Sprintf("label namespace %v istio-injection=enabled", gtr.AppNamespace)
+	cmd := exec.Command("kubectl", strings.Split(cmdString, " ")...)
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
@@ -476,7 +481,9 @@ func setupLabelAppNamespace() {
 }
 func isSetupLabelAppNamespaceReady() bool {
 	ns, err := gtr.cs.kubeClient.CoreV1().Namespaces().Get(gtr.AppNamespace, metav1.GetOptions{})
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return false
+	}
 	val, ok := ns.ObjectMeta.Labels["istio-injection"]
 	if !ok {
 		return false
@@ -509,6 +516,11 @@ supergloo set mesh stats \
 ```
 */
 
+func generateSuperglooCmd(cmdString string) *exec.Cmd {
+	//cmdString = fmt.Sprintf("run gcr.io/solo-public/supergloo-cli-cloudbuild:dev1 ")
+	cmd := exec.Command("supergloo", strings.Split(cmdString, " ")...)
+	return cmd
+}
 func setupPromStats() {
 	if isSetupPromStatsReady() {
 		fmt.Println("skipping setup prom stats, already ready")
@@ -516,13 +528,12 @@ func setupPromStats() {
 	}
 	Eventually(getIstioMeshCrd, 180*time.Second, 1*time.Second).Should(BeTrue())
 	cmdString := "set mesh stats " +
-		" --target-mesh glooshot.istio-istio-system " +
+		"--target-mesh glooshot.istio-istio-system " +
 		"--prometheus-configmap glooshot.glooshot-prometheus-server"
-	cmd := exec.Command("supergloo", strings.Split(cmdString, " ")...)
+	cmd := generateSuperglooCmd(cmdString)
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
-	//err := sgutils.Supergloo(cmdString)
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(isSetupPromStatsReady, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
 	Eventually(promIsStable, 60*time.Second, 500*time.Millisecond).Should(BeTrue())
@@ -571,7 +582,9 @@ func setupDeployBookinfo() {
 		fmt.Println("skipping setup deploy bookinfo, already ready")
 		return
 	}
-	cmd := exec.Command("kubectl", strings.Split("apply -f https://raw.githubusercontent.com/solo-io/glooshot/master/examples/bookinfo/bookinfo.yaml", " ")...)
+	cmd := exec.Command("kubectl", strings.Split(
+		fmt.Sprintf("apply -n %v -f https://raw.githubusercontent.com/solo-io/glooshot/master/examples/bookinfo/bookinfo.yaml", gtr.AppNamespace),
+		" ")...)
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
@@ -632,10 +645,10 @@ func setupRoutingRuleToVulnerableApp() {
 	cmdString := "apply routingrule trafficshifting " +
 		"--namespace glooshot " +
 		"--name reviews-vulnerable " +
-		"--dest-upstreams glooshot.default-reviews-9080 " +
+		fmt.Sprintf("--dest-upstreams glooshot.%v-reviews-9080 ", gtr.AppNamespace) +
 		"--target-mesh glooshot.istio-istio-system " +
-		"--destination glooshot.default-reviews-v4-9080:1"
-	cmd := exec.Command("supergloo", strings.Split(cmdString, " ")...)
+		fmt.Sprintf("--destination glooshot.%v-reviews-v4-9080:1", gtr.AppNamespace)
+	cmd := generateSuperglooCmd(cmdString)
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
@@ -710,7 +723,7 @@ func setupApplyFirstExperiment() {
 kind: Experiment
 metadata:
   name: abort-ratings-metric
-  namespace: default
+  namespace: bookinfo
 spec:
   spec:
     duration: 600s
@@ -723,7 +736,7 @@ spec:
             comparisonOperator: ">"
     faults:
     - destinationServices:
-      - name: default-ratings-9080
+      - name: bookinfo-ratings-9080
         namespace: glooshot
       fault:
         abort:
@@ -738,17 +751,17 @@ spec:
 	validateFileContent(expPath, expString)
 	cmdString := fmt.Sprintf("apply -f %v", expPath)
 	kubectl(cmdString)
-	pushCleanup(crd{"experiment", "default", "abort-ratings-metric"})
-	pushCleanup(crd{"routingrule", "default", "abort-ratings-metric-0"})
+	pushCleanup(crd{"experiment", gtr.AppNamespace, "abort-ratings-metric"})
+	pushCleanup(crd{"routingrule", gtr.AppNamespace, "abort-ratings-metric-0"})
 
 	timeLimit := 15 * time.Second
 	Eventually(isSetupApplyFirstExperimentReady, timeLimit, 250*time.Millisecond).Should(Equal(readyString))
 }
 func isSetupApplyFirstExperimentReady() string {
-	if _, err := gtr.cs.expClient.Read("default", "abort-ratings-metric", clients.ReadOpts{}); err != nil {
+	if _, err := gtr.cs.expClient.Read(gtr.AppNamespace, "abort-ratings-metric", clients.ReadOpts{}); err != nil {
 		return "could not read experiment"
 	}
-	if _, err := gtr.cs.rrClient.Read("default", "abort-ratings-metric-0", clients.ReadOpts{}); err != nil {
+	if _, err := gtr.cs.rrClient.Read(gtr.AppNamespace, "abort-ratings-metric-0", clients.ReadOpts{}); err != nil {
 		return "could not read routing rule"
 	}
 	return readyString
@@ -793,7 +806,7 @@ func validateFileContent(path, value string) {
 
 func portForwardApp() {
 	localPort := 9080
-	cmdString := fmt.Sprintf("port-forward deploy/productpage-v1 %v:9080", localPort)
+	cmdString := fmt.Sprintf("port-forward -n %v deploy/productpage-v1 %v:9080", gtr.AppNamespace, localPort)
 	ctx, cancel := context.WithCancel(context.Background())
 	gtr.portForwardAppCancel = cancel
 	go kubectlWithCancel(ctx, cmdString)
@@ -826,23 +839,20 @@ func curl(url string) (string, error) {
 
 func setupProduceTraffic() {
 	portForwardApp()
-	// wait for port to be available - combine with timeLimit?
-	//time.Sleep(3 * time.Second)
 	successCount := 0
-	//fmt.Println("time.Sleep(60 *time.Second)")
-	//time.Sleep(60 * time.Second)
-	Eventually(promIsStable, 60*time.Second, 500*time.Millisecond).Should(BeTrue())
+	Eventually(promIsStable, 90*time.Second, 500*time.Millisecond).Should(BeTrue())
 	// give prom a moment to run
 	time.Sleep(1 * time.Second)
-	Eventually(getNValidResponses(&successCount, 50), 60*time.Second, 50*time.Millisecond).Should(BeTrue())
+	Eventually(getNValidResponses(&successCount, 50), 60*time.Second, 25*time.Millisecond).Should(BeTrue())
 	// wait for prom q's to get scraped
-	Eventually(expectExpToHaveFailed("default", "abort-ratings-metric"), 30*time.Second, 500*time.Millisecond).Should(BeNil())
-	Eventually(expectExpFailureReport("default", "abort-ratings-metric"), 15*time.Second, 250*time.Millisecond).Should(BeNil())
+	Eventually(expectExpToHaveFailed(gtr.AppNamespace, "abort-ratings-metric"), 60*time.Second, 500*time.Millisecond).Should(BeNil())
+	Eventually(expectExpFailureReport(gtr.AppNamespace, "abort-ratings-metric"), 15*time.Second, 250*time.Millisecond).Should(BeNil())
 }
 func getNValidResponses(successCount *int, targetCount int) func() bool {
 	// use a closure so we can increment a success rate across retries
 	return func() bool {
 		_, err := curl("http://localhost:9080/productpage?u=normal")
+		fmt.Printf("got %v responses\n", *successCount)
 		if err == nil {
 			*successCount = *successCount + 1
 		}
