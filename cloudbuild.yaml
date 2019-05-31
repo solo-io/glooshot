@@ -85,7 +85,7 @@ steps:
   secretEnv: ['QUAY_IO_PASSWORD']
   id: 'build-for-test'
 
-- name: 'gcr.io/$PROJECT_ID/glooshot-e2e-cloudbuild:dev1'
+- name: 'gcr.io/$PROJECT_ID/glooshot-e2e-cloudbuild:0.1.10'
   args: ['-r']
   env:
   - 'PROJECT_ROOT=github.com/solo-io/glooshot'
@@ -104,7 +104,7 @@ steps:
   id: 'test'
 
 # Run installation test
-- name: 'gcr.io/$PROJECT_ID/glooshot-e2e-cloudbuild:dev1'
+- name: 'gcr.io/$PROJECT_ID/glooshot-e2e-cloudbuild:0.1.10'
   env:
     - 'PROJECT_ROOT=github.com/solo-io/glooshot'
     - 'GOPATH=/workspace/gopath'
