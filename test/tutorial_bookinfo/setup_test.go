@@ -301,12 +301,6 @@ func expectSetupIstioReady() error {
 	expected := corev1.PodRunning
 	return expectMatch(got, expected)
 }
-func expectMatch(got, expected interface{}) error {
-	if got == expected {
-		return nil
-	}
-	return fmt.Errorf("got: %v, expected: %v", got, expected)
-}
 
 func setupLabelAppNamespace() {
 	if ready(expectSetupLabelAppNamespaceReady()) {
@@ -448,12 +442,6 @@ func expectSetupRoutingRuleToVulnerableAppReady() error {
 	return err
 }
 
-func ready(e error) bool {
-	if e != nil {
-		return false
-	}
-	return true
-}
 func setupApplyFirstExperiment() {
 	if ready(expectSetupApplyFirstExperimentReady()) {
 		fmt.Println("skipping setup apply first experiment, already ready")
