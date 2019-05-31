@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"os"
 
 	"github.com/solo-io/glooshot/pkg/cli/cmd/register"
 
@@ -21,9 +20,7 @@ Root
 ------------------------------------------------------------------------------*/
 
 func App(ctx context.Context, version string) *cobra.Command {
-	// TODO(mitchdraft) - put this in a config file
-	shouldRegister := os.Getenv("REGISTER_GLOOSHOT") == "1"
-	o := options.InitialOptions(ctx, shouldRegister)
+	o := options.InitialOptions(ctx)
 	app := &cobra.Command{
 		Use:     "glooshot",
 		Short:   "CLI for glooshot",

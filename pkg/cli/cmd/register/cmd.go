@@ -1,9 +1,6 @@
 package register
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 
 	"github.com/solo-io/glooshot/pkg/cli/options"
@@ -16,17 +13,14 @@ func Cmd(o *options.Options) *cobra.Command {
 		Short: "register the custom resources used by glooshot",
 		Long:  "register the custom resources used by glooshot. This should be done once for each new cluster you use.",
 		RunE: func(c *cobra.Command, args []string) error {
-			// TODO(mitchdraft) - put this in a config file
-			shouldRegister := os.Getenv("REGISTER_GLOOSHOT") == "1"
-			if !shouldRegister {
-				return fmt.Errorf("must set REGISTER_GLOOSHOT=1")
-			}
+			// all other commands use clientsets that do not register their crds
+			// for this particular command, we need to get clients that DO register their crds
+			regCs := options.CreateClientset(o.Ctx, true)
 			// do something trivial to register the clients
-			// TODO(mitchdraft) - break this into a util, get the with-registration clients there
-			if _, err := o.Clients.ReportClient().List("default", clients.ListOpts{}); err != nil {
+			if _, err := regCs.ReportClient().List("default", clients.ListOpts{}); err != nil {
 				return err
 			}
-			if _, err := o.Clients.ExpClient().List("default", clients.ListOpts{}); err != nil {
+			if _, err := regCs.ExpClient().List("default", clients.ListOpts{}); err != nil {
 				return err
 			}
 			return nil
