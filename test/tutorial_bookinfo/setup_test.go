@@ -1,11 +1,8 @@
 package tutorial_bookinfo
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -20,6 +17,7 @@ import (
 
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
 	"github.com/solo-io/glooshot/pkg/cli/gsutil"
+	"github.com/solo-io/go-utils/testutils/goimpl"
 	"github.com/solo-io/go-utils/testutils/kube"
 
 	buildv1 "github.com/solo-io/build/pkg/api/v1"
@@ -216,14 +214,12 @@ func areAllContainersReady(pod corev1.Pod) bool {
 	for _, stat := range pod.Status.ContainerStatuses {
 		if stat.State.Running == nil {
 			nContainersNotReady++
-			fmt.Println(stat.State)
 		}
 	}
-	fmt.Println(nContainersNotReady)
 	return nContainersNotReady == 0
 }
 func expectPortForwardPromReady() error {
-	_, err := curl("http://localhost:9090")
+	_, err := goimpl.Curl("http://localhost:9090")
 	return err
 }
 
@@ -516,40 +512,25 @@ func terminateAppPortForward() {
 	}
 }
 
-// TODO(mitchdraft) migrate this to go-utils https://github.com/solo-io/glooshot/issues/16
-func curl(url string) (string, error) {
-	body := bytes.NewReader([]byte(url))
-	req, err := http.NewRequest("GET", url, body)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	p := new(bytes.Buffer)
-	_, err = io.Copy(p, resp.Body)
-	defer resp.Body.Close()
-
-	return p.String(), nil
-}
-
 func setupProduceTraffic() {
 	portForwardApp()
 	successCount := 0
 	Eventually(promIsStable, 90*time.Second, 500*time.Millisecond).Should(BeNil())
 	// give prom a moment to run
 	time.Sleep(1 * time.Second)
-	Eventually(getNValidResponses(&successCount, 50), 60*time.Second, 25*time.Millisecond).Should(BeNil())
+	// use a go routine so that we generate traffic while checking for the failure condition
+	go func() {
+		defer GinkgoRecover()
+		Eventually(getNValidResponses(&successCount, 50), 60*time.Second, 25*time.Millisecond).Should(BeNil())
+	}()
 	// wait for prom q's to get scraped
-	Eventually(expectExpToHaveFailed(gtr.AppNamespace, "abort-ratings-metric"), 60*time.Second, 500*time.Millisecond).Should(BeNil())
+	Eventually(expectExpToHaveFailed(gtr.AppNamespace, "abort-ratings-metric"), 60*time.Second, 1*time.Second).Should(BeNil())
 	Eventually(expectExpFailureReport(gtr.AppNamespace, "abort-ratings-metric"), 15*time.Second, 250*time.Millisecond).Should(BeNil())
 }
 func getNValidResponses(successCount *int, targetCount int) func() error {
 	// use a closure so we can increment a success rate across retries
 	return func() error {
-		if _, err := curl("http://localhost:9080/productpage?u=normal"); err != nil {
+		if _, err := goimpl.Curl("http://localhost:9080/productpage?u=normal"); err != nil {
 			return err
 		}
 		*successCount = *successCount + 1
@@ -565,10 +546,7 @@ func expectExpToHaveFailed(namespace, name string) func() error {
 		if err != nil {
 			return err
 		}
-		if exp.Result.State == v1.ExperimentResult_Failed {
-			return nil
-		}
-		return fmt.Errorf("expected exp to have failed, got: %v", exp.Result.State)
+		return expectMatch(exp.Result.State, v1.ExperimentResult_Failed)
 	}
 }
 func expectExpFailureReport(expNamespace, expName string) func() error {
