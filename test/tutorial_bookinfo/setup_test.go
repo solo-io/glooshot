@@ -105,7 +105,6 @@ type crd struct {
 }
 
 func setupCluster() {
-	//setupUseMinikube()
 	setupGlooshotInit()
 	setupIstio()
 	setupLabelAppNamespace()
@@ -123,8 +122,6 @@ func restoreCluster() {
 	cleanupLocalTestEnv()
 	cleanupMesh()
 }
-
-const readyString = "ready: the eventually-function has returned as expected"
 
 func cleanupResources() {
 	for _, crd := range gtr.cleanupResources {
@@ -148,7 +145,7 @@ func setupLocalTestEnv() {
 		return
 	}
 	// port-forward prometheus
-	Eventually(portForwardPromRetry, 120*time.Second, 3*time.Second).Should(BeTrue())
+	Eventually(expectPortForwardPromRetry, 120*time.Second, 3*time.Second).Should(BeNil())
 	// delete the glooshot deployment
 	err := gtr.cs.kubeClient.AppsV1().Deployments(gtr.GlooshotNamespace).Delete("glooshot", &metav1.DeleteOptions{})
 	Expect(err).NotTo(HaveOccurred())
@@ -157,14 +154,14 @@ func setupLocalTestEnv() {
 	gtr.localGlooshotCancel = cancel
 	utils.RunGlooshotLocal(ctx, "http://localhost:9090")
 }
-func portForwardPromRetry() bool {
+func expectPortForwardPromRetry() error {
 	portForwardProm()
 	time.Sleep(3 * time.Second)
-	if isPortForwardPromReady() {
-		return true
+	if err := expectPortForwardPromReady(); err != nil {
+		terminatePromPortForward()
+		return err
 	}
-	terminatePromPortForward()
-	return false
+	return nil
 }
 func portForwardProm() {
 	// we will be restarting the prom server when we update its config with supergloo
@@ -174,8 +171,7 @@ func portForwardProm() {
 		return
 	}
 	promPodName := promPod.Name
-	stable := promIsStable()
-	if !stable {
+	if err := promIsStable(); err != nil {
 		return
 	}
 	localPort := 9090
@@ -204,17 +200,16 @@ func getPromPod() (corev1.Pod, error) {
 	promPod := list.Items[0]
 	return promPod, nil
 }
-func promIsStable() bool {
+func promIsStable() error {
 	promPod, err := getPromPod()
 	if err != nil {
-		fmt.Println("could not get prom pod")
-		return false
+		return fmt.Errorf("could not get prometheus pod")
 	}
 	promReady := areAllContainersReady(promPod)
 	if !promReady {
-		return false
+		return fmt.Errorf("prometheus is not ready")
 	}
-	return true
+	return nil
 }
 func areAllContainersReady(pod corev1.Pod) bool {
 	nContainersNotReady := 0
@@ -227,12 +222,9 @@ func areAllContainersReady(pod corev1.Pod) bool {
 	fmt.Println(nContainersNotReady)
 	return nContainersNotReady == 0
 }
-func isPortForwardPromReady() bool {
+func expectPortForwardPromReady() error {
 	_, err := curl("http://localhost:9090")
-	if err != nil {
-		return false
-	}
-	return true
+	return err
 }
 
 func cleanupLocalTestEnv() {
@@ -262,7 +254,7 @@ func cleanupMesh() {
 }
 
 func setupGlooshotInit() {
-	if isSetupGlooshotInitReady() {
+	if ready(expectSetupGlooshotInitReady()) {
 		fmt.Println("skipping glooshot init, already ready")
 		return
 	}
@@ -270,19 +262,21 @@ func setupGlooshotInit() {
 	Expect(err).NotTo(HaveOccurred())
 	fmt.Println(out.CobraStderr)
 	fmt.Println(out.CobraStdout)
-	Eventually(isSetupGlooshotInitReady, 180*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(expectSetupGlooshotInitReady, 180*time.Second, 250*time.Millisecond).Should(BeNil())
 }
-func isSetupGlooshotInitReady() bool {
+func expectSetupGlooshotInitReady() error {
 	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.GlooshotNamespace).List(metav1.ListOptions{LabelSelector: "glooshot=glooshot-op"})
-	Expect(err).NotTo(HaveOccurred())
-	if len(list.Items) == 0 || len(list.Items) > 1 {
-		return false
+	if err != nil {
+		return err
 	}
-	return list.Items[0].Status.Phase == corev1.PodRunning
+	if len(list.Items) == 0 || len(list.Items) > 1 {
+		return fmt.Errorf("no glooshot pods available")
+	}
+	return expectMatch(list.Items[0].Status.Phase, corev1.PodRunning)
 }
 
 func setupIstio() {
-	if isSetupIstioReady() {
+	if ready(expectSetupIstioReady()) {
 		fmt.Println("skipping setup Istio, already ready")
 		return
 	}
@@ -293,13 +287,13 @@ func setupIstio() {
 	err := cmd.Run()
 	//err := sgutils.Supergloo(cmdString)
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(isSetupIstioReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(expectSetupIstioReady, 80*time.Second, 250*time.Millisecond).Should(BeNil())
 }
-func isSetupIstioReady() bool {
+func expectSetupIstioReady() error {
 	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.IstioNamespace).List(metav1.ListOptions{})
 	Expect(err).NotTo(HaveOccurred())
 	if len(list.Items) == 0 {
-		return false
+		return fmt.Errorf("no istio pods found")
 	}
 	nPodsGettingReady := 0
 	for _, p := range list.Items {
@@ -307,11 +301,19 @@ func isSetupIstioReady() bool {
 			nPodsGettingReady++
 		}
 	}
-	return list.Items[0].Status.Phase == corev1.PodRunning
+	got := list.Items[0].Status.Phase
+	expected := corev1.PodRunning
+	return expectMatch(got, expected)
+}
+func expectMatch(got, expected interface{}) error {
+	if got == expected {
+		return nil
+	}
+	return fmt.Errorf("got: %v, expected: %v", got, expected)
 }
 
 func setupLabelAppNamespace() {
-	if isSetupLabelAppNamespaceReady() {
+	if ready(expectSetupLabelAppNamespaceReady()) {
 		fmt.Println("skipping setup label app namespace, already ready")
 		return
 	}
@@ -327,18 +329,23 @@ func setupLabelAppNamespace() {
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(isSetupLabelAppNamespaceReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(expectSetupLabelAppNamespaceReady, 80*time.Second, 250*time.Millisecond).Should(BeNil())
 }
-func isSetupLabelAppNamespaceReady() bool {
+func expectSetupLabelAppNamespaceReady() error {
 	ns, err := gtr.cs.kubeClient.CoreV1().Namespaces().Get(gtr.AppNamespace, metav1.GetOptions{})
 	if err != nil {
-		return false
+		return err
 	}
-	val, ok := ns.ObjectMeta.Labels["istio-injection"]
+	key := "istio-injection"
+	val, ok := ns.ObjectMeta.Labels[key]
 	if !ok {
-		return false
+		return fmt.Errorf("unable to read label key: %v", key)
 	}
-	return val == "enabled"
+	expected := "enabled"
+	if val == expected {
+		return nil
+	}
+	return fmt.Errorf("got: %v, expected: %v", val, expected)
 }
 
 func generateSuperglooCmd(cmdString string) *exec.Cmd {
@@ -346,11 +353,11 @@ func generateSuperglooCmd(cmdString string) *exec.Cmd {
 	return cmd
 }
 func setupPromStats() {
-	if isSetupPromStatsReady() {
+	if ready(expectSetupPromStatsReady()) {
 		fmt.Println("skipping setup prom stats, already ready")
 		return
 	}
-	Eventually(getIstioMeshCrd, 180*time.Second, 1*time.Second).Should(BeTrue())
+	Eventually(getIstioMeshCrd, 180*time.Second, 1*time.Second).Should(BeNil())
 	cmdString := "set mesh stats " +
 		"--target-mesh glooshot.istio-istio-system " +
 		"--prometheus-configmap glooshot.glooshot-prometheus-server"
@@ -359,10 +366,10 @@ func setupPromStats() {
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(isSetupPromStatsReady, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
-	Eventually(promIsStable, 60*time.Second, 500*time.Millisecond).Should(BeTrue())
+	Eventually(expectSetupPromStatsReady, 30*time.Second, 500*time.Millisecond).Should(BeNil())
+	Eventually(promIsStable, 60*time.Second, 500*time.Millisecond).Should(BeNil())
 }
-func isSetupPromStatsReady() bool {
+func expectSetupPromStatsReady() error {
 	cm, err := gtr.cs.kubeClient.CoreV1().ConfigMaps(gtr.GlooshotNamespace).Get("glooshot-prometheus-server", metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 	hasIstioMetrics := false
@@ -374,20 +381,17 @@ func isSetupPromStatsReady() bool {
 		}
 	}
 	if !hasIstioMetrics {
-		return false
+		return fmt.Errorf("no istio metrics found")
 	}
-	return true
+	return nil
 }
-func getIstioMeshCrd() bool {
+func getIstioMeshCrd() error {
 	_, err := gtr.cs.meshClient.Read(gtr.GlooshotNamespace, gtr.tut.meshName, clients.ReadOpts{})
-	if err != nil {
-		return false
-	}
-	return true
+	return err
 }
 
 func setupDeployBookinfo() {
-	if isSetupDeployBookinfoReady() {
+	if ready(expectSetupDeployBookinfoReady()) {
 		fmt.Println("skipping setup deploy bookinfo, already ready")
 		return
 	}
@@ -398,13 +402,15 @@ func setupDeployBookinfo() {
 	cmd.Stderr = GinkgoWriter
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(isSetupDeployBookinfoReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(expectSetupDeployBookinfoReady, 80*time.Second, 250*time.Millisecond).Should(BeNil())
 }
-func isSetupDeployBookinfoReady() bool {
+func expectSetupDeployBookinfoReady() error {
 	list, err := gtr.cs.kubeClient.CoreV1().Pods(gtr.AppNamespace).List(metav1.ListOptions{})
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return err
+	}
 	if len(list.Items) == 0 {
-		return false
+		return fmt.Errorf("no bookinfo pods found")
 	}
 	nPodsGettingReady := 0
 	for _, p := range list.Items {
@@ -412,11 +418,17 @@ func isSetupDeployBookinfoReady() bool {
 			nPodsGettingReady++
 		}
 	}
-	return list.Items[0].Status.Phase == corev1.PodRunning
+	got := list.Items[0].Status.Phase
+	expected := corev1.PodRunning
+
+	if got == expected {
+		return nil
+	}
+	return fmt.Errorf("got: %v, expected: %v", got, expected)
 }
 
 func setupRoutingRuleToVulnerableApp() {
-	if isSetupRoutingRuleToVulnerableAppReady() {
+	if ready(expectSetupRoutingRuleToVulnerableAppReady()) {
 		fmt.Println("skipping setup rr vulnerable, already ready")
 		return
 	}
@@ -432,19 +444,22 @@ func setupRoutingRuleToVulnerableApp() {
 	err := cmd.Run()
 	Expect(err).NotTo(HaveOccurred())
 	pushCleanup(crd{"routingrule", "glooshot", "reviews-vulnerable"})
-	Eventually(isSetupRoutingRuleToVulnerableAppReady, 80*time.Second, 250*time.Millisecond).Should(BeTrue())
+	Eventually(expectSetupRoutingRuleToVulnerableAppReady, 80*time.Second, 250*time.Millisecond).Should(BeNil())
 }
 
-func isSetupRoutingRuleToVulnerableAppReady() bool {
+func expectSetupRoutingRuleToVulnerableAppReady() error {
 	_, err := gtr.cs.rrClient.Read(gtr.GlooshotNamespace, gtr.tut.rrVulnerableName, clients.ReadOpts{})
-	if err != nil {
+	return err
+}
+
+func ready(e error) bool {
+	if e != nil {
 		return false
 	}
 	return true
 }
-
 func setupApplyFirstExperiment() {
-	if isSetupApplyFirstExperimentReady() == readyString {
+	if ready(expectSetupApplyFirstExperimentReady()) {
 		fmt.Println("skipping setup apply first experiment, already ready")
 		return
 	}
@@ -455,16 +470,16 @@ func setupApplyFirstExperiment() {
 	pushCleanup(crd{"routingrule", gtr.AppNamespace, "abort-ratings-metric-0"})
 
 	timeLimit := 45 * time.Second
-	Eventually(isSetupApplyFirstExperimentReady, timeLimit, 250*time.Millisecond).Should(Equal(readyString))
+	Eventually(expectSetupApplyFirstExperimentReady, timeLimit, 250*time.Millisecond).Should(BeNil())
 }
-func isSetupApplyFirstExperimentReady() string {
+func expectSetupApplyFirstExperimentReady() error {
 	if _, err := gtr.cs.expClient.Read(gtr.AppNamespace, "abort-ratings-metric", clients.ReadOpts{}); err != nil {
-		return "could not read experiment"
+		return fmt.Errorf("could not read experiment")
 	}
 	if _, err := gtr.cs.rrClient.Read(gtr.AppNamespace, "abort-ratings-metric-0", clients.ReadOpts{}); err != nil {
-		return "could not read routing rule"
+		return fmt.Errorf("could not read routing rule")
 	}
-	return readyString
+	return nil
 }
 
 // return the cancel function so that we can kill long-running commands like port-forward
@@ -523,26 +538,25 @@ func curl(url string) (string, error) {
 func setupProduceTraffic() {
 	portForwardApp()
 	successCount := 0
-	Eventually(promIsStable, 90*time.Second, 500*time.Millisecond).Should(BeTrue())
+	Eventually(promIsStable, 90*time.Second, 500*time.Millisecond).Should(BeNil())
 	// give prom a moment to run
 	time.Sleep(1 * time.Second)
-	Eventually(getNValidResponses(&successCount, 50), 60*time.Second, 25*time.Millisecond).Should(BeTrue())
+	Eventually(getNValidResponses(&successCount, 50), 60*time.Second, 25*time.Millisecond).Should(BeNil())
 	// wait for prom q's to get scraped
 	Eventually(expectExpToHaveFailed(gtr.AppNamespace, "abort-ratings-metric"), 60*time.Second, 500*time.Millisecond).Should(BeNil())
 	Eventually(expectExpFailureReport(gtr.AppNamespace, "abort-ratings-metric"), 15*time.Second, 250*time.Millisecond).Should(BeNil())
 }
-func getNValidResponses(successCount *int, targetCount int) func() bool {
+func getNValidResponses(successCount *int, targetCount int) func() error {
 	// use a closure so we can increment a success rate across retries
-	return func() bool {
-		_, err := curl("http://localhost:9080/productpage?u=normal")
-		fmt.Printf("got %v responses\n", *successCount)
-		if err == nil {
-			*successCount = *successCount + 1
+	return func() error {
+		if _, err := curl("http://localhost:9080/productpage?u=normal"); err != nil {
+			return err
 		}
+		*successCount = *successCount + 1
 		if *successCount > targetCount {
-			return true
+			return nil
 		}
-		return false
+		return fmt.Errorf("waiting for %v successes, have %v", targetCount, *successCount)
 	}
 }
 func expectExpToHaveFailed(namespace, name string) func() error {
