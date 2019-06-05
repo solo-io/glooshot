@@ -83,8 +83,6 @@ spec:
   replicas: 1
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/proxyImage: soloio/proxyv2:loop.7
       labels:
         app: ratings
         version: v1
@@ -227,8 +225,6 @@ spec:
   replicas: 1
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/proxyImage: soloio/proxyv2:loop.7
       labels:
         app: productpage
         version: v1

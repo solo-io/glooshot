@@ -234,9 +234,3 @@ check-format: must
 	NOT_FORMATTED=$$(gofmt -l $(FORMAT_DIRS)) && if [ -n "$$NOT_FORMATTED" ]; then echo These files are not formatted: $$NOT_FORMATTED; exit 1; fi
 
 # TODO - enable spell check
-
-
-## TODO - move to install cmd
-.PHONY: grafana
-grafana:
-	helm template ~/git/github.com/helm/charts/stable/grafana/ --name kubecon-eu -f install/helm/grafana/values.yaml --namespace grafana --set namespace.create=true  > install/tmpgrafana.yaml

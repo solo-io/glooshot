@@ -42,7 +42,7 @@ type clientSet struct {
 
 func setTestResources() {
 	kubeClient := kube.MustKubeClient()
-	ctx := context.Background()
+	ctx := context.TODO()
 	expClient, err := gsutil.GetExperimentClient(ctx, false)
 	Expect(err).NotTo(HaveOccurred())
 	repClient, err := gsutil.GetReportClient(ctx, false)
