@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/solo-io/glooshot/pkg/setup/options"
+	"github.com/solo-io/glooshot/test/utils"
 
 	"github.com/solo-io/glooshot/pkg/translator"
 
@@ -19,7 +19,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/solo-io/glooshot/pkg/api/v1"
-	"github.com/solo-io/glooshot/pkg/setup"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	sgv1 "github.com/solo-io/supergloo/pkg/api/v1"
@@ -48,12 +47,15 @@ var _ = Describe("Glooshot", func() {
 		ctx = context.Background()
 		expClient, err := gsutil.GetExperimentClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
+		repClient, err := gsutil.GetReportClient(ctx, false)
+		Expect(err).NotTo(HaveOccurred())
 		rrClient, err := gsutil.GetRoutingRuleClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
 		meshClient, err := gsutil.GetMeshClient(ctx, false)
 		Expect(err).NotTo(HaveOccurred())
 		cs = clientSet{
 			expClient:  expClient,
+			repClient:  repClient,
 			rrClient:   rrClient,
 			meshClient: meshClient,
 			kubeClient: kubeClient,
@@ -64,14 +66,7 @@ var _ = Describe("Glooshot", func() {
 			fmt.Printf("this test is disabled in CI. to run, ensure env var `CI_TESTS` is not set to 1")
 			return
 		}
-		go func() {
-			defer GinkgoRecover()
-			testOpts := options.DefaultOpts()
-			testOpts.PrometheusURL = "http://localhost:9099"
-			err := setup.Run(ctx, testOpts)
-			By(fmt.Sprintf("goroutine running with error: %v", err))
-			Expect(err).NotTo(HaveOccurred())
-		}()
+		utils.RunGlooshotLocal(ctx, "http://localhost:9090")
 	})
 
 	AfterEach(func() {
@@ -100,6 +95,7 @@ var _ = Describe("Glooshot", func() {
 
 type clientSet struct {
 	expClient  v1.ExperimentClient
+	repClient  v1.ReportClient
 	rrClient   sgv1.RoutingRuleClient
 	meshClient sgv1.MeshClient
 	kubeClient kubernetes.Interface

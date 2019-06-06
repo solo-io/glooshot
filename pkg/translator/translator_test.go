@@ -56,11 +56,13 @@ var _ = Describe("translator", func() {
 		destination1 = &core.ResourceRef{"name1", "default"}
 		destination2 = &core.ResourceRef{"name2", "default"}
 		basicFailureCondition = &v1.FailureCondition{
-			FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
-				PrometheusTrigger: &v1.PrometheusTrigger{
-					QueryType:          nil,
-					ThresholdValue:     0,
-					ComparisonOperator: "",
+			Trigger: &v1.FailureCondition_Trigger{
+				FailureTrigger: &v1.FailureCondition_Trigger_Prometheus{
+					Prometheus: &v1.PrometheusTrigger{
+						QueryType:          nil,
+						ThresholdValue:     0,
+						ComparisonOperator: "",
+					},
 				},
 			},
 		}

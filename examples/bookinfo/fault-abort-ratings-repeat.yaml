@@ -1,11 +1,11 @@
 apiVersion: glooshot.solo.io/v1
 kind: Experiment
 metadata:
-  name: abort-ratings-metric
-  namespace: bookinfo
+  name: abort-ratings-metric-repeat
+  namespace: default
 spec:
   spec:
-    duration: 600s
+    duration: 30s
     failureConditions:
       - trigger:
           prometheus:
@@ -15,7 +15,7 @@ spec:
             comparisonOperator: ">"
     faults:
     - destinationServices:
-      - name: bookinfo-ratings-9080
+      - name: default-ratings-9080
         namespace: glooshot
       fault:
         abort:

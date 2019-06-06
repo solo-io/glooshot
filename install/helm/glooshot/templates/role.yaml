@@ -16,7 +16,7 @@ rules:
   resources: ["customresourcedefinitions"]
   verbs: ["get", "create"]
 - apiGroups: ["glooshot.solo.io"]
-  resources: ["experiments"]
+  resources: ["experiments","reports"]
   verbs: ["*"]
 
 {{- end -}}

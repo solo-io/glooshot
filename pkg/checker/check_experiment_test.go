@@ -19,6 +19,7 @@ import (
 var _ = Describe("CheckExperiment", func() {
 	var (
 		experiments v1.ExperimentClient
+		reports     v1.ReportClient
 		checker     ExperimentChecker
 		prom        *mockPromClient
 		q1, q2      = "physics1", "astronomy2"
@@ -28,8 +29,9 @@ var _ = Describe("CheckExperiment", func() {
 		prom = newMockPromClient()
 		queries := promquery.NewQueryPubSub(context.TODO(), prom, time.Millisecond)
 		experiments, err = v1.NewExperimentClient(&factory.MemoryResourceClientFactory{Cache: memory.NewInMemoryResourceCache()})
+		reports, err = v1.NewReportClient(&factory.MemoryResourceClientFactory{Cache: memory.NewInMemoryResourceCache()})
 		Expect(err).NotTo(HaveOccurred())
-		checker = NewChecker(queries, experiments)
+		checker = NewChecker(queries, experiments, reports)
 	})
 
 	Context("failure condition met", func() {
@@ -48,22 +50,26 @@ var _ = Describe("CheckExperiment", func() {
 			experiment.Spec = &v1.ExperimentSpec{
 				FailureConditions: []*v1.FailureCondition{
 					{
-						FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
-							PrometheusTrigger: &v1.PrometheusTrigger{
-								QueryType: &v1.PrometheusTrigger_CustomQuery{
-									CustomQuery: q1,
+						Trigger: &v1.FailureCondition_Trigger{
+							FailureTrigger: &v1.FailureCondition_Trigger_Prometheus{
+								Prometheus: &v1.PrometheusTrigger{
+									QueryType: &v1.PrometheusTrigger_CustomQuery{
+										CustomQuery: q1,
+									},
+									ThresholdValue: 50,
 								},
-								ThresholdValue: 50,
 							},
 						},
 					},
 					{
-						FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
-							PrometheusTrigger: &v1.PrometheusTrigger{
-								QueryType: &v1.PrometheusTrigger_CustomQuery{
-									CustomQuery: q2,
+						Trigger: &v1.FailureCondition_Trigger{
+							FailureTrigger: &v1.FailureCondition_Trigger_Prometheus{
+								Prometheus: &v1.PrometheusTrigger{
+									QueryType: &v1.PrometheusTrigger_CustomQuery{
+										CustomQuery: q2,
+									},
+									ThresholdValue: 50,
 								},
-								ThresholdValue: 50,
 							},
 						},
 					},
@@ -112,22 +118,26 @@ var _ = Describe("CheckExperiment", func() {
 			experiment.Spec = &v1.ExperimentSpec{
 				FailureConditions: []*v1.FailureCondition{
 					{
-						FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
-							PrometheusTrigger: &v1.PrometheusTrigger{
-								QueryType: &v1.PrometheusTrigger_CustomQuery{
-									CustomQuery: q1,
+						Trigger: &v1.FailureCondition_Trigger{
+							FailureTrigger: &v1.FailureCondition_Trigger_Prometheus{
+								Prometheus: &v1.PrometheusTrigger{
+									QueryType: &v1.PrometheusTrigger_CustomQuery{
+										CustomQuery: q1,
+									},
+									ThresholdValue: 50,
 								},
-								ThresholdValue: 50,
 							},
 						},
 					},
 					{
-						FailureTrigger: &v1.FailureCondition_PrometheusTrigger{
-							PrometheusTrigger: &v1.PrometheusTrigger{
-								QueryType: &v1.PrometheusTrigger_CustomQuery{
-									CustomQuery: q2,
+						Trigger: &v1.FailureCondition_Trigger{
+							FailureTrigger: &v1.FailureCondition_Trigger_Prometheus{
+								Prometheus: &v1.PrometheusTrigger{
+									QueryType: &v1.PrometheusTrigger_CustomQuery{
+										CustomQuery: q2,
+									},
+									ThresholdValue: 50,
 								},
-								ThresholdValue: 50,
 							},
 						},
 					},

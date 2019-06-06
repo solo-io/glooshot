@@ -17,8 +17,12 @@ weight: 5
 - [ExperimentSpec](#experimentspec)
 - [InjectedFault](#injectedfault)
 - [FailureCondition](#failurecondition)
+- [Trigger](#trigger)
 - [PrometheusTrigger](#prometheustrigger)
 - [SuccessRateQuery](#successratequery)
+- [Report](#report) **Top-Level Resource**
+- [FailureConditionSnapshot](#failureconditionsnapshot)
+- [FailureConditionHistory](#failureconditionhistory)
   
 
 
@@ -143,15 +147,35 @@ decribes a single fault to  inject
 a condition based on an observed prometheus metric
 
 ```yaml
+"name": string
+"trigger": .glooshot.solo.io.FailureCondition.Trigger
+
+```
+
+| Field | Type | Description | Default |
+| ----- | ---- | ----------- |----------- | 
+| `name` | `string` | optional, a name for identifying the failure condition, must be unique if not provided, will be generated from index |  |
+| `trigger` | [.glooshot.solo.io.FailureCondition.Trigger](../glooshot.proto.sk#trigger) | the condition that will terminate the experiment |  |
+
+
+
+
+---
+### Trigger
+
+ 
+condition that will terminate the experiment
+
+```yaml
 "webhookUrl": string
-"prometheusTrigger": .glooshot.solo.io.PrometheusTrigger
+"prometheus": .glooshot.solo.io.PrometheusTrigger
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `webhookUrl` | `string` | if HTTP GET returns non-200 status code, the condition was met |  |
-| `prometheusTrigger` | [.glooshot.solo.io.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
+| `prometheus` | [.glooshot.solo.io.PrometheusTrigger](../glooshot.proto.sk#prometheustrigger) | trigger a failure on observed prometheus metric |  |
 
 
 
@@ -195,6 +219,68 @@ returns the # of non-5XX requests / total requests for the given interval
 | ----- | ---- | ----------- |----------- | 
 | `service` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | the service whose success rate Glooshot should monitor |  |
 | `interval` | [.google.protobuf.Duration](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration) | the time interval over which the success rate should be measured defaults to 1 minute |  |
+
+
+
+
+---
+### Report
+
+ 
+a snapshot of experiment metric values
+
+```yaml
+"metadata": .core.solo.io.Metadata
+"status": .core.solo.io.Status
+"experiment": .core.solo.io.ResourceRef
+"failureConditionHistory": []glooshot.solo.io.Report.FailureConditionHistory
+
+```
+
+| Field | Type | Description | Default |
+| ----- | ---- | ----------- |----------- | 
+| `metadata` | [.core.solo.io.Metadata](../../../../solo-kit/api/v1/metadata.proto.sk#metadata) | the object metadata for this resource |  |
+| `status` | [.core.solo.io.Status](../../../../solo-kit/api/v1/status.proto.sk#status) |  |  |
+| `experiment` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | Name of the experiment this report pertains to |  |
+| `failureConditionHistory` | [[]glooshot.solo.io.Report.FailureConditionHistory](../glooshot.proto.sk#failureconditionhistory) | the measured values of each of the failure conditions at the time the report was captured |  |
+
+
+
+
+---
+### FailureConditionSnapshot
+
+
+
+```yaml
+"value": float
+"timestamp": .google.protobuf.Timestamp
+
+```
+
+| Field | Type | Description | Default |
+| ----- | ---- | ----------- |----------- | 
+| `value` | `float` | return type for simple metrics queries |  |
+| `timestamp` | [.google.protobuf.Timestamp](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/timestamp) | time that value was recorded |  |
+
+
+
+
+---
+### FailureConditionHistory
+
+
+
+```yaml
+"failureConditionName": string
+"failureConditionSnapshots": []glooshot.solo.io.Report.FailureConditionSnapshot
+
+```
+
+| Field | Type | Description | Default |
+| ----- | ---- | ----------- |----------- | 
+| `failureConditionName` | `string` | name of the corresponding failure condition TODO - add name to spec, using array index for now |  |
+| `failureConditionSnapshots` | [[]glooshot.solo.io.Report.FailureConditionSnapshot](../glooshot.proto.sk#failureconditionsnapshot) | history of all measurements of the failure condition |  |
 
 
 

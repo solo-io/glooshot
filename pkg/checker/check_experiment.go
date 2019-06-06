@@ -3,6 +3,7 @@ package checker
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/solo-io/glooshot/pkg/checker/metrics"
@@ -24,12 +25,18 @@ type ExperimentChecker interface {
 }
 
 type checker struct {
-	promCache   promquery.QueryPubSub
-	experiments v1.ExperimentClient
+	promCache            promquery.QueryPubSub
+	experiments          v1.ExperimentClient
+	reports              v1.ReportClient
+	queryResultHistories map[string]*v1.Report_FailureConditionHistory
+	snapshotLock         sync.RWMutex
 }
 
-func NewChecker(queries promquery.QueryPubSub, experiments v1.ExperimentClient) *checker {
-	return &checker{promCache: queries, experiments: experiments}
+func NewChecker(queries promquery.QueryPubSub, experiments v1.ExperimentClient, reports v1.ReportClient) *checker {
+	return &checker{promCache: queries,
+		experiments:          experiments,
+		reports:              reports,
+		queryResultHistories: make(map[string]*v1.Report_FailureConditionHistory)}
 }
 
 var defaultDuration = time.Minute * 10
@@ -58,28 +65,15 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 	}
 	logger.Infof("beginning monitoring of experiment %v", experiment.Metadata.Ref())
 	for _, fc := range experiment.Spec.FailureConditions {
-		switch trigger := fc.FailureTrigger.(type) {
-		case *v1.FailureCondition_PrometheusTrigger:
-			promTrigger := trigger.PrometheusTrigger
-			comparisonOperator := promTrigger.ComparisonOperator
-			if comparisonOperator == "" {
-				comparisonOperator = "<"
+		switch trigger := fc.Trigger.FailureTrigger.(type) {
+		case *v1.FailureCondition_Trigger_Prometheus:
+			queryString, comparisonOperator, threshold, err := getPromQuerySpecs(trigger.Prometheus)
+			if err != nil {
+				return err
 			}
-			var queryString string
-			switch query := promTrigger.QueryType.(type) {
-			case *v1.PrometheusTrigger_SuccessRate:
-				var err error
-				queryString, err = generateQuery(query.SuccessRate)
-				if err != nil {
-					return errors.Wrapf(err, "invalid success rate query params")
-				}
-			case *v1.PrometheusTrigger_CustomQuery:
-				queryString = query.CustomQuery
-			}
-			threshold := promTrigger.ThresholdValue
 
 			go func() {
-				failure, err := c.pollUntilFailure(ctx, queryString, comparisonOperator, threshold)
+				failure, err := c.pollUntilFailure(ctx, fc.Name, promquery.Query(queryString), comparisonOperator, threshold)
 				if err != nil {
 					logger.Errorw("failure while polling prometheus", zap.Error(err), zap.String("query", queryString))
 					return
@@ -116,6 +110,26 @@ func (c *checker) MonitorExperiment(ctx context.Context, experiment *v1.Experime
 	return c.reportResult(ctx, experiment.Metadata.Ref(), report)
 }
 
+func getPromQuerySpecs(promTrigger *v1.PrometheusTrigger) (string, string, float64, error) {
+	comparisonOperator := promTrigger.ComparisonOperator
+	if comparisonOperator == "" {
+		comparisonOperator = "<"
+	}
+	var queryString string
+	switch query := promTrigger.QueryType.(type) {
+	case *v1.PrometheusTrigger_SuccessRate:
+		var err error
+		queryString, err = generateQuery(query.SuccessRate)
+		if err != nil {
+			return "", "", 0, errors.Wrapf(err, "invalid success rate query params")
+		}
+	case *v1.PrometheusTrigger_CustomQuery:
+		queryString = query.CustomQuery
+	}
+	threshold := promTrigger.ThresholdValue
+	return queryString, comparisonOperator, threshold, nil
+}
+
 func generateQuery(query *v1.PrometheusTrigger_SuccessRateQuery) (string, error) {
 	if query.Service == nil {
 		return "", errors.Errorf("service cannot be nil")
@@ -147,7 +161,7 @@ func getRemainingDuration(experiment *v1.Experiment) (time.Duration, error) {
 	return experimentDuration - elapsedTime, nil
 }
 
-func (c *checker) pollUntilFailure(ctx context.Context, query, comparisonOperator string, threshold float64) (failureReport, error) {
+func (c *checker) pollUntilFailure(ctx context.Context, fcName string, query promquery.Query, comparisonOperator string, threshold float64) (failureReport, error) {
 	values := c.promCache.Subscribe(query)
 	defer c.promCache.Unsubscribe(query, values)
 	for {
@@ -159,7 +173,8 @@ func (c *checker) pollUntilFailure(ctx context.Context, query, comparisonOperato
 			if !ok {
 				return nil, errors.Errorf("unexpected close of query subscription")
 			}
-			if exceededThreshold(val, threshold, comparisonOperator) {
+			c.storeQueryValue(fcName, val)
+			if exceededThreshold(float64(val), threshold, comparisonOperator) {
 				return failureReport{
 					"failure_type":        "value_exceeded_threshold",
 					"value":               fmt.Sprintf("%v", val),
@@ -203,13 +218,68 @@ func (c *checker) reportResult(ctx context.Context, targetExperiment core.Resour
 		Ctx:               ctx,
 		OverwriteExisting: true,
 	})
+	if err != nil {
+		return err
+	}
 
 	contextutils.LoggerFrom(ctx).Infow("reported experiment result", zap.Any("result", experiment.Result))
 
-	return err
+	// just log reporting errors, don't propagate
+	reportErr := c.produceReport(ctx, experiment)
+	if reportErr != nil {
+		contextutils.LoggerFrom(ctx).Warnw("error while producing report",
+			zap.Error(err),
+			"experiment", experiment.Metadata.Name,
+			"namespace", experiment.Metadata.Namespace)
+	}
+	return nil
 }
 
 func TimeProto(t time.Time) *types.Timestamp {
 	ts, _ := types.TimestampProto(t)
 	return ts
+}
+
+func (c *checker) storeQueryValue(fcName string, val promquery.Result) {
+	c.snapshotLock.Lock()
+	defer c.snapshotLock.Unlock()
+	history, ok := c.queryResultHistories[fcName]
+	if !ok {
+		history = &v1.Report_FailureConditionHistory{
+			FailureConditionName: string(fcName),
+		}
+	}
+	history.FailureConditionSnapshots = append(history.FailureConditionSnapshots, &v1.Report_FailureConditionSnapshot{
+		Value:     float64(val),
+		Timestamp: TimeProto(time.Now()),
+	})
+	c.queryResultHistories[fcName] = history
+}
+
+func (c *checker) produceReport(ctx context.Context, exp *v1.Experiment) error {
+	c.snapshotLock.Lock()
+	defer c.snapshotLock.Unlock()
+	var histories []*v1.Report_FailureConditionHistory
+	if exp.Spec != nil {
+		for _, fc := range exp.Spec.FailureConditions {
+			fcHistory, ok := c.queryResultHistories[fc.Name]
+			if !ok {
+				contextutils.LoggerFrom(ctx).Warnw("no measurement history for failure condition found",
+					"failureCondition", fc.Name)
+			}
+			histories = append(histories, fcHistory)
+		}
+	}
+	expRef := exp.Metadata.Ref()
+	report := &v1.Report{
+		Metadata: core.Metadata{
+			Namespace: exp.Metadata.Namespace,
+			Name:      exp.Metadata.Name,
+		},
+		Experiment:              &expRef,
+		FailureConditionHistory: histories,
+	}
+	_, err := c.reports.Write(report, clients.WriteOpts{})
+
+	return err
 }

@@ -85,15 +85,19 @@ func GetNamespaces(o *Options) []string {
 
 const defaultConfigFileLocation = "~/.glooshot/config.yaml"
 
-func InitialOptions(ctx context.Context, registerCrds bool) Options {
+func InitialOptions(ctx context.Context) Options {
 	return Options{
 		Ctx:     ctx,
-		Clients: gsutil.NewClientCache(ctx, registerCrds, cliClientErrorHandler(ctx)),
+		Clients: CreateClientset(ctx, false),
 		Top: TopOptions{
 			ConfigFile: defaultConfigFileLocation,
 		},
 		Create: CreateOptions{},
 	}
+}
+
+func CreateClientset(ctx context.Context, registerCrds bool) gsutil.ClientCache {
+	return gsutil.NewClientCache(ctx, registerCrds, cliClientErrorHandler(ctx))
 }
 
 func cliClientErrorHandler(ctx context.Context) func(error) {

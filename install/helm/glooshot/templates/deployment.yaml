@@ -14,6 +14,7 @@ spec:
     metadata:
       labels:
         app: glooshot
+        glooshot: glooshot-op
     spec:
       initContainers:
         - name: await-prometheus

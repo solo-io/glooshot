@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 
+	"github.com/solo-io/glooshot/pkg/setup"
+	"go.uber.org/zap"
+
 	"github.com/solo-io/glooshot/pkg/version"
 	"github.com/solo-io/go-utils/contextutils"
-
-	"github.com/solo-io/glooshot/pkg/setup"
 )
 
 func getInitialContext() context.Context {
@@ -18,5 +19,7 @@ func getInitialContext() context.Context {
 
 func main() {
 	ctx := getInitialContext()
-	contextutils.LoggerFrom(ctx).Fatal(setup.Run(ctx, setup.GetOptions()))
+	if err := setup.Run(ctx, setup.GetOptions()); err != nil {
+		contextutils.LoggerFrom(ctx).Fatalw("error while running glooshot", zap.Error(err))
+	}
 }

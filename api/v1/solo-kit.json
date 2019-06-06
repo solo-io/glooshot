@@ -8,6 +8,10 @@
       {
         "name": "Experiment",
         "package": "glooshot.solo.io"
+      },
+      {
+        "name": "Report",
+        "package": "glooshot.solo.io"
       }
     ]
   }

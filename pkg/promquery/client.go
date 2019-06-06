@@ -5,24 +5,36 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gogo/protobuf/types"
+
 	"github.com/solo-io/go-utils/contextutils"
 
 	"github.com/prometheus/common/model"
 	"github.com/solo-io/go-utils/errors"
 )
 
+// for now, only support float64 results
+type Result float64
+type ResultSnapshot struct {
+	Result    Result
+	Timestamp *types.Timestamp
+}
+
+// for now, queries are just strings
+type Query string
+
 // stream of values for a polled query
-type Results <-chan float64
-type ResultsPush chan float64
+type ResultChan <-chan Result
+type ResultsPush chan Result
 
 type pubSub struct {
-	closeChannels   map[Results]ResultsPush
+	closeChannels   map[ResultChan]ResultsPush
 	subscriberCache []ResultsPush
 	subscriberLock  sync.RWMutex
 }
 
 func newPubsub() *pubSub {
-	return &pubSub{closeChannels: make(map[Results]ResultsPush)}
+	return &pubSub{closeChannels: make(map[ResultChan]ResultsPush)}
 }
 
 func (r *pubSub) active() bool {
@@ -38,19 +50,19 @@ func (r *pubSub) close() {
 		close(subscriber)
 	}
 	r.subscriberCache = nil
-	r.closeChannels = make(map[Results]ResultsPush)
+	r.closeChannels = make(map[ResultChan]ResultsPush)
 }
 
-func (r *pubSub) subscribe() Results {
+func (r *pubSub) subscribe() ResultChan {
 	r.subscriberLock.Lock()
 	defer r.subscriberLock.Unlock()
-	c := make(chan float64, 10)
+	c := make(chan Result, 10)
 	r.subscriberCache = append(r.subscriberCache, c)
 	r.closeChannels[c] = c
 	return c
 }
 
-func (r *pubSub) unsubscribe(c Results) {
+func (r *pubSub) unsubscribe(c ResultChan) {
 	r.subscriberLock.Lock()
 	defer r.subscriberLock.Unlock()
 	closeChan, ok := r.closeChannels[c]
@@ -66,7 +78,7 @@ func (r *pubSub) unsubscribe(c Results) {
 	}
 }
 
-func (r *pubSub) publish(ctx context.Context, result float64) {
+func (r *pubSub) publish(ctx context.Context, result Result) {
 	r.subscriberLock.RLock()
 	defer r.subscriberLock.RUnlock()
 	for _, subscriber := range r.subscriberCache {
@@ -79,8 +91,8 @@ func (r *pubSub) publish(ctx context.Context, result float64) {
 }
 
 type QueryPubSub interface {
-	Subscribe(query string) Results
-	Unsubscribe(query string, results Results)
+	Subscribe(query Query) ResultChan
+	Unsubscribe(query Query, results ResultChan)
 }
 
 // Publish results of Prometheus Queries on an interval, notifying subscribers of each query result
@@ -90,7 +102,7 @@ type queryPubSub struct {
 	client QueryClient
 
 	// maintain a pubsub for each query
-	queryPubSubs map[string]*pubSub
+	queryPubSubs map[Query]*pubSub
 	access       sync.RWMutex
 
 	// poll each query on this interval
@@ -101,7 +113,7 @@ var defaultPollingInterval = time.Second * 5
 
 // the only method we need from the prometheus client
 type QueryClient interface {
-	Query(ctx context.Context, query string, ts time.Time) (model.Value, error)
+	Query(ctx context.Context, queryString string, ts time.Time) (model.Value, error)
 }
 
 func NewQueryPubSub(rootCtx context.Context, promClient QueryClient, customPollingInterval time.Duration) QueryPubSub {
@@ -113,13 +125,13 @@ func NewQueryPubSub(rootCtx context.Context, promClient QueryClient, customPolli
 	return &queryPubSub{
 		client:          promClient,
 		pollingInterval: interval,
-		queryPubSubs:    make(map[string]*pubSub),
+		queryPubSubs:    make(map[Query]*pubSub),
 		rootCtx:         ctx,
 	}
 }
 
-func (c *queryPubSub) queryScalar(ctx context.Context, query string) (float64, error) {
-	result, err := c.client.Query(ctx, query, time.Now())
+func (c *queryPubSub) queryScalar(ctx context.Context, query Query) (Result, error) {
+	result, err := c.client.Query(ctx, string(query), time.Now())
 	if err != nil {
 		return 0, err
 	}
@@ -127,13 +139,13 @@ func (c *queryPubSub) queryScalar(ctx context.Context, query string) (float64, e
 	if !ok {
 		return 0, errors.Errorf("result for query %s was: %s (type %s), only scalar values supported", query, result.String(), result.Type())
 	}
-	return float64(scalar.Value), nil
+	return Result(scalar.Value), nil
 }
 
 // will poll the query for the given interval until the ctx is cancelled
 // subscribers who are watching this query will be notified on every tick
 // watch errors are currently logged rather than returned on a channel
-func (c *queryPubSub) beginPolling(query string) {
+func (c *queryPubSub) beginPolling(query Query) {
 	go func() {
 		// remove all subscribers for this query when this function exits
 		defer func() {
@@ -168,21 +180,21 @@ func (c *queryPubSub) beginPolling(query string) {
 	}()
 }
 
-func (c *queryPubSub) notifySubscribers(ctx context.Context, query string, val float64) {
+func (c *queryPubSub) notifySubscribers(ctx context.Context, query Query, val Result) {
 	queryPubSub, ok := c.getPubSub(query)
 	if ok {
 		queryPubSub.publish(ctx, val)
 	}
 }
 
-func (c *queryPubSub) getPubSub(query string) (*pubSub, bool) {
+func (c *queryPubSub) getPubSub(query Query) (*pubSub, bool) {
 	c.access.RLock()
 	queryPubSub, ok := c.queryPubSubs[query]
 	c.access.RUnlock()
 	return queryPubSub, ok
 }
 
-func (c *queryPubSub) Subscribe(query string) Results {
+func (c *queryPubSub) Subscribe(query Query) ResultChan {
 	queryPubSub, ok := c.getPubSub(query)
 	if !ok {
 		c.beginPolling(query)
@@ -194,7 +206,7 @@ func (c *queryPubSub) Subscribe(query string) Results {
 	return queryPubSub.subscribe()
 }
 
-func (c *queryPubSub) Unsubscribe(query string, results Results) {
+func (c *queryPubSub) Unsubscribe(query Query, results ResultChan) {
 	queryPubSub, ok := c.getPubSub(query)
 	if !ok {
 		return
