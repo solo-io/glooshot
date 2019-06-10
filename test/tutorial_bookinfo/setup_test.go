@@ -62,7 +62,7 @@ func setTestResources() {
 	Expect(err).NotTo(HaveOccurred())
 	gtr = testResources{
 		cs:                cs,
-		buildId:           buildRun.Config.BuildEnvVars.BuildId,
+		version:           buildRun.Config.ComputedBuildVars.Version,
 		GlooshotNamespace: "glooshot",
 		IstioNamespace:    "istio-system",
 		AppNamespace:      "bookinfo",
@@ -81,7 +81,7 @@ func setTestResources() {
 }
 
 type testResources struct {
-	buildId               string
+	version               string
 	cs                    clientSet
 	GlooshotNamespace     string
 	IstioNamespace        string
@@ -254,7 +254,7 @@ func setupGlooshotInit() {
 		fmt.Println("skipping glooshot init, already ready")
 		return
 	}
-	out, err := cli.GlooshotConfig.RunForTest(fmt.Sprintf("init -f ../../_output/helm/charts/glooshot-%v.tgz", gtr.buildId))
+	out, err := cli.GlooshotConfig.RunForTest(fmt.Sprintf("init -f ../../_output/helm/charts/glooshot-%v.tgz", gtr.version))
 	Expect(err).NotTo(HaveOccurred())
 	fmt.Println(out.CobraStderr)
 	fmt.Println(out.CobraStdout)
