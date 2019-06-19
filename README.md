@@ -16,7 +16,7 @@ Gloo Shot is a chaos engineering framework for service meshes.
 
 ## Using Gloo Shot
 - **Harden your mesh**: Gloo Shot allows you to test failure modes before they occur in production.
-- **Preview architectural changes**: Real deployments have different performance characteristics than your production environment. Gloo Shot allows you to simulate your productionn environment (latency, faults, etc.) prior to deployment.
+- **Preview architectural changes**: Real deployments have different performance characteristics than your production environment. Gloo Shot allows you to simulate your production environment (latency, faults, etc.) prior to deployment.
 
 ### Getting started
 
