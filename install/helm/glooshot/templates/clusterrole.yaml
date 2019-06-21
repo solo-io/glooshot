@@ -9,7 +9,7 @@ metadata:
         glooshot: rbac
 rules:
 - apiGroups: ["glooshot.solo.io"]
-  resources: ["experiments"]
+  resources: ["experiments","reports"]
   verbs: ["*"]
 - apiGroups: ["supergloo.solo.io"]
   resources: ["meshes"]

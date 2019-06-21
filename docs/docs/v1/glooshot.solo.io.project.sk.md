@@ -25,6 +25,7 @@ API Version: `glooshot.solo.io.v1`
 - [Policy](../github.com/solo-io/supergloo/api/external/istio/authorization/v1alpha1/policy.proto.sk#policy)
 - [Proxy](../github.com/solo-io/gloo/projects/gloo/api/v1/proxy.proto.sk#proxy)
 - [RbacConfig](../github.com/solo-io/supergloo/api/external/istio/rbac/v1alpha1/rbac.proto.sk#rbacconfig)
+- [Report](../github.com/solo-io/glooshot/api/v1/glooshot.proto.sk#report)
 - [RoutingRule](../github.com/solo-io/supergloo/api/v1/routing.proto.sk#routingrule)
 - [SecurityRule](../github.com/solo-io/supergloo/api/v1/security.proto.sk#securityrule)
 - [ServiceRole](../github.com/solo-io/supergloo/api/external/istio/rbac/v1alpha1/rbac.proto.sk#servicerole)

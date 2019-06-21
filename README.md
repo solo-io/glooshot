@@ -7,8 +7,8 @@
 Gloo Shot is a chaos engineering framework for service meshes.
 
 
-[**Installation**](https://gloo.solo.io/installation/) &nbsp; |
-&nbsp; [**Documentation**](https://gloo.solo.io) &nbsp; |
+[**Installation**](https://glooshot.solo.io/installation/) &nbsp; |
+&nbsp; [**Documentation**](https://glooshot.solo.io/) &nbsp; |
 &nbsp; [**Blog**](https://medium.com/solo-io/) &nbsp; |
 &nbsp; [**Slack**](https://slack.solo.io) &nbsp; |
 &nbsp; [**Twitter**](https://twitter.com/soloio_inc)
@@ -16,7 +16,7 @@ Gloo Shot is a chaos engineering framework for service meshes.
 
 ## Using Gloo Shot
 - **Harden your applications**: Gloo Shot allows you to test failure modes before they occur in production.
-- **Preview architectural changes**: Real deployments have different performance characteristics than your production environment. Gloo Shot allows you to simulate your productionn environment (latency, faults, etc.) prior to deployment.
+- **Preview architectural changes**: Real deployments have different performance characteristics than your production environment. Gloo Shot allows you to simulate your production environment (latency, faults, etc.) prior to deployment.
 
 ### Getting started
 

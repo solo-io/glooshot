@@ -95,13 +95,21 @@ message ExperimentSpec {
 
 // a condition based on an observed prometheus metric
 message FailureCondition {
-    oneof failure_trigger {
-        // if HTTP GET returns non-200 status code, the condition was met
-        string webhook_url = 1;
+    // optional, a name for identifying the failure condition, must be unique
+    // if not provided, will be generated from index
+    string name = 1;
+    // condition that will terminate the experiment
+    message Trigger {
+        oneof failure_trigger {
+            // if HTTP GET returns non-200 status code, the condition was met
+            string webhook_url = 1;
 
-        // trigger a failure on observed prometheus metric
-        PrometheusTrigger prometheus_trigger = 2;
+            // trigger a failure on observed prometheus metric
+            PrometheusTrigger prometheus = 2;
+        }
     }
+    // the condition that will terminate the experiment
+    Trigger trigger = 2;
 }
 
 message PrometheusTrigger {
@@ -132,4 +140,36 @@ message PrometheusTrigger {
         // defaults to 1 minute
         google.protobuf.Duration interval = 6 [(gogoproto.stdduration) = true];
     }
+}
+
+// a snapshot of experiment metric values
+message Report {
+    option (core.solo.io.resource).short_name = "report";
+    option (core.solo.io.resource).plural_name = "reports";
+
+    // the object metadata for this resource
+    core.solo.io.Metadata metadata = 1 [(gogoproto.nullable) = false];
+
+    core.solo.io.Status status = 3 [(gogoproto.nullable) = false];
+
+    // Name of the experiment this report pertains to
+    core.solo.io.ResourceRef experiment = 4;
+
+    message FailureConditionSnapshot {
+        // return type for simple metrics queries
+        double value = 1;
+        // time that value was recorded
+        google.protobuf.Timestamp timestamp = 2;
+    }
+
+    message FailureConditionHistory {
+        // name of the corresponding failure condition
+        // TODO - add name to spec, using array index for now
+        string failure_condition_name = 1;
+        // history of all measurements of the failure condition
+        repeated FailureConditionSnapshot failure_condition_snapshots = 2;
+    }
+
+    // the measured values of each of the failure conditions at the time the report was captured
+    repeated FailureConditionHistory failure_condition_history = 5;
 }

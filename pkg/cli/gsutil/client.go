@@ -36,6 +36,28 @@ func GetExperimentClient(ctx context.Context, skipCrdCreation bool) (v1.Experime
 	return client, nil
 }
 
+func GetReportClient(ctx context.Context, skipCrdCreation bool) (v1.ReportClient, error) {
+	cfg, err := kubeutils.GetConfig("", "")
+	if err != nil {
+		return nil, err
+	}
+	cache := kube.NewKubeCache(ctx)
+	rcFactory := &factory.KubeResourceClientFactory{
+		Crd:             v1.ReportCrd,
+		Cfg:             cfg,
+		SharedCache:     cache,
+		SkipCrdCreation: skipCrdCreation,
+	}
+	client, err := v1.NewReportClient(rcFactory)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Register(); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
 func GetRoutingRuleClient(ctx context.Context, skipCrdCreation bool) (sgv1.RoutingRuleClient, error) {
 	cfg, err := kubeutils.GetConfig("", "")
 	if err != nil {
@@ -105,6 +127,7 @@ type ClientCache struct {
 	// internal cache
 	kubeClient *kubernetes.Clientset
 	expClient  *v1.ExperimentClient
+	repClient  *v1.ReportClient
 }
 
 func NewClientCache(ctx context.Context, registerCrds bool, handleError func(error)) ClientCache {
@@ -131,6 +154,15 @@ func (cc *ClientCache) ExpClient() v1.ExperimentClient {
 		cc.expClient = &expClient
 	}
 	return *cc.expClient
+}
+
+func (cc *ClientCache) ReportClient() v1.ReportClient {
+	if cc.repClient == nil {
+		repClient, err := GetReportClient(cc.ctx, !cc.registerCrds)
+		cc.check(err)
+		cc.repClient = &repClient
+	}
+	return *cc.repClient
 }
 
 func (cc *ClientCache) Ctx() context.Context {

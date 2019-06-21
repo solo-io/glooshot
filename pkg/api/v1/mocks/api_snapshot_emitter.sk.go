@@ -63,6 +63,20 @@ func (mr *MockApiEmitterMockRecorder) Experiment() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Experiment", reflect.TypeOf((*MockApiEmitter)(nil).Experiment))
 }
 
+// Report mocks base method
+func (m *MockApiEmitter) Report() v1.ReportClient {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Report")
+	ret0, _ := ret[0].(v1.ReportClient)
+	return ret0
+}
+
+// Report indicates an expected call of Report
+func (mr *MockApiEmitterMockRecorder) Report() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Report", reflect.TypeOf((*MockApiEmitter)(nil).Report))
+}
+
 // Snapshots mocks base method
 func (m *MockApiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts) (<-chan *v1.ApiSnapshot, <-chan error, error) {
 	m.ctrl.T.Helper()
